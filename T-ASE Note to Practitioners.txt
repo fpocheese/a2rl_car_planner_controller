@@ -1,0 +1,12 @@
+T-ASE publishes foundational research with relevance to practitioners. To facilitate transfer of research into practice, each paper includes a 100-300 word "Note to Practitioners" (NtP). Within the NtP, authors step back and describe without jargon how their results could be applied to practical problems.
+
+To Authors: Writing a good NtP is a challenge. The NtP will appear just below the Abstract so it is important not to restate or repeat information that is contained in the Abstract.
+
+The NtP should be directed to all practicing engineers in industry, colleagues who want to understand how your ideas can be put into practice. Assume such an engineer holds an undergraduate degree in a discipline other than your own, avoid jargon and notation.
+
+Begin by specifying the practical problem(s) that motivated your work and its primary application in automation. Then describe how your solution improves efficiency, quality, productivity, or reliability. Summarize the key insights and contributions of your results and (importantly) limitations and how your work might be extended. Conclude with other possible applications of these results.
+
+Note to Pracitioners Checklist:
+- Is the NtP addressed to industrial practitioners and sufficiently distinct from the Abstract (which is addressed to colleagues in research)?
+- Does the NtP summarize the innovative aspects of the paper, the practical value of the results, and how the results might be applied in the near or mid-term from a practitioner's point of view?
+- Does the NtP clearly describe practical limitations of the approach and directions for future research?

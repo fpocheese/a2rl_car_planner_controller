@@ -1,0 +1,8 @@
+% IEEEtran double-column figure snippet.
+% Place near the architecture/method overview section of a2rl_paper.tex.
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.94\textwidth]{figures/a2rl_algorithm_stack}
+\caption{Hierarchical tactical--planning--control stack for wheel-to-wheel autonomous racing. The tactical layer maps Frenet ego--opponent states and the learned corridor action into a mode-dependent feasible set. The SOCP planner intersects this corridor with track bounds, computes a curvature-regularized path, and applies GG-constrained speed profiling. The MPCC controller tracks the resulting reference while observer, perception, and safety feedback close the loop.}
+\label{fig:a2rl_algorithm_stack}
+\end{figure*}
