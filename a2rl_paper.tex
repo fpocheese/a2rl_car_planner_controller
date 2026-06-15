@@ -33,10 +33,9 @@
 \title{Hierarchical Tactical Corridor Planning and Control\\
 for Wheel-to-Wheel Autonomous Racing}
 
-\author{Anonymous Authors,~\IEEEmembership{Member,~IEEE}}
+\author{Shuyi Gao, Defu Lin and Ren Jin}
 
-\affil{This work was developed in the context of the Abu Dhabi Autonomous Racing
-League (A2RL) on the Yas Marina Circuit using the Dallara EAV24 platform.}
+\affil{School of Aerospace Engineering, Beijing Institute of Technology, Beijing, China}
 
 \keywords{Autonomous racing, model predictive contouring control, second-order cone
 programming, reinforcement learning, Frenet frame, friction circle,
@@ -280,31 +279,8 @@ $T_s=0.05\,\mathrm{s}$,
 \bm{x}_{k+1}=f_d(\bm{x}_k,\bm{u}_k)\;\triangleq\;\mathrm{RK4}\!\bigl(f_c,\bm{x}_k,\bm{u}_k,T_s\bigr).
 \label{eq:fd}
 \end{equation}
-Vehicle parameters are summarized in Table~\ref{tab:veh}.
-
-\begin{table}[t]
-\centering
-\caption{Dallara EAV24 model parameters used throughout this paper.}
-\label{tab:veh}
-\begin{tabular}{@{}lll@{}}
-\toprule
-Symbol & Value & Description \\
-\midrule
-$m$        & $742\,\mathrm{kg}$        & Total mass\\
-$l_f,l_r$  & $1.75,\,1.35\,\mathrm{m}$ & Axle distances to CoG\\
-$I_z$      & $1500\,\mathrm{kg\,m^2}$  & Yaw inertia\\
-$C_f,C_r$  & $2.30,\,2.40\!\times\!10^{5}\,\mathrm{N/rad}$ & Tire stiffness\\
-$\mu$      & $1.20$                    & Tire--road friction\\
-$\delta_{\max}$ & $0.342\,\mathrm{rad}$ & Steering bound ($\pm19.6^\circ$)\\
-$\dot{\delta}_{\max}$ & $0.5\,\mathrm{rad/s}$ & Steering rate bound\\
-$a\in[\underline a,\overline a]$ & $[-5,8]\,\mathrm{m/s^2}$ & Long.\ accel. range\\
-$v_{x,\max}$ & $90\,\mathrm{m/s}$ & Long.\ speed bound\\
-$c_{d,2}$ & $-1.04765\,\mathrm{N\,s^{2}/m^{2}}$ & Drag coeff.\ ($v^{2}$)\\
-$c_{d,1}$ & $47.5\,\mathrm{N\,s/m}$ & Drag coeff.\ ($v$)\\
-$c_{d,0}$ & $-1609.73\,\mathrm{N}$ & Drag coeff.\ (constant)\\
-\bottomrule
-\end{tabular}
-\end{table}
+Vehicle parameters used in the experiments are consolidated in
+Table~\ref{tab:setup_params}.
 
 \subsection{Frenet Kinematic Model and GG Envelope}
 \label{subsec:frenet}
@@ -379,7 +355,7 @@ a_{\rm drag}(v)=\tfrac{1}{m}\bigl(c_{d,2}\,v^{2}+c_{d,1}\,v+c_{d,0}\bigr),
 \label{eq:drag}
 \end{equation}
 whose coefficients $(c_{d,2},c_{d,1},c_{d,0})$ are identified from coastdown
-data and listed in Table~\ref{tab:veh}.  Drag is added to the longitudinal
+data.  Drag is added to the longitudinal
 force balance with the sign convention of (\ref{eq:vxdot}).
 
 % =====================================================================
@@ -404,8 +380,8 @@ heading error, lateral offset, and body-frame accelerations,
 \label{eq:obs_ego}
 \end{equation}
 where each component is scaled by its characteristic range (e.g.\
-$\bar{V}=V/V_{\rm char}$, $\bar{n}=n/n_{\rm char}$); the specific scaling
-constants are provided in Table~\ref{tab:obs_norm}.  The nearest opponent
+$\bar{V}=V/V_{\rm char}$, $\bar{n}=n/n_{\rm char}$); the numerical scaling
+constants are consolidated in Table~\ref{tab:setup_params}.  The nearest opponent
 in wrapped arc-length contributes a symmetrically normalized block,
 \begin{equation}
 \begin{aligned}
@@ -430,26 +406,6 @@ $\bm{e}_{m_t}\in\{0,1\}^{|\mathcal{M}|}$ complete the observation vector
 \bm{o}_t=\bigl[\bm{o}_t^{\rm ego},\bm{o}_t^{\rm opp},\bm{b}_t,\sigma_t^{\rm lock},\bm{e}_{m_t}\bigr]\in\R^{27}.
 \label{eq:obs27}
 \end{equation}
-
-\begin{table}[t]
-\centering
-\caption{Characteristic ranges used to normalize the tactical observation vector.}
-\label{tab:obs_norm}
-\begin{tabular}{@{}ll@{}}
-\toprule
-Symbol & Value \\
-\midrule
-$V_{\rm char}$                & $80\,\mathrm{m/s}$ \\
-$n_{\rm char}$                & $8\,\mathrm{m}$ \\
-$a_{\rm char}$                & $20\,\mathrm{m/s^{2}}$ \\
-$\Delta s_{\rm char}$         & $50\,\mathrm{m}$ \\
-$\Delta V_{s,\rm char}$       & $30\,\mathrm{m/s}$ \\
-$g_{\rm char}$                & $50\,\mathrm{m}$ \\
-$\tau_{\rm tc,\max}$          & $30\,\mathrm{s}$ \\
-$\varepsilon_\tau$            & $0.01\,\mathrm{m/s}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \paragraph*{Neural fixed-track prior}
 The policy feature extractor owns a fixed map of the circuit inside the
@@ -510,8 +466,8 @@ bias $b_{\rm lat}$, a corridor-width bonus $w_{\rm safe}$, and a side-selection
 score $q_{\rm side}\in[-1,1]$ whose sign determines the overtake direction
 ($q_{\rm side}\ge0$: left; $q_{\rm side}<0$: right).  The side decision
 is locked for the duration of one duel.  The elementwise bounds
-$\underline{\bm{a}},\overline{\bm{a}}$ are provided in
-Table~\ref{tab:action_bounds}.  After affine mapping, consistency clips
+$\underline{\bm{a}},\overline{\bm{a}}$ are reported in
+Table~\ref{tab:setup_params}.  After affine mapping, consistency clips
 \begin{equation}
 \begin{aligned}
 g_{\rm chase}\ge g_{\rm ot}-\varepsilon_{co},\quad
@@ -523,28 +479,6 @@ L_t^{\rm cap}+R_t^{\rm cap}\ge\varepsilon_{\rm corr}.
 \end{equation}
 are enforced with small positive offsets $(\varepsilon_{co},\varepsilon_{oc},\varepsilon_{ca},\varepsilon_{\rm corr})$
 to maintain a non-empty corridor and a well-ordered FSM throughout training.
-
-\begin{table}[t]
-\centering
-\caption{Elementwise bounds of the TQC physical action vector $\bm{a}_t$.}
-\label{tab:action_bounds}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Entry & $\underline{\bm{a}}$ & $\overline{\bm{a}}$ \\
-\midrule
-$L_t^{\rm cap}$   & $1.5$  & $6.0$  \\
-$R_t^{\rm cap}$   & $1.5$  & $6.0$  \\
-$d_{\rm safe}$    & $0.2$  & $0.8$  \\
-$V_{\rm cap}$     & $15$   & $90$   \\
-$g_{\rm chase}$   & $18$   & $24$   \\
-$g_{\rm ot}$      & $16$   & $24$   \\
-$g_{\rm abort}$   & $28$   & $45$   \\
-$b_{\rm lat}$     & $-1.5$ & $1.5$  \\
-$w_{\rm safe}$    & $1$    & $5$    \\
-$q_{\rm side}$    & $-1$   & $1$    \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \paragraph*{Finite-state machine}
 The discrete tactical mode $m_t\in\mathcal{M}=\{$\textsc{Raceline,
@@ -570,25 +504,7 @@ which guards against late-corner divergence and lateral interlock with the
 opponent.  The thresholds $(g_{\rm chase},g_{\rm ot},g_{\rm abort})$ are
 the RL-modulated hysteresis parameters from $\bm{a}_t$, while
 $(g_{\rm def}^{\rm front},g_{\rm def}^{\rm rear},\Delta n_{\rm safe},g_{\rm interlock})$
-are fixed constants whose values are reported in
-Table~\ref{tab:fsm_constants}.
-
-\begin{table}[t]
-\centering
-\caption{Fixed FSM constants (not modulated by RL).}
-\label{tab:fsm_constants}
-\begin{tabular}{@{}ll@{}}
-\toprule
-Symbol & Value \\
-\midrule
-$g_{\rm def}^{\rm front}$  & $25\,\mathrm{m}$ \\
-$g_{\rm def}^{\rm rear}$   & $20\,\mathrm{m}$ \\
-$\Delta n_{\rm safe}$      & $2.5\,\mathrm{m}$ \\
-$g_{\rm interlock}$        & $6\,\mathrm{m}$ \\
-Post-overtake immunity     & $30\,\mathrm{s}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+are fixed constants whose values are reported in Table~\ref{tab:setup_params}.
 
 \paragraph*{Reward}
 The per-step reward used to train the TQC policy is the weighted sum
@@ -597,7 +513,7 @@ r_t=\sum_{j} w_j\,\phi_j(t),
 \label{eq:reward_sum}
 \end{equation}
 where the feature set and weights are detailed in
-Table~\ref{tab:rew}.  Key features include: an overtake success detector
+Table~\ref{tab:setup_params}.  Key features include: an overtake success detector
 $\phi_{\rm ot}=\mathbb{1}[\Delta s_{t-1}>\Delta s_{\rm ot}^{+}\wedge\Delta s_t<-\Delta s_{\rm ot}^{-}]$
 with hysteresis margins $(\Delta s_{\rm ot}^{+},\Delta s_{\rm ot}^{-})$; an
 approach incentive
@@ -605,28 +521,6 @@ $\phi_{\rm app}=\mathbb{1}[g<g_{\rm app}\wedge\dot g<0]\,/(1+g)$ that
 encourages closing on a distant leader; and a geometric smoothness penalty
 $\phi_{\rm gs}=(\Delta L^{\rm cap}_t)^{2}+(\Delta R^{\rm cap}_t)^{2}+(\Delta b_{\rm lat,t})^{2}$
 that suppresses corridor jitter between consecutive steps.
-
-\begin{table}[t]
-\centering
-\caption{Reward weights of the TQC tactical policy.}
-\label{tab:rew}
-\begin{tabular}{@{}lcl@{}}
-\toprule
-Feature & Weight $w_j$ & Meaning\\
-\midrule
-$\phi_{\rm ot}$ & $+30$ & Overtake sign-flip\\
-$\phi_{\rm ovb}$ & $-20$ & Overtaken by opponent\\
-$\phi_{\rm col}$ & $-100$ & Collision (terminal)\\
-$\phi_{\rm lat}=e_{\rm lat}^{2}$ & $-2$ & Lateral tracking error\\
-$\phi_{\rm crush}$ & $-5$ & $L^{\rm cap}+R^{\rm cap}<0.8$\\
-$\phi_{\rm app}$ & $+3$ & Approach bonus\\
-$\phi_{\rm sm}=\norm{\Delta\bm{a}_t}^{2}$ & $-0.1$ & Action smoothness\\
-$\phi_{\rm gs}$ & $-0.5$ & Geometric smoothness\\
-$\phi_{\rm sbs}$ & $+0.5$ & Side-by-side combat\\
-$\phi_{\rm wide}$ & $+0.25$ & Wide-corridor incentive\\
-\bottomrule
-\end{tabular}
-\end{table}
 
 The policy is optimized with Truncated Quantile Critics.
 Each critic represents a distributional action value by $N_q$ quantile atoms
@@ -650,29 +544,7 @@ J_\pi(\theta)=\E_{\widetilde{\bm{o}}\sim\mathcal{D},\,\bm{u}\sim\pi_\theta}\!\le
 \label{eq:tqc_actor}
 \end{equation}
 The temperature $\alpha$ is adjusted automatically to maintain a target
-entropy.  Training hyperparameters are summarized in
-Table~\ref{tab:tqc_hyperparams}.
-
-\begin{table}[t]
-\centering
-\caption{TQC training hyperparameters.}
-\label{tab:tqc_hyperparams}
-\begin{tabular}{@{}ll@{}}
-\toprule
-Hyperparameter & Value \\
-\midrule
-Learning rate             & $3\times10^{-4}$ \\
-Replay buffer size        & $10^{5}$ \\
-Batch size                & $256$ \\
-Discount factor $\gamma$  & $0.99$ \\
-Polyak $\tau$             & $5\times10^{-3}$ \\
-Feature network           & $51\to256\to256$ (ReLU) \\
-Policy/Critic MLP         & $[256,256]$ \\
-Quantile atoms $N_q$      & $25$ \\
-Truncated atoms $K$       & $20$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+entropy.  Training hyperparameters are summarized in Table~\ref{tab:setup_params}.
 
 One training episode consists of a single
 overtake duel: an NPC opponent is spawned ahead of the ego, and the episode
@@ -697,7 +569,7 @@ The corridor carver is a deterministic function
 that converts opponent states and the FSM mode into a corridor of
 $N_{\rm sta}$ stations with uniform spacing $\Delta s_{\rm sta}$ over the
 planning horizon $d_p$.  All numerical constants referenced below are
-collected in Table~\ref{tab:corridor_constants}.
+collected in Table~\ref{tab:setup_params}.
 
 \paragraph*{Heading-aware projection}
 For opponent $j$ with Frenet heading error $\chi^{(j)}$ and rectangular
@@ -776,31 +648,6 @@ the planner corridor; the safety margin and side decision enter upstream
 through the carver, and all three are ultimately realized as
 $\mathcal{C}_k$.
 
-\begin{table}[t]
-\centering
-\caption{Corridor-carving constants.}
-\label{tab:corridor_constants}
-\begin{tabular}{@{}ll@{}}
-\toprule
-Symbol & Value \\
-\midrule
-$d_p$                     & $300\,\mathrm{m}$ \\
-$N_{\rm sta}$             & $150$ \\
-$\Delta s_{\rm sta}$      & $2\,\mathrm{m}$ \\
-$p_{\rm fade}$            & $3$ \\
-$S_{\rm fade}$            & $50\,\mathrm{m}$ \\
-$W_{\rm fun}$             & $2.5\,\mathrm{m}$ (per side) \\
-$W_{\rm near}$            & $5\,\mathrm{m}$ \\
-$\lambda_{\rm side}$      & $0.6$ \\
-$L_{\min}^{\rm corr}$     & $3\,\mathrm{m}$ \\
-$\beta$ (EMA)             & $0.2$ \\
-$k_{\rm blend}$           & $9$ \\
-$d_{\rm rmp}$             & $40\,\mathrm{m}$ \\
-$k_{\rm sr}$              & $15$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 % =====================================================================
 \section{Local Planning Layer}\label{sec:planner}
 % =====================================================================
@@ -860,14 +707,14 @@ l_{\rm raceline}(s_{N-1}) & \!\!\text{race mode, in-corridor},\\
 \end{equation}
 The Frenet dynamics (\ref{eq:linAB}) are discretized by trapezoidal
 integration; for $i=0,\dots,N-2$,
-\begin{multline}
+\begin{equation}
 \Bigl(\bm{I}+\tfrac{\Delta s_i}{2}\bm{A}_{1,i}\Bigr)\bm{\xi}_i
-+\tfrac{\Delta s_i}{2}\bm{B}_{1,i}\bm{\eta}_i\\
++\tfrac{\Delta s_i}{2}\bm{B}_{1,i}\bm{\eta}_i
 -\Bigl(\bm{I}-\tfrac{\Delta s_i}{2}\bm{A}_{2,i}\Bigr)\bm{\xi}_{i+1}
-+\tfrac{\Delta s_i}{2}\bm{B}_{2,i}\bm{\eta}_{i+1}\\
++\tfrac{\Delta s_i}{2}\bm{B}_{2,i}\bm{\eta}_{i+1}
 =-\tfrac{\Delta s_i}{2}\bigl(\bm{b}_{1,i}+\bm{b}_{2,i}\bigr),
 \label{eq:trap}
-\end{multline}
+\end{equation}
 with $\bm{\xi}_i=[l_i,\alpha_i]^{\!\top}$, $\bm{\eta}_i=[\zeta_i,\sigma_i]^{\!\top}$
 and $(\bm{A}_{j,i},\bm{B}_{j,i},\bm{b}_{j,i})$ the linearization
 (\ref{eq:linAB}) at endpoints $j\in\{1,2\}$ of segment $i$.
@@ -1071,28 +918,8 @@ is the mechanism by which the controller produces the canonical
 entry-deceleration / apex-grip / exit-acceleration pattern without an
 explicit corner-by-corner reference shaping.
 
-The MPCC weights are summarized in Table~\ref{tab:mpcc}; they were tuned
-once on the global raceline and held constant across all races.
-
-\begin{table}[t]
-\centering
-\caption{MPCC stage and terminal cost weights, and bounds.}
-\label{tab:mpcc}
-\begin{tabular}{@{}lcl@{}}
-\toprule
-Symbol & Value & Description\\
-\midrule
-$q_l$        & $50$    & Lateral error\\
-$q_\psi$     & $5$     & Yaw error\\
-$q_v$        & $1$     & Speed error\\
-$R_a$        & $0.05$  & Acceleration regularization\\
-$R_{\dot\delta}$ & $30$ & Steering-rate regularization\\
-$q_{\rm prog}$ & $0.5$ & Progress reward (terminal)\\
-$w_\zeta$    & $1000$  & Friction slack penalty\\
-$N_c,T_c$    & $15,\,0.05\,\mathrm{s}$ & Horizon length, sample time\\
-\bottomrule
-\end{tabular}
-\end{table}
+The MPCC weights are summarized in Table~\ref{tab:setup_params}; they were
+tuned once on the global raceline and held constant across all races.
 
 \subsection{Friction-Circle Constrained NLP and Real-Time Solution}
 \label{subsec:nlp}
@@ -1212,32 +1039,44 @@ to survive a particular duel.
 % =====================================================================
 \section{Conclusion}\label{sec:conclusion}
 % =====================================================================
-We have described a complete tactical--planning--control stack for
-wheel-to-wheel autonomous racing on a Formula-class platform.  A unified
-Frenet model derived from a dynamic single-track vehicle underpins all
-three layers; a TQC-driven tactical layer with an embedded track prior, a
-hysteretic FSM and a heading-aware corridor carver synthesizes a smooth,
-time-varying feasible region $\mathcal{C}_k$; a SOCP local planner with sequential
-linearization and a forward--backward GG-coupled velocity sweep produces
-curvature-smooth, grip-respecting trajectories inside $\mathcal{C}_k$;
-and an MPCC controller with a positive arc-length progress terminal and a
-soft friction-circle constraint executes them at the control rate.
+This paper presented a hierarchical tactical--planning--control framework for
+wheel-to-wheel autonomous racing at Formula-class speeds.  The central idea is
+to restrict learning to the tactical feasible set and to retain auditable
+model-based optimization for path planning, speed profiling, and closed-loop
+control.  A map-conditioned TQC policy and a hysteretic FSM synthesize the
+overtake side, speed cap, and time-varying Frenet corridor; a heading-aware
+corridor carver converts the tactical decision into spatial constraints; a
+sparse SOCP computes a curvature-regularized path inside this corridor; a
+forward--backward sweep enforces the super-elliptic GG handling envelope; and
+an MPCC with terminal progress reward and soft rear-axle friction constraint
+executes the reference through the vehicle interface.
 
-The simulation study shows that this separation is more than an
-implementation convenience.  Across two Yas Marina fast-closure overtake
-cases, the learned component changes only the feasible corridor and speed cap,
-while the unchanged planner and controller complete passes with lateral RMS
-tracking errors no larger than $0.05\,\mathrm{m}$ and peak speed up to
-$73.10\,\mathrm{m/s}$.  These results support the central design claim:
-tactical learning is most useful when it constrains an auditable model-based
-stack rather than replacing it.
+The resulting architecture separates tactical intent from physical execution.
+This separation is crucial in racing: the learned policy can choose where the
+vehicle is allowed to drive, but it cannot directly overwrite tire limits,
+actuator bounds, or controller dynamics.  The semi-physical A2RL simulator
+experiments validate this design under a virtual-CAN communication loop rather
+than an offline trajectory benchmark.  In the short fast-closure scenario, the
+system completed the pass $1.13\,\mathrm{s}$ after entering
+\textsc{Overtake}, reached $73.10\,\mathrm{m/s}$, and achieved a lateral RMS
+tracking error of $0.02\,\mathrm{m}$.  In the longer side-by-side scenario,
+the same frozen policy, planner, and controller completed the pass in
+$8.63\,\mathrm{s}$ with a lateral RMS error of $0.05\,\mathrm{m}$.  Across
+1000 closed-loop semi-physical laps, the stack achieved a $94.7\%$ overtake
+success rate without online learning or case-specific retuning.
 
-Future work will expand the evaluation to multi-opponent traffic, include
-ablation studies of the track prior and FSM hysteresis, and transfer the
-validated stack from closed-loop simulation to controlled track testing.  On
-the algorithmic side, the next extensions are opponent prediction tubes in the
-SOCP corridor, a conic speed-planning formulation on the GG envelope, and
-tactical adaptation of the MPCC progress weight $q_{\rm prog}$.
+These results support three conclusions.  First, map-conditioned tactical
+learning can resolve the discrete side-selection and commitment problem that
+is difficult to encode in a single-vehicle raceline tracker.  Second,
+constraining a convex local planner through a learned corridor provides a
+transparent interface between data-driven tactical reasoning and
+vehicle-dynamics feasibility.  Third, the MPCC layer can execute distinct
+tactical corridors with sub-decimeter lateral accuracy when the upstream
+planner preserves curvature smoothness and handling-limit speed consistency.
+Future work will extend the validation to multi-opponent races, incorporate
+probabilistic opponent prediction tubes into the SOCP corridor, and transfer
+the semi-physical results to controlled track tests on the Dallara EAV24
+platform.
 
 \begin{thebibliography}{38}
 
