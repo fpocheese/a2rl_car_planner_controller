@@ -92,16 +92,16 @@ $g_{\rm def}^{\rm rear}$ & $20\,\mathrm{m}$ \\
 $\Delta n_{\rm safe}$ & $2.5\,\mathrm{m}$ &
 $g_{\rm interlock}$ & $6\,\mathrm{m}$ &
 $T_{\rm imm}$ & $30\,\mathrm{s}$ &
-$\phi_{\rm ot}$ & $30$ &
-$\phi_{\rm ovb}$ & $-20$ \\
-$\phi_{\rm col}$ & $-100$ &
-$\phi_{\rm lat}$ & $-2$ &
-$\phi_{\rm crush}$ & $-5$ &
-$\phi_{\rm app}$ & $3$ &
-$\phi_{\rm sm}$ & $-0.1$ \\
-$\phi_{\rm gs}$ & $-0.5$ &
-$\phi_{\rm sbs}$ & $0.5$ &
-$\phi_{\rm wide}$ & $0.25$ &
+$w_{\rm ot}$ & $30$ &
+$w_{\rm ovb}$ & $-20$ \\
+$w_{\rm col}$ & $-100$ &
+$w_{\rm lat}$ & $-2$ &
+$w_{\rm crush}$ & $-5$ &
+$w_{\rm app}$ & $3$ &
+$w_{\rm sm}$ & $-0.1$ \\
+$w_{\rm gs}$ & $-0.5$ &
+$w_{\rm sbs}$ & $0.5$ &
+$w_{\rm wide}$ & $0.25$ &
 $\alpha_Q$ & $3{\times}10^{-4}$ &
 $|\mathcal{D}|$ & $10^5$ \\
 $B$ & $256$ &
@@ -124,16 +124,26 @@ $\beta$ & $0.2$ &
 $k_{\rm blend}$ & $9$ &
 $d_{\rm rmp}$ & $40\,\mathrm{m}$ &
 $k_{\rm sr}$ & $15$ \\
-$q_l$ & $50$ &
-$q_\psi$ & $5$ &
+$w_\omega$ & $10$ &
+$w_{n,T}$ & $10$ &
+$w_{\xi,T}$ & $100$ &
+$V_{\min}$ & $0.1\,\mathrm{m/s}$ &
+$\varepsilon_\kappa$ & $10^{-8}$ \\
+$\varepsilon_n^{\rm sl}$ & $0.1\,\mathrm{m}$ &
+$\varepsilon_\xi^{\rm sl}$ & $0.1^\circ$ &
+$N_{\rm iter}^{\rm path}$ & $5$ &
+$q_n$ & $50$ &
+$q_\psi$ & $5$ \\
 $q_v$ & $1$ &
 $R_a$ & $0.05$ &
-$R_{\dot\delta}$ & $30$ \\
+$R_{\dot\delta}$ & $30$ &
 $q_{\rm prog}$ & $0.5$ &
-$w_\zeta$ & $1000$ &
+$w_\epsilon$ & $1000$ \\
 $N_c$ & $15$ &
 $T_c$ & $0.05\,\mathrm{s}$ &
-$T_cN_c$ & $0.75\,\mathrm{s}$ \\
+$T_cN_c$ & $0.75\,\mathrm{s}$ &
+ &  &
+ &  \\
 \bottomrule
 \end{tabular}%
 }
@@ -146,7 +156,7 @@ engagement with a large closing-speed advantage and must convert this
 advantage into a feasible lateral corridor before reaching the opponent.  The
 run completes the pass with $\min\Delta s=-0.48\,\mathrm{m}$,
 $\Delta t_{\rm pass}=1.13\,\mathrm{s}$ after entering \textsc{Overtake},
-$\max V=73.10\,\mathrm{m/s}$, $\mathrm{RMS}(e_l)=0.02\,\mathrm{m}$,
+$\max V=73.10\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.02\,\mathrm{m}$,
 $\mathrm{RMS}(e_v)=0.26\,\mathrm{m/s}$, and tactical gain
 $\Delta\Gamma=1.38$.
 
@@ -193,7 +203,7 @@ does not create a geometric constraint violation.  The speed trace reaches
 $73.10\,\mathrm{m/s}$, indicating that the planner preserves the fast-closure
 advantage rather than sacrificing it through excessive caution.  The
 longitudinal and lateral acceleration histories remain smooth during the
-transition into \textsc{Overtake}, which shows that the GG-constrained speed
+transition into \textsc{Overtake}, which shows that the GGV-constrained speed
 profiler and MPCC friction slack prevent the maneuver from becoming a
 bang--bang lateral escape.  The heading-error response stays bounded while
 the lateral path changes side, demonstrating that the corridor transition is
@@ -217,7 +227,7 @@ planner output with sub-decimeter accuracy despite the very short decision
 window.  The lateral error has an RMS value of only $0.02\,\mathrm{m}$, so the
 vehicle remains effectively on the planned path during the pass.  The speed
 tracking error is also small, with $\mathrm{RMS}(e_v)=0.26\,\mathrm{m/s}$,
-which confirms that the velocity cap and the GG sweep are consistent with the
+which confirms that the velocity cap and the GGV sweep are consistent with the
 MPCC's achievable acceleration envelope.  The FSM mode plot shows a clean
 transition through \textsc{Shadow} and \textsc{Overtake}, while the corridor
 plot shows that the committed side is held during the pass rather than
@@ -231,7 +241,7 @@ The second scenario is a longer fast-closure pass in which the ego vehicle
 must remain side-by-side with the opponent for a longer interval before
 clearing it.  The run completes the pass with
 $\min\Delta s=-0.84\,\mathrm{m}$, $\Delta t_{\rm pass}=8.63\,\mathrm{s}$,
-$\max V=65.83\,\mathrm{m/s}$, $\mathrm{RMS}(e_l)=0.05\,\mathrm{m}$,
+$\max V=65.83\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.05\,\mathrm{m}$,
 $\mathrm{RMS}(e_v)=1.82\,\mathrm{m/s}$, and tactical gain
 $\Delta\Gamma=1.75$.
 
@@ -325,7 +335,7 @@ summarizes the closed-loop metrics of these two runs.
 \label{tab:selected_overtake_metrics}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-Case & $\Delta t_{\rm pass}$ & $\max V$ & RMS$(e_l)$ & RMS$(e_v)$ & $\Delta\Gamma$\\
+Case & $\Delta t_{\rm pass}$ & $\max V$ & RMS$(e_n)$ & RMS$(e_v)$ & $\Delta\Gamma$\\
  & [s] & [m/s] & [m] & [m/s] & [-]\\
 \midrule
 Scenario~I & 1.13 & 73.10 & 0.02 & 0.26 & 1.38 \\
