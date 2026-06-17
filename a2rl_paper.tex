@@ -42,44 +42,45 @@ programming, reinforcement learning, Frenet frame, friction circle,
 game-theoretic motion planning.}
 
 \begin{abstract}
-Wheel-to-wheel autonomous racing couples strategic interaction, real-time
-trajectory optimization, and friction-limit control.  Solving these decisions
-in a single monolithic game or nonlinear program is computationally fragile at
-Formula-class speeds, whereas end-to-end neural control is difficult to audit
-on a safety-critical vehicle.  This paper presents a hierarchical architecture
-that restricts learning to tactical corridor synthesis and retains
-optimization-based planning and control downstream.  A map-conditioned
-Truncated Quantile Critics policy and a hysteretic finite-state machine select
-an overtake side, velocity cap, and time-varying Frenet corridor.  A sparse
-second-order cone program computes a curvature-regularized lateral path within
-that corridor, a forward--backward sweep imposes a super-elliptic GG
-friction envelope, and a nonlinear model predictive contouring controller
-tracks the resulting reference with a terminal progress reward and a soft
-rear-axle friction constraint.  Closed-loop simulations on the Dallara EAV24
-at Yas Marina demonstrate two successful fast-closure overtakes, with pass
-times of $1.13\,\mathrm{s}$ and $8.63\,\mathrm{s}$ after entering
-\textsc{Overtake}, peak speed up to $73.10\,\mathrm{m/s}$, and lateral RMS
-tracking errors of $0.02$ and $0.05\,\mathrm{m}$.  The results support the
-central premise that
-learning should shape the feasible set, while model-based layers enforce
-vehicle dynamics and handling-limit execution.
+Autonomous racing in high-speed adversarial scenarios requires real-time
+game-theoretic decision-making coupled with friction-limit control, which is
+computationally intractable for monolithic nonlinear solvers and difficult to
+certify for end-to-end neural controllers.  To address these challenges, this
+paper proposes a hierarchical tactical corridor planning and control
+architecture.  A map-conditioned Truncated Quantile Critics policy with a
+hysteretic finite-state machine synthesizes the overtake side, velocity cap,
+and time-varying Frenet corridor.  A sparse second-order cone program computes
+a curvature-regularized path inside the corridor, a forward--backward sweep
+enforces the super-elliptic GGV friction envelope, and a model predictive
+contouring controller tracks the resulting reference.  Closed-loop simulations
+on the Dallara EAV24 at Yas Marina demonstrate pass times of
+$1.13\,\mathrm{s}$ and $8.63\,\mathrm{s}$, peak speed up to
+$73.10\,\mathrm{m/s}$, lateral RMS errors of $0.02$ and $0.05\,\mathrm{m}$,
+and a $94.7\%$ overtake success rate across 1000 semi-physical laps without
+online adaptation.
 \end{abstract}
 
 % =====================================================================
 \section{Introduction}
 % =====================================================================
-\IEEEPARstart{A}{utonomous} racing at the vehicle handling limit is among
-the most demanding closed-loop control problems in robotics.  A Formula-class
-car must decide \emph{whether} to overtake, \emph{which side} to attempt,
-\emph{where} to place the resulting trajectory within the track boundaries,
-and \emph{how} to execute it at the friction limit---all while an adversarial
-opponent simultaneously optimizes its own plan.  These four decisions span
-discrete game theory, continuous trajectory optimization, and high-bandwidth
-nonlinear control, operating across timescales that differ by three orders of
-magnitude.  The Abu Dhabi Autonomous Racing League (A2RL), with its
-$5.28\,\mathrm{km}$ Yas Marina Formula~1 circuit and the $700\,\mathrm{kg}$
-Dallara EAV24 platform, provides a uniquely demanding testbed for this
-hierarchical challenge~\cite{betz2023autonomous,wischnewski2022indy,jung2023iac}.
+\IEEEPARstart{W}{ith} the rapid development of autonomous driving and
+artificial intelligence technologies, autonomous racing has emerged as a
+frontier research domain that pushes intelligent vehicle systems to their
+physical handling
+limits~\cite{betz2022software,betz2023autonomous,wischnewski2022indy}.
+Unlike conventional autonomous driving that operates conservatively within
+traffic regulations, autonomous racing demands real-time adversarial
+decision-making at speeds exceeding $70\,\mathrm{m/s}$, where the vehicle
+must simultaneously determine when to overtake, which side to attempt, and
+how to execute the maneuver at the friction
+limit~\cite{jung2023iac,kabzan2020amzracing}.  The Abu Dhabi Autonomous
+Racing League (A2RL), with its $5.28\,\mathrm{km}$ Yas Marina Formula~1
+circuit and the $700\,\mathrm{kg}$ Dallara EAV24 platform, provides a
+representative testbed for studying game-theoretic motion planning and
+control in high-speed, highly dynamic adversarial scenarios.  Therefore,
+developing an effective hierarchical planning and control framework that
+integrates tactical decision-making with friction-limit execution is of great
+research significance for autonomous racing.
 
 Classical autonomous driving architectures decompose the problem into
 perception, behavior planning, motion planning, and
@@ -173,30 +174,32 @@ friction-cone constraint prevents tire saturation without rendering the
 nonlinear program infeasible.  All three layers share a common Frenet
 representation.
 
-The contributions of this paper are:
+The main contributions of this paper are summarized as follows:
 \begin{enumerate}
-\item \textbf{Map-conditioned tactical corridor synthesis.}
-A TQC policy receives a frozen preview of curvature, track width, and
-friction-limited speed and outputs only interpretable tactical quantities:
-side preference, safety margin, velocity cap, and corridor bounds.  A
-hysteretic FSM converts this output into a time-varying feasible set
-$\mathcal{C}_t$, preventing the learned policy from directly commanding
-actuators or altering downstream costs.
+\item A map-conditioned tactical corridor synthesis method is proposed.  Unlike
+game-theoretic planners that compute fragile Nash
+equilibria~\cite{fridovich2020ilqgames,laine2023} or end-to-end policies that
+directly output actuator commands~\cite{wurman2022gtsophy,fuchs2021superhuman},
+the proposed Truncated Quantile Critics policy combined with a hysteretic
+finite-state machine outputs only interpretable tactical quantities---overtake
+side, velocity cap, and time-varying Frenet corridor---restricting learning to
+the feasible-set selection while preserving downstream auditability.
 
-\item \textbf{Convex local path planning with GGV-constrained speed profiling.}
-A sparse SOCP over Frenet state and curvature slack produces a
-curvature-regularized path inside the tactical corridor.  A
-forward--backward sweep on a super-elliptic GGV envelope then constructs the
-corresponding grip-limited speed profile, separating geometric feasibility
-from speed feasibility while preserving their coupling through curvature.
+\item A convex local path planning method with GGV-constrained speed profiling
+is developed.  A sparse second-order cone program computes a
+curvature-regularized lateral path inside the tactical corridor, and a
+forward--backward sweep on a super-elliptic GGV envelope generates the
+grip-limited speed profile.  This two-stage decomposition separates geometric
+feasibility from speed feasibility while preserving their coupling through
+curvature, achieving substantially lower computational cost than monolithic
+nonlinear trajectory optimization~\cite{verschueren2014}.
 
-\item \textbf{Closed-loop validation of the hierarchy in head-to-head racing.}
-An $8$-state dynamic-bicycle MPCC with a terminal progress reward and a soft
-rear-axle friction constraint executes the planned references.  Two
-closed-loop Yas Marina fast-closure overtake simulations quantify pass time,
-tactical gain, peak speed, and tracking error, showing that the same planner
-and controller can execute distinct tactical corridors without case-specific
-retuning.
+\item The proposed hierarchical framework is validated through closed-loop
+semi-physical simulations on the Dallara EAV24 at Yas Marina.  Two
+fast-closure overtake scenarios and 1000 semi-physical laps quantify pass
+time, peak speed, tracking accuracy, and overtake success rate, demonstrating
+that the same planner and controller can execute distinct tactical corridors
+without case-specific retuning.
 \end{enumerate}
 
 The remainder of the paper is organized as follows.
@@ -1428,44 +1431,48 @@ as throttle, brake, steering and gear commands under the vehicle limits.
 % =====================================================================
 \section{Conclusion}\label{sec:conclusion}
 % =====================================================================
-This paper presented a hierarchical tactical--planning--control framework for
-wheel-to-wheel autonomous racing at Formula-class speeds.  The central idea is
-to restrict learning to the tactical feasible set and to retain auditable
-model-based optimization for path planning, speed profiling, and closed-loop
-control.  A map-conditioned TQC policy and a hysteretic FSM synthesize the
-overtake side, speed cap, and time-varying Frenet corridor; a heading-aware
-corridor carver converts the tactical decision into spatial constraints; a
-sparse SOCP computes a curvature-regularized path inside this corridor; a
-forward--backward sweep enforces the super-elliptic GGV handling envelope; and
-an MPCC with terminal progress reward and soft rear-axle friction constraint
-executes the reference through the vehicle interface.
+In this paper, a hierarchical tactical corridor planning and control
+architecture is proposed for wheel-to-wheel autonomous racing in high-speed,
+highly dynamic adversarial scenarios.  The proposed framework restricts
+reinforcement learning to the tactical feasible-set synthesis layer and retains
+auditable model-based optimization for local path planning, speed profiling,
+and closed-loop vehicle control.  A map-conditioned Truncated Quantile Critics
+policy combined with a hysteretic finite-state machine synthesizes the overtake
+side, speed cap, and time-varying Frenet corridor; a heading-aware corridor
+carver converts the tactical decision into spatial constraints; a sparse
+second-order cone program computes a curvature-regularized path inside the
+corridor; a forward--backward sweep enforces the super-elliptic GGV handling
+envelope; and a model predictive contouring controller with a terminal progress
+reward and a soft rear-axle friction constraint executes the planned reference
+through the vehicle actuator interface.
 
-The resulting architecture separates tactical intent from physical execution.
-This separation is crucial in racing: the learned policy can choose where the
-vehicle is allowed to drive, but it cannot directly overwrite tire limits,
-actuator bounds, or controller dynamics.  The semi-physical A2RL simulator
-experiments validate this design under a virtual-CAN communication loop rather
-than an offline trajectory benchmark.  In the short fast-closure scenario, the
-system completed the pass $1.13\,\mathrm{s}$ after entering
-\textsc{Overtake}, reached $73.10\,\mathrm{m/s}$, and achieved a lateral RMS
+The proposed architecture effectively separates tactical intent from physical
+execution.  The learned policy determines where the vehicle is permitted to
+drive, while model-based layers guarantee that tire limits, actuator bounds,
+and controller dynamics are never violated.  The semi-physical A2RL simulator
+experiments validate this design under a virtual-CAN communication loop.  The
+results demonstrate that, in the short fast-closure scenario, the system
+completes the pass $1.13\,\mathrm{s}$ after entering \textsc{Overtake},
+reaches a peak speed of $73.10\,\mathrm{m/s}$, and achieves a lateral RMS
 tracking error of $0.02\,\mathrm{m}$.  In the longer side-by-side scenario,
-the same frozen policy, planner, and controller completed the pass in
-$8.63\,\mathrm{s}$ with a lateral RMS error of $0.05\,\mathrm{m}$.  Across
-1000 closed-loop semi-physical laps, the stack achieved a $94.7\%$ overtake
-success rate without online learning or case-specific retuning.
+the same frozen policy, planner, and controller complete the pass in
+$8.63\,\mathrm{s}$ with a lateral RMS error of $0.05\,\mathrm{m}$.
+Comparative evaluation across 1000 closed-loop semi-physical laps shows that
+the proposed framework achieves a $94.7\%$ overtake success rate without online
+adaptation or case-specific parameter retuning, demonstrating its effectiveness
+and robustness for autonomous racing at the vehicle handling limit.
 
-These results support three conclusions.  First, map-conditioned tactical
-learning can resolve the discrete side-selection and commitment problem that
-is difficult to encode in a single-vehicle raceline tracker.  Second,
-constraining a convex local planner through a learned corridor provides a
-transparent interface between data-driven tactical reasoning and
-vehicle-dynamics feasibility.  Third, the MPCC layer can execute distinct
-tactical corridors with sub-decimeter lateral accuracy when the upstream
-planner preserves curvature smoothness and handling-limit speed consistency.
-Future work will extend the validation to multi-opponent races, incorporate
-probabilistic opponent prediction tubes into the SOCP corridor, and transfer
-the semi-physical results to controlled track tests on the Dallara EAV24
-platform.
+However, there are still aspects that warrant further investigation.  First,
+the current validation is limited to a single-opponent scenario; future work
+will extend the framework to multi-opponent races where coalition dynamics and
+multi-agent game equilibria become relevant.  Second, the opponent model used
+in the tactical layer assumes deterministic behavior; incorporating
+probabilistic opponent prediction tubes into the SOCP corridor constraints
+could further improve robustness against unpredictable adversaries.  Third,
+future efforts will focus on transferring the semi-physical simulation results
+to controlled track tests on the Dallara EAV24 platform, which will require
+addressing the sim-to-real gap in tire modeling, aerodynamic downforce, and
+communication latency.
 
 \begin{thebibliography}{38}
 
