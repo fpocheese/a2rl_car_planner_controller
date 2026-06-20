@@ -149,16 +149,17 @@ $T_cN_c$ & $0.75\,\mathrm{s}$ &
 }
 \end{table}
 
-\subsection{Scenario I: Short Fast-Closure Overtake}
+\subsection{Scenario I: High-Speed Straight Overtake}
 \label{subsec:case2}
-The first scenario is a short fast-closure pass.  The ego vehicle enters the
+The first scenario takes place on a high-speed straight section
+($\kappa\approx0$, minimum radius $>900\,\mathrm{m}$) where both vehicles
+operate above $68\,\mathrm{m/s}$.  The ego vehicle enters the
 engagement with a large closing-speed advantage and must convert this
 advantage into a feasible lateral corridor before reaching the opponent.  The
 run completes the pass with $\min\Delta s=-0.48\,\mathrm{m}$,
 $\Delta t_{\rm pass}=1.13\,\mathrm{s}$ after entering \textsc{Overtake},
 $\max V=73.10\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.02\,\mathrm{m}$,
-$\mathrm{RMS}(e_v)=0.26\,\mathrm{m/s}$, and tactical gain
-$\Delta\Gamma=1.38$.
+and $\mathrm{RMS}(e_v)=0.26\,\mathrm{m/s}$.
 
 \begin{figure}[H]
 \centering
@@ -235,15 +236,17 @@ oscillating between alternatives.  This stable side commitment is the key
 reason the planner can exploit the brief overtake opportunity without
 inducing high-frequency replanning.
 
-\subsection{Scenario II: Long Side-by-Side Overtake}
+\subsection{Scenario II: Low-Speed Sharp-Corner Overtake}
 \label{subsec:case5}
-The second scenario is a longer fast-closure pass in which the ego vehicle
-must remain side-by-side with the opponent for a longer interval before
-clearing it.  The run completes the pass with
+The second scenario takes place in a tight cornering section with a minimum
+radius of $10\,\mathrm{m}$ ($\kappa_{\max}=0.098\,\mathrm{m^{-1}}$) and
+speed variation from $12.5$ to $65.8\,\mathrm{m/s}$.  The ego vehicle
+must remain side-by-side with the opponent through a high-curvature sequence
+where the GGV envelope severely limits available acceleration.  The run
+completes the pass with
 $\min\Delta s=-0.84\,\mathrm{m}$, $\Delta t_{\rm pass}=8.63\,\mathrm{s}$,
 $\max V=65.83\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.05\,\mathrm{m}$,
-$\mathrm{RMS}(e_v)=1.82\,\mathrm{m/s}$, and tactical gain
-$\Delta\Gamma=1.75$.
+and $\mathrm{RMS}(e_v)=1.82\,\mathrm{m/s}$.
 
 \begin{figure}[H]
 \centering
@@ -318,69 +321,125 @@ the desired behavior for a learned tactical layer: once the policy selects a
 pass side, the downstream solvers receive a consistent feasible set long
 enough to execute the maneuver.
 
+\subsection{Scenario III: Mixed Straight-Corner Same-Speed Overtake}
+\label{subsec:case4}
+The third scenario tests the most demanding interaction geometry: an
+equal-speed opponent on a mixed track section spanning $1.5\,\mathrm{km}$
+of straights and corners ($\kappa_{\max}=0.037\,\mathrm{m^{-1}}$,
+minimum radius $27\,\mathrm{m}$).  The ego vehicle must generate
+its own speed advantage through corridor exploitation rather than relying on
+a pre-existing closure-speed gap.  The analysis focuses on the decisive
+$29\,\mathrm{s}$ engagement window during which the ego vehicle identifies,
+commits to, and executes the overtake.  The run completes the pass with
+$\min\Delta s=-0.12\,\mathrm{m}$, $\Delta t_{\rm pass}=20.13\,\mathrm{s}$
+after entering \textsc{Shadow},
+$\max V=72.92\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.19\,\mathrm{m}$,
+and $\mathrm{RMS}(e_v)=1.62\,\mathrm{m/s}$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/case_04_engagement_snapshots.pdf}
+\caption{Scenario~III engagement snapshots.  The ego vehicle overtakes an
+equal-speed opponent through sustained corridor exploitation, requiring the
+FSM to progress through Shadow, Overtake, and Hold modes during the decisive
+engagement window.}
+\label{fig:case04_engagement}
+\end{figure}
+
+Figure~\ref{fig:case04_engagement} reveals a fundamentally different tactical
+structure from the previous two scenarios.  Because the opponent travels at the
+same nominal speed as the ego vehicle, the tactical layer cannot rely on a
+simple fast-closure strategy.  Instead, the learned policy must identify
+a section of track geometry where the raceline speed surplus creates a
+transient advantage, commit to the corridor early enough to exploit this
+window, and sustain the overtake commitment through the cornering sequence.
+The Shadow phase lasts $5.0\,\mathrm{s}$, during which the corridor narrows
+toward the committed side; the Overtake execution then requires
+$8.8\,\mathrm{s}$ to clear the opponent and transition to Hold.
+
+\begin{figure}[H]
+\centering
+\subfloat[Path and corridor.]{\includegraphics[width=0.48\linewidth]{figures/case_04_path_corridor.pdf}}
+\hfill
+\subfloat[Speed.]{\includegraphics[width=0.48\linewidth]{figures/case_04_dynamics_speed.pdf}}\\[-1mm]
+\subfloat[Acceleration.]{\includegraphics[width=0.48\linewidth]{figures/case_04_dynamics_accel.pdf}}
+\hfill
+\subfloat[Heading error.]{\includegraphics[width=0.48\linewidth]{figures/case_04_dynamics_heading.pdf}}
+\caption{Scenario~III closed-loop execution states.}
+\label{fig:case04_execution_grid}
+\end{figure}
+
+Figure~\ref{fig:case04_execution_grid} shows the execution dynamics over the
+$29\,\mathrm{s}$ engagement.  The path plot demonstrates that the ego
+trajectory commits to a lateral excursion within the corridor as the tactical
+layer exploits the cornering speed differential.  The speed trace shows
+variation between $22$--$73\,\mathrm{m/s}$, reflecting the cornering sections
+where the GGV profiler limits speed while the tactical layer maintains
+commitment to the overtake.  The acceleration magnitudes reach
+$32.8\,\mathrm{m/s^2}$ longitudinally and $21.4\,\mathrm{m/s^2}$ laterally,
+confirming that the ego vehicle operates near the handling limits to generate
+the speed advantage needed against an equal-speed opponent.
+
+\begin{figure}[H]
+\centering
+\subfloat[Lateral tracking error.]{\includegraphics[width=0.48\linewidth]{figures/case_04_tracking_lateral.pdf}}
+\hfill
+\subfloat[Speed tracking error.]{\includegraphics[width=0.48\linewidth]{figures/case_04_tracking_speed.pdf}}\\[-1mm]
+\subfloat[FSM mode.]{\includegraphics[width=0.48\linewidth]{figures/case_04_fsm_mode.pdf}}
+\hfill
+\subfloat[Corridor caps and side.]{\includegraphics[width=0.48\linewidth]{figures/case_04_fsm_corridor.pdf}}
+\caption{Scenario~III tracking and tactical-state responses.}
+\label{fig:case04_tactical_grid}
+\end{figure}
+
+Figure~\ref{fig:case04_tactical_grid} shows the tracking and FSM behavior
+during the adversarial engagement.  The lateral RMS error is
+$0.19\,\mathrm{m}$, larger than the two fast-closure cases but still well
+within the corridor margin, confirming that the MPCC successfully tracks
+aggressive path references during the sustained side-by-side phase.  The
+speed tracking error is $1.62\,\mathrm{m/s}$, reflecting the controller's
+effort to maintain the speed advantage generated by the GGV profiler against
+an equal-speed adversary.  The FSM mode plot shows the progression from
+\textsc{Shadow} through \textsc{Overtake} to \textsc{Hold}, with the mode
+commitment sustained throughout the decisive interval.  The pass completion
+with only $0.12\,\mathrm{m}$ of longitudinal margin confirms that the ego
+vehicle generates just enough advantage through cornering speed
+exploitation---a characteristic signature of same-speed adversarial racing
+where large surpluses are unavailable.
+
 \subsection{Simulation Summary}
 \label{subsec:sim_summary}
-The two detailed scenarios expose complementary operating regimes.  Scenario~I
-tests whether the hierarchy can exploit a short closing-speed opportunity,
-whereas Scenario~II tests whether the same architecture can maintain a stable
-side commitment during a longer side-by-side contest.  Table~\ref{tab:selected_overtake_metrics}
-summarizes the closed-loop metrics of these two runs.
+The three scenarios are designed to cover complementary operating regimes that
+a competitive racing system must handle:
+\begin{itemize}
+\item \textbf{Scenario~I (High-Speed Straight):} Tests whether the hierarchy
+  can exploit a short high-speed closure window where decision latency directly
+  determines success or failure.
+\item \textbf{Scenario~II (Sharp-Corner Low-Speed):} Tests whether the
+  corridor remains feasible through severe curvature where the GGV envelope
+  restricts available acceleration and lateral space is tightest.
+\item \textbf{Scenario~III (Mixed Straight-Corner, Same-Speed):} Tests
+  the full adversarial capability against an equal-speed opponent where the
+  ego must generate its own advantage from track-geometry exploitation.
+\end{itemize}
 
-\begin{table}[!htbp]
-\centering
-\scriptsize
-\setlength{\tabcolsep}{3.5pt}
-\renewcommand{\arraystretch}{1.1}
-\caption{Closed-loop metrics for the representative overtake scenarios.}
-\label{tab:selected_overtake_metrics}
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-Case & $\Delta t_{\rm pass}$ & $\max V$ & RMS$(e_n)$ & RMS$(e_v)$ & $\Delta\Gamma$\\
- & [s] & [m/s] & [m] & [m/s] & [-]\\
-\midrule
-Scenario~I & 1.13 & 73.10 & 0.02 & 0.26 & 1.38 \\
-Scenario~II & 8.63 & 65.83 & 0.05 & 1.82 & 1.75 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Beyond the two representative cases, the same frozen tactical policy,
+Beyond the three representative cases, the same frozen tactical policy,
 planner, and controller were evaluated over 1000 closed-loop laps in the
 A2RL simulator.  No online learning, case-specific retuning, or controller
-weight adjustment was used during this validation.  The aggregate results are
-reported in Table~\ref{tab:aggregate_validation}.  The overtake success rate
-of $94.7\%$ indicates that the learned tactical layer generalizes across a
-large number of repeated race interactions while preserving compatibility with
-the model-based planner and controller.  Equally important, the validation was
-performed through the virtual-CAN semi-physical interface, so successful laps
-reflect end-to-end timing consistency rather than offline trajectory
-feasibility alone.
-
-\begin{table}[!htbp]
-\centering
-\scriptsize
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.1}
-\caption{Aggregate semi-physical validation results.}
-\label{tab:aggregate_validation}
-\begin{tabular}{@{}lc@{}}
-\toprule
-Metric & Value \\
-\midrule
-Closed-loop laps & $1000$ \\
-Successful overtake laps & $947$ \\
-Non-successful terminations & $53$ \\
-Overtake success rate & $94.7\%$ \\
-Online learning during validation & No \\
-Case-specific controller retuning & No \\
-\bottomrule
-\end{tabular}
-\end{table}
+weight adjustment was used during this validation.  The overtake success rate
+of $94.7\%$ (947 out of 1000 laps) indicates that the learned tactical layer
+generalizes across a large number of repeated race interactions while
+preserving compatibility with the model-based planner and controller.
+Equally important, the validation was performed through the virtual-CAN
+semi-physical interface, so successful laps reflect end-to-end timing
+consistency rather than offline trajectory feasibility alone.
 
 Overall, the experiments support the central design principle of the paper:
 learning is most effective when it determines the tactical feasible set, while
 the planner and controller enforce geometric consistency, handling-limit speed
-selection, and closed-loop vehicle execution.  The short-pass and long-pass
-cases show that the architecture is not tuned to a single overtaking geometry,
-and the 1000-lap validation demonstrates that this separation remains robust
-under repeated semi-physical simulation.
+selection, and closed-loop vehicle execution.  The short-pass, long-pass, and
+equal-speed adversarial cases show that the architecture is not tuned to a
+single overtaking geometry, and the 1000-lap validation demonstrates that this
+separation remains robust under repeated semi-physical simulation.
+
+\input{comparison_tables}

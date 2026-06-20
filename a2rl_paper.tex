@@ -30,8 +30,7 @@
 
 \articletype{Paper}
 
-\title{Hierarchical Tactical Corridor Planning and Control\\
-for Wheel-to-Wheel Autonomous Racing}
+\title{Hierarchical Game-Guided Tactical Corridor Planning and Control for Competitive Autonomous Racing}
 
 \author{Shuyi Gao, Defu Lin and Ren Jin}
 
@@ -42,165 +41,203 @@ programming, reinforcement learning, Frenet frame, friction circle,
 game-theoretic motion planning.}
 
 \begin{abstract}
-Autonomous racing in high-speed adversarial scenarios requires real-time
-game-theoretic decision-making coupled with friction-limit control, which is
-computationally intractable for monolithic nonlinear solvers and difficult to
-certify for end-to-end neural controllers.  To address these challenges, this
-paper proposes a hierarchical tactical corridor planning and control
-architecture.  A map-conditioned Truncated Quantile Critics policy with a
-hysteretic finite-state machine synthesizes the overtake side, velocity cap,
-and time-varying Frenet corridor.  A sparse second-order cone program computes
-a curvature-regularized path inside the corridor, a forward--backward sweep
-enforces the super-elliptic GGV friction envelope, and a model predictive
-contouring controller tracks the resulting reference.  Closed-loop simulations
-on the Dallara EAV24 at Yas Marina demonstrate pass times of
-$1.13\,\mathrm{s}$ and $8.63\,\mathrm{s}$, peak speed up to
-$73.10\,\mathrm{m/s}$, lateral RMS errors of $0.02$ and $0.05\,\mathrm{m}$,
-and a $94.7\%$ overtake success rate across 1000 semi-physical laps without
-online adaptation.
+
+Autonomous racecars in high-speed competitive racing must jointly perform overtaking decision 
+making, trajectory reconstruction, and at-limit control within a confined track space. 
+To address the challenges of highly dynamic vehicle motion, stringent track constraints, 
+complex interactive competition, and low overtaking success rates caused by uncertain feasible 
+overtaking opportunities, this paper proposes a hierarchical game-guided tactical corridor 
+planning and control method. First, a game-based competitive situation model is established 
+in the track Frenet frame under racecar performance-limit constraints to characterize the 
+feasible motion space subject to track boundaries, curvature variations, and tire-friction limits. 
+Then, fixed track priors are embedded into a Truncated Quantile Critics reinforcement learning 
+algorithm at the tactical layer to generate behavior decisions, overtaking-side selections, 
+and time-varying Frenet tactical corridors. Within the tactical corridor, a sparse second-order 
+cone program is employed to generate curvature-regularized paths, while forward--backward speed 
+planning and model predictive contouring control are integrated to achieve dynamically feasible 
+trajectory generation and closed-loop tracking. Hardware-in-the-loop simulation results show 
+that the proposed method can adaptively reconstruct the overtaking feasible region according 
+to opponent position, track geometry, and vehicle performance boundaries, achieving a 94.7% 
+overtaking success rate over 1000 closed-loop laps.
+
+
+
+
 \end{abstract}
 
 % =====================================================================
 \section{Introduction}
 % =====================================================================
-\IEEEPARstart{W}{ith} the rapid development of autonomous driving and
-artificial intelligence technologies, autonomous racing has emerged as a
-frontier research domain that pushes intelligent vehicle systems to their
-physical handling
-limits~\cite{betz2022software,betz2023autonomous,wischnewski2022indy}.
-Unlike conventional autonomous driving that operates conservatively within
-traffic regulations, autonomous racing demands real-time adversarial
-decision-making at speeds exceeding $70\,\mathrm{m/s}$, where the vehicle
-must simultaneously determine when to overtake, which side to attempt, and
-how to execute the maneuver at the friction
-limit~\cite{jung2023iac,kabzan2020amzracing}.  The Abu Dhabi Autonomous
-Racing League (A2RL), with its $5.28\,\mathrm{km}$ Yas Marina Formula~1
-circuit and the $700\,\mathrm{kg}$ Dallara EAV24 platform, provides a
-representative testbed for studying game-theoretic motion planning and
-control in high-speed, highly dynamic adversarial scenarios.  Therefore,
-developing an effective hierarchical planning and control framework that
-integrates tactical decision-making with friction-limit execution is of great
-research significance for autonomous racing.
+\IEEEPARstart{W}{ith} the rapid development of autonomous driving technologies and 
+artificial intelligence methods, autonomous racing has become an important platform 
+for validating high-speed decision making, trajectory planning, and at-limit control 
+of intelligent vehicles. Enhancing the autonomous competitive capability of racecars 
+in adversarial racing scenarios is therefore of great significance. However, high-speed 
+racing is characterized by highly dynamic vehicle motion, strongly constrained track space, 
+and complex interactive competition among vehicles. Under such conditions, merely relying 
+on fixed raceline tracking or single-vehicle trajectory planning makes it difficult to 
+accurately identify feasible overtaking opportunities and achieve stable overtaking. 
+Therefore, developing a hierarchical planning and control method that integrates 
+game-theoretic decision making, trajectory reconstruction, and vehicle dynamic constraints 
+has become a key issue for improving the strategic performance of autonomous racecars in 
+high-speed competitive racing.
 
-Classical autonomous driving architectures decompose the problem into
-perception, behavior planning, motion planning, and
-control~\cite{paden2016survey,gonzalez2016review}.  The behavior planner
-selects a discrete maneuver---follow, change lane, yield---which the motion
-planner translates into a continuous trajectory~\cite{werling2010frenet,ziegler2014baidu}.
-In racing, however, the motion planner has traditionally been cast as a
-single-vehicle, offline lap-time optimization
-problem~\cite{christ2021,heilmeier2020,kapania2016,lipp2014,verschueren2014},
-producing a fixed raceline tracked by an MPC or MPCC
-controller~\cite{liniger2015,liniger2019rss,kabzan2019gpmpc,rosolia2020lmpc,brunner2017}.
-Full-stack racing platforms developed for the Indy Autonomous Challenge and
-A2RL document this paradigm in
-detail~\cite{kabzan2020amzracing,betz2023autonomous,jung2023iac,raji2024kth}.
-The fundamental limitation is that a pre-computed raceline cannot adapt to
-an opponent who is simultaneously optimizing their own trajectory: an
-adversary that defends the apex creates a geometric deadlock that a
-single-vehicle planner cannot resolve without a higher-level instruction
-about which side to attempt the pass and when to commit.
 
-Recognising that wheel-to-wheel racing is inherently a non-cooperative
-dynamic game, several groups have proposed game-theoretic formulations of the
-tactical layer.  Wang \emph{et al.}~\cite{wang2021iterative} cast
-head-to-head racing as an iterative best-response game with local Nash
-convergence guarantees.  Iterative linear-quadratic game
-solvers~\cite{fridovich2020ilqgames,laine2023} compute approximate
-generalized feedback Nash equilibria at near-real-time rates.  Real-time
-game-theoretic planners~\cite{spica2020} and viability-theoretic
-approaches~\cite{liniger2020stackelberg,liniger2019rss} provide formal safety
-certificates, while sampling-based MPPI~\cite{williams2018best} and Bayesian
-intent inference~\cite{jia2023bayesianrace,sunberg2017pomdp} address
-opponent-model uncertainty.  Despite this progress, pure game-theoretic
-methods face four practical obstacles in Formula-class deployment:
-(i)~exact Nash equilibria of continuous-time differential games are
-intractable, and approximate solvers~\cite{fridovich2020ilqgames,laine2023}
-may not converge within a single planning cycle at circuit speeds;
-(ii)~the Nash solution is fragile to misspecification of the opponent's cost
-function; (iii)~the discrete decision to switch from shadowing to overtaking
-is not naturally captured by smooth equilibrium computations; and
-(iv)~hand-tuned weights and horizon lengths must be recalibrated for each
-track and pace configuration~\cite{betz2022software,betz2022survey}.
 
-In parallel, data-driven methods have emerged as an alternative.  Sony's
-GT~Sophy~\cite{wurman2022gtsophy} and subsequent RL-for-racing
-work~\cite{fuchs2021superhuman,song2021autonomous,kaufmann2023champion}
-demonstrated that end-to-end neural policies can achieve superhuman
-performance in simulation.  Model-based RL~\cite{brunnbauer2022learning,schwarting2021},
-safe RL~\cite{evans2023safelearning,brunke2022safe,he2023ralrace},
-and learning-from-demonstration~\cite{remonda2024,rosolia2018sample}
-have further expanded the data-driven toolkit.  Lin \emph{et
-al.}~\cite{lin2024racellm} compared optimal control and RL at the handling
-limit, finding that RL excels in multi-agent settings but underperforms in
-single-vehicle lap time.  However, deploying end-to-end neural controllers
-on a physical Formula car raises four serious concerns: (i)~the EAV24's
-nonlinear tire model, aerodynamic downforce map, and differential torque
-vectoring are not faithfully reproduced in open simulators; (ii)~a neural
-network that outputs steering torque cannot be audited or certified by race
-engineers; (iii)~actor-critic policies produce high-frequency command jitter
-that degrades tire wear; and (iv)~without an explicit spatial
-representation, the network must re-discover track geometry from reward
-signals alone~\cite{remonda2024,kabzan2019gpmpc}.
 
-We resolve these tensions through architectural separation: the RL policy is
-restricted to the tactical layer, leaving model-based solvers for planning
-and control.  A Truncated Quantile Critics (TQC) policy outputs a
-low-dimensional action vector that reshapes the feasible lateral corridor
-$\mathcal{C}_t=\{(s_k,n_k^-,n_k^+)\}$ and the FSM hysteresis thresholds,
-without ever modifying the planner cost or the controller dynamics.
-Critically, the TQC observation vector embeds a \emph{fixed-track prior}: a
-frozen, map-level encoding of raceline curvature, track banking, and
-friction-limit speed at each arc-length station.  This spatial prior supplies
-the policy with geometric context, so the learned tactical decision is
-conditioned on upcoming curvature and available track width rather than on
-reward history alone.  A heuristic FSM translates the continuous TQC output
-into a discrete mode sequence and a corridor-carving decision, delivering a
-guidance tuple $(m_t,V_{{\rm cap},t},\mathcal{C}_t,\pi_t)$ to the
-planner.
+To address the coupled challenges of tactical interaction, constrained
+trajectory generation, and at-limit execution, autonomous racing research has
+mainly progressed along three directions: behavior planning, local motion
+planning, and vehicle control. The behavior-planning layer determines
+high-level racing intentions such as following, defending, and overtaking; the
+local-planning layer converts these intentions into feasible trajectories
+within the limited track space; and the control layer ensures accurate
+execution near the handling limits of the racecar~\cite{paden2016survey,
+gonzalez2016review,betz2022survey}.
+At the behavior-planning layer, the ego racecar needs to determine its
+high-level tactical intention, including whether to follow, shadow, defend, or
+overtake, and on which side the overtaking maneuver should be attempted.
+Classical autonomous driving frameworks usually rely on rule-based finite-state
+machines, maneuver libraries, or hierarchical decision modules to select
+discrete driving behaviors, which are subsequently converted into continuous
+trajectories by the motion planner~\cite{werling2010frenet,ziegler2014baidu}.
+Similar hierarchical ideas have been
+adopted in autonomous racing systems, where behavior planners switch among
+raceline following, obstacle avoidance, and overtaking modes according to
+opponent position, track availability, and racing regulations
+~\cite{betz2019architecture,kabzan2020amzracing,betz2022survey,
+betz2023autonomous,jung2023iac}. These rule-based methods are interpretable
+and easy to integrate into real vehicles, but their tactical performance
+strongly depends on manually designed thresholds and track-specific tuning.
+To explicitly model the strategic coupling between competing vehicles,
+game-theoretic methods formulate autonomous racing as a non-cooperative
+dynamic game and compute best-response, Stackelberg, Nash-type, or
+potential-game strategies~\cite{liniger2019game,wang2021game,
+fridovich2020ilqgames,laine2021multi,spica2020game,jia2023bayesian,
+kalaria2025alpha}. Such methods provide a principled way to describe
+interactive racing behaviors, but exact equilibria of continuous dynamic games
+are generally difficult to obtain in real time, and approximate solvers may be
+sensitive to opponent cost assumptions and planning-horizon selection. In
+parallel, reinforcement learning has shown strong capability in learning
+complex racing tactics from interaction data~\cite{wurman2022gtsophy,
+fuchs2021superhuman,song2021overtaking,kaufmann2023drone,lin2023limit}.
+However, end-to-end policies usually lack interpretability and cannot directly
+exploit fixed track priors such as curvature distribution, track width, and
+vehicle performance boundaries. Therefore, high-speed competitive racing still
+requires a behavior-planning method that combines learning-based tactical
+adaptation with structured track and vehicle-limit information.
 
-Given the corridor, the planning layer solves a sparse second-order cone
-program (SOCP) for a curvature-smooth lateral path, followed by a
-forward--backward speed sweep on a super-elliptic GGV envelope with
-empirically identified exponent $p=0.75$.  This two-stage decomposition is
-substantially faster than monolithic nonlinear trajectory
-optimization~\cite{verschueren2014} while naturally capturing the coupled
-longitudinal--lateral grip limits.  The resulting reference is tracked by a
-nonlinear Model Predictive Contouring Controller (MPCC) that augments an
-$8$-state dynamic bicycle model with a path-progress state; a terminal
-progress reward automatically generates corner entry-braking and
-exit-acceleration without per-corner reference shaping, and a soft rear-axle
-friction-cone constraint prevents tire saturation without rendering the
-nonlinear program infeasible.  All three layers share a common Frenet
-representation.
+At the local motion-planning layer, the selected behavior or tactical intention
+must be transformed into a smooth, collision-free, and dynamically feasible
+trajectory within the constrained track space. In autonomous racing, many
+methods are built upon offline raceline optimization, where a minimum-curvature
+or minimum-time reference line is first computed from the track geometry and
+vehicle dynamic limits~\cite{christ2021time,heilmeier2020mincurv,
+kapania2016sequential,lipp2014minimumtime,verschueren2014nmpc}. The resulting
+raceline is effective for single-vehicle lap-time optimization, but competitive
+scenarios require the ego vehicle to deviate from the nominal raceline and
+actively reconstruct the overtaking region when an opponent blocks the apex or
+occupies the preferred racing line. To handle dynamic obstacles and alternative
+passing opportunities, existing local planners employ Frenet-frame polynomial
+sampling, lattice planning, graph search, trajectory libraries, homotopy-based
+trajectory generation, and corridor-constrained optimization
+~\cite{werling2010frenet,ziegler2014baidu,betz2019architecture,
+he2021parallelized,wischnewski2023tube}. These methods can explicitly encode
+track boundaries, obstacle-avoidance constraints, and part of the vehicle
+dynamic constraints, which makes them suitable for real-time racing
+implementation. Nevertheless, many local planners still treat the opponent
+mainly as a moving obstacle and rely on the behavior planner to provide the
+passing side or maneuver mode~\cite{fridovich2020ilqgames,laine2023}. As a result, the generated trajectory may be
+locally collision-free but tactically conservative, especially when the
+available overtaking corridor changes rapidly due to opponent motion and track
+curvature. Sampling- and graph-based planners may require a large number of
+candidate trajectories to cover different passing possibilities, while
+nonlinear optimization methods may suffer from local minima and high
+computational burden~\cite{jung2023iac,kabzan2020amzracing}. These limitations motivate a structured local-planning
+scheme in which the behavior layer first constructs a time-varying tactical
+corridor, and the local planner then generates a curvature-regularized path
+and dynamically feasible speed profile inside this corridor~\cite{wurman2022gtsophy,fuchs2021superhuman}.
 
-The main contributions of this paper are summarized as follows:
+At the control layer, the planned path and velocity reference must be executed
+accurately while the vehicle operates close to its handling limits. Model
+predictive control and model predictive contouring control have become widely
+used in autonomous racing because they can jointly handle trajectory tracking,
+progress maximization, input constraints, and vehicle dynamic constraints
+~\cite{liniger2015optimization,liniger2019game,rosolia2020learning,
+kabzan2019learning,brunner2017repetitive,novi2020realtime}. Learning-based MPC
+and Gaussian-process-enhanced MPC further improve model accuracy and enable the
+controller to adapt to changing vehicle dynamics or tire-road interaction
+conditions~\cite{rosolia2018lmpc,hewing2020learning,kabzan2019learning}.
+Robust MPC and tube-MPC introduce constraint tightening or uncertainty tubes to
+improve closed-loop robustness under model mismatch, actuator delay, and
+friction variation, and have demonstrated strong performance in full-scale
+high-speed racing experiments~\cite{wischnewski2023tube,brunke2022safelearning}.
+Safety-critical control methods based on control barrier functions have also
+been introduced to enforce collision-avoidance constraints in competitive
+racing scenarios~\cite{he2021parallelized}. Compared with geometric tracking
+controllers, optimization-based controllers are more suitable for dealing with
+the strong coupling between longitudinal and lateral motion near the friction
+limit. However, the control performance depends heavily on the feasibility and
+smoothness of the reference generated by the planning layer~\cite{betz2022software,betz2023autonomous,wischnewski2022indy}. If the reference
+path ignores curvature regularity, speed feasibility, or tire-friction limits,
+the controller must compensate for aggressive or dynamically inconsistent
+commands, which may lead to oscillatory actuation, constraint violation, or
+degraded overtaking robustness~\cite{verschueren2014}. Therefore, behavior planning, local motion
+planning, and vehicle control should be coordinated within a unified
+hierarchical framework, so that tactical decision making, overtaking-corridor
+generation, feasible trajectory planning, and closed-loop execution are
+consistent with each other in high-speed competitive racing.
+
+
+
+
+Taken together, existing studies have made substantial progress in behavior
+planning, local motion planning, and vehicle control for autonomous racing.
+However, these modules are still insufficiently coordinated in high-speed
+competitive racing scenarios. Behavior-planning methods can provide tactical
+intentions such as following, avoiding, or overtaking, but they often lack an
+explicit representation of the feasible overtaking space. Local planning
+methods can generate collision-free trajectories, but their tactical modeling
+of opponent interaction and overtaking timing remains limited. Vehicle control
+methods can improve trajectory tracking performance near the handling limits,
+but their execution quality strongly depends on the curvature continuity,
+speed feasibility, and tire-friction consistency of the planned reference.
+Therefore, it is of great significance to develop a unified hierarchical
+planning and control method that integrates tactical decision making,
+overtaking feasible-region reconstruction, dynamically feasible trajectory
+generation, and closed-loop control execution, enabling the ego racecar to
+adaptively reconstruct the overtaking space according to opponent motion, track
+geometry, and vehicle performance boundaries in high-speed competitive racing.
+
+
+
+This paper addresses the autonomous racing demand of high-speed competitive
+autonomous racing, and proposes a hierarchical game-guided tactical corridor
+planning and control method to solve the problems of overtaking-timing
+selection, feasible overtaking-space reconstruction, and weak coordination
+between planning and control under complex interactive racing scenarios. The
+proposed method embeds fixed track priors into a Truncated Quantile Critics
+reinforcement learning policy for tactical decision making, constructs an
+overtaking feasible-region reconstruction mechanism based on time-varying
+Frenet tactical corridors, and integrates sparse second-order cone programming,
+forward--backward speed planning, and model predictive contouring control to
+achieve dynamically feasible trajectory generation and closed-loop execution.
+The proposed hierarchical game-guided tactical corridor planning and control
+method has the following advantages:
+
+
+
+
+
 \begin{enumerate}
-\item A map-conditioned tactical corridor synthesis method is proposed.  Unlike
-game-theoretic planners that compute fragile Nash
-equilibria~\cite{fridovich2020ilqgames,laine2023} or end-to-end policies that
-directly output actuator commands~\cite{wurman2022gtsophy,fuchs2021superhuman},
-the proposed Truncated Quantile Critics policy combined with a hysteretic
-finite-state machine outputs only interpretable tactical quantities---overtake
-side, velocity cap, and time-varying Frenet corridor---restricting learning to
-the feasible-set selection while preserving downstream auditability.
+    \item A fixed-track-prior-guided reinforcement learning method is proposed for tactical decision making. Track geometry, curvature variation, and vehicle performance boundaries are embedded into a Truncated Quantile Critics reinforcement learning framework, enabling the ego racecar to adaptively generate behavior decisions, overtaking-side selections, and time-varying Frenet tactical corridors according to the opponent state and local racing context. This improves the adaptability and interpretability of tactical decision making in competitive autonomous racing.
 
-\item A convex local path planning method with GGV-constrained speed profiling
-is developed.  A sparse second-order cone program computes a
-curvature-regularized lateral path inside the tactical corridor, and a
-forward--backward sweep on a super-elliptic GGV envelope generates the
-grip-limited speed profile.  This two-stage decomposition separates geometric
-feasibility from speed feasibility while preserving their coupling through
-curvature, achieving substantially lower computational cost than monolithic
-nonlinear trajectory optimization~\cite{verschueren2014}.
+    \item A curvature-regularized trajectory planning method is developed under tactical-corridor constraints. Within the time-varying Frenet tactical corridor, a sparse second-order cone programming formulation is employed to generate feasible paths, and a forward--backward speed planning strategy is further introduced to handle vehicle performance-limit constraints. This establishes an effective connection between overtaking feasible-region reconstruction and dynamically feasible trajectory generation.
 
-\item The proposed hierarchical framework is validated through closed-loop
-semi-physical simulations on the Dallara EAV24 at Yas Marina.  Two
-fast-closure overtake scenarios and 1000 semi-physical laps quantify pass
-time, peak speed, tracking accuracy, and overtake success rate, demonstrating
-that the same planner and controller can execute distinct tactical corridors
-without case-specific retuning.
+    \item A model predictive contouring control method is constructed for high-speed competitive autonomous racing. Based on the planned path--speed reference, contouring error, lag error, control inputs, and vehicle dynamic constraints are jointly considered to achieve closed-loop tracking of both path and speed references. This enhances trajectory execution stability and closed-loop robustness in complex overtaking scenarios.
 \end{enumerate}
+
+
 
 The remainder of the paper is organized as follows.
 Section~\ref{sec:model} derives the unified vehicle and Frenet models.
@@ -1108,323 +1145,178 @@ after resampling the path, speed and time arrays to the controller cadence.
 % =====================================================================
 \section{Model Predictive Contouring Control}\label{sec:controller}
 % =====================================================================
-The control layer converts the local reference
-$\mathcal{R}_t$ in~(\ref{eq:reference_tuple}) into the actuator command
-actually applied to the race car.  The tactical layer determines the
-admissible side of the overtake and the SOCP layer computes a feasible path;
-the controller therefore does not change the corridor.  It solves a compact
-receding-horizon Model Predictive Contouring Control (MPCC) problem in a
-vehicle-fixed local frame, and then maps the first optimal speed--steering
-pair into throttle, brake pressure, steering command and gear.
+The control layer tracks the path-speed reference $\mathcal{R}_t$
+from~(\ref{eq:reference_tuple}) by solving a receding-horizon nonlinear
+program at each actuation cycle.  Unlike time-optimal MPCC formulations that
+maximize progress along a fixed raceline, the controller here tracks a
+reference that is replanned at the tactical rate; consequently the objective
+penalizes geometric contouring deviation rather than arc-length progress.
+This decoupling ensures that a corridor-side switch by the tactical layer
+does not require controller re-initialization---only the reference sequence
+changes.
 
-At control instant $t$, the current vehicle pose defines a rigid transform
-$\mathcal{T}_t$ from the global frame to the local controller frame.  The
-measured pose becomes the origin,
+At control instant $t$ the current vehicle pose defines the local origin.
+The state is the planar pose
+$\bm{\chi}_k=[x_k,y_k,\theta_k]^\top$
+and the input is the commanded speed and front-wheel steering angle
+$\bm{\nu}_k=[V_k,\delta_k]^\top$.
+The initial condition is
 \begin{equation}
-\bm{\chi}_{0|t}=\bigl[x_{0|t},y_{0|t},\theta_{0|t}\bigr]^\top
-=\bm{0},
-\qquad
-\bm{\nu}_{-1|t}=\bigl[V_{-1|t},\delta_{-1|t}\bigr]^\top ,
-\label{eq:mpcc_initial}
+\bm{\chi}_{0|t}=\bm{0},\qquad
+\bm{\nu}_{-1|t}=
+\bigl[V_{-1|t},\;\delta_{-1|t}\bigr]^\top,
+\label{eq:mpcc_ic}
 \end{equation}
-where $V_{-1|t}$ and $\delta_{-1|t}$ are the speed and front-wheel steering
-commands applied in the previous cycle.  The reference sequence used by the
-controller is obtained by transforming the planner output:
-\begin{equation}
-\bar{\bm{r}}_{k|t}=
-\bigl[x_{k|t}^{r},y_{k|t}^{r},\theta_{k|t}^{r},V_{k|t}^{r},
-\delta_{k|t}^{r}\bigr]^\top ,
-\qquad k=1,\ldots,N_c ,
-\label{eq:mpcc_reference}
-\end{equation}
-with the steering feedforward reconstructed from the planned yaw-rate
-reference,
-\begin{equation}
-r_{k|t}^{r}=\kappa_{p,k|t}^{r}V_{k|t}^{r},\qquad
-\delta_{k|t}^{r}=
-\arctan\!\left(\frac{L_c r_{k|t}^{r}}
-{V_{k|t}^{r}+\varepsilon_v}\right).
-\label{eq:steer_ff_ref}
-\end{equation}
-Here $L_c$ is the wheelbase used by the controller.  The local state is a
-projection of the vehicle model in Sec.~\ref{sec:model} onto pose, and the
-input is the commanded path speed and front steering angle:
-\begin{equation}
-\bm{\chi}_{k|t}=\bigl[x_{k|t},y_{k|t},\theta_{k|t}\bigr]^\top,\qquad
-\bm{\nu}_{k|t}=\bigl[V_{k|t},\delta_{k|t}\bigr]^\top .
-\label{eq:mpcc_state_input}
-\end{equation}
-The prediction model is
+where $\bm{\nu}_{-1|t}$ is the command applied in the previous cycle,
+retained for rate-constraint enforcement.
+The prediction model is a kinematic bicycle with an identified nonlinear
+yaw-rate map,
 \begin{equation}
 \bm{\chi}_{k+1|t}
 =\bm{\chi}_{k|t}+T_c
 \begin{bmatrix}
-V_{k|t}\cos\theta_{k|t}\\
-V_{k|t}\sin\theta_{k|t}\\
+V_{k|t}\cos\theta_{k|t}\\[2pt]
+V_{k|t}\sin\theta_{k|t}\\[2pt]
 \Omega(V_{k|t},\delta_{k|t})
 \end{bmatrix},
 \label{eq:mpcc_model}
 \end{equation}
-where the identified yaw-rate map is
 \begin{equation}
 \Omega(V,\delta)=
-\frac{\tan(a_\delta\delta+b_\delta)}{L_c}\,
-\bigl(c_VV+d_V\bigr).
-\label{eq:yaw_rate_fit}
+\frac{\tan(a_\delta\,\delta+b_\delta)}{L_c}\,
+(c_V V+d_V),
+\label{eq:yaw_rate_map}
 \end{equation}
-This model is deliberately low-dimensional: the GGV sweep in
-Sec.~\ref{sec:planner} has already produced a speed-feasible local path, and
-the controller must solve fast enough to reject pose error at the actuation
-rate.
+where $L_c$ is the wheelbase and $\{a_\delta,b_\delta,c_V,d_V\}$ are
+identified from closed-loop vehicle data using least-squares regression on
+measured yaw rate, speed, and steering angle.  The model is deliberately
+low-dimensional: the GGV speed profiler in Sec.~\ref{sec:planner} has
+already ensured that the reference speed is dynamically feasible, so the
+controller need only reject pose disturbances at the actuation rate
+$1/T_c$.
 
-For each predicted point, define
+The reference sequence is obtained by transforming the planner output into
+the local frame:
 \begin{equation}
-\Delta\bm{p}_{k|t}=
-\begin{bmatrix}
-x_{k|t}-x_{k|t}^{r}\\
-y_{k|t}-y_{k|t}^{r}
-\end{bmatrix},\quad
-\bm{t}_{k|t}^{r}=
-\begin{bmatrix}
-\cos\theta_{k|t}^{r}\\
-\sin\theta_{k|t}^{r}
-\end{bmatrix},\quad
-\bm{n}_{k|t}^{r}=
-\begin{bmatrix}
--\sin\theta_{k|t}^{r}\\
-\cos\theta_{k|t}^{r}
-\end{bmatrix}.
-\label{eq:mpcc_frame}
+\bar{\bm{r}}_{k|t}=
+\bigl[x_{k}^{r},\;y_{k}^{r},\;\theta_{k}^{r},\;V_{k}^{r},\;
+\delta_{k}^{r}\bigr]^\top,
+\qquad k=1,\ldots,N_c,
+\label{eq:mpcc_ref}
 \end{equation}
-The contouring, lag, heading and input-tracking errors are
+where the reference steering is reconstructed from the planned path curvature
+$\kappa_{p,k}^r$ via the inverse kinematic relation
+\begin{equation}
+\delta_{k}^{r}=
+\arctan\!\left(\frac{L_c\,\kappa_{p,k}^r\,V_k^r}
+{V_k^r+\varepsilon_v}\right).
+\label{eq:steer_ff}
+\end{equation}
+
+For each prediction step, define the position error in the moving
+tangent--normal frame of the reference path.  Let
+$\bm{t}_k^r=[\cos\theta_k^r,\sin\theta_k^r]^\top$ and
+$\bm{n}_k^r=[-\sin\theta_k^r,\cos\theta_k^r]^\top$ be the unit tangent
+and normal at step $k$.  The contouring error (normal deviation), lag error
+(tangential deviation), heading error, and input-tracking error are
 \begin{align}
-e_{c,k|t} &=(\bm{n}_{k|t}^{r})^\top\Delta\bm{p}_{k|t},
+e_{c,k|t} &=(\bm{n}_{k|t}^{r})^\top
+\bigl([x_{k|t}-x_{k}^{r},\;y_{k|t}-y_{k}^{r}]^\top\bigr),
 \label{eq:mpcc_ec}\\
-e_{\ell,k|t} &=(\bm{t}_{k|t}^{r})^\top\Delta\bm{p}_{k|t},
+e_{\ell,k|t} &=(\bm{t}_{k|t}^{r})^\top
+\bigl([x_{k|t}-x_{k}^{r},\;y_{k|t}-y_{k}^{r}]^\top\bigr),
 \label{eq:mpcc_el}\\
-e_{\psi,k|t} &=\operatorname{wrap}
-\bigl(\theta_{k|t}-\theta_{k|t}^{r}\bigr),
+e_{\psi,k|t} &=\mathrm{wrap}(\theta_{k|t}-\theta_{k}^{r}),
 \label{eq:mpcc_epsi}\\
-\bm{e}_{\nu,k|t} &=\bm{\nu}_{k|t}
--\bm{\nu}_{k|t}^{r},\qquad
-\bm{\nu}_{k|t}^{r}=\bigl[V_{k|t}^{r},\delta_{k|t}^{r}\bigr]^\top .
-\label{eq:mpcc_eu}
+\bm{e}_{\nu,k|t} &=\bm{\nu}_{k|t}-\bm{\nu}_{k}^{r}.
+\label{eq:mpcc_enu}
 \end{align}
-The implemented MPCC penalizes the normal contouring error but does not assign
-a separate weight to $e_{\ell,k|t}$.  This choice avoids forcing the vehicle
-to chase the time stamp of a replanned trajectory; longitudinal timing is
-handled through the reference speed term in $\bm{e}_{\nu,k|t}$.
+The contouring error $e_c$ measures the lateral deviation from the planned
+path and is the primary tracking objective.  The lag error $e_\ell$ is not
+penalized in the cost; longitudinal timing is handled implicitly through
+the speed reference in $\bm{e}_\nu$.  This choice avoids forcing the
+vehicle to chase replanned time-stamps when the tactical layer shifts the
+corridor.
 
-Let
-\begin{equation}
-Q_c=q_c,\qquad Q_\psi=q_\psi,\qquad
-R_\nu=\diag(r_V,r_\delta),\qquad q_{\Delta\delta}>0 .
-\label{eq:mpcc_weights}
-\end{equation}
-For a control sequence
-$\mathcal{U}_t=\{\bm{\nu}_{0|t},\ldots,\bm{\nu}_{N_c-1|t}\}$, the
-prediction states are induced by~(\ref{eq:mpcc_model}), and the cost is
+The stage cost and the complete optimization problem are
 \begin{equation}
 \begin{aligned}
-J_t(\mathcal{U}_t)
-=&\;q_{\Delta\delta}
-\bigl(\delta_{0|t}-\delta_{-1|t}\bigr)^2\\
-&+\sum_{k=0}^{N_c-1}
-\left[
-q_c e_{c,k+1|t}^2
-+q_\psi e_{\psi,k+1|t}^2
-+\bm{e}_{\nu,k|t}^{\top}R_\nu\bm{e}_{\nu,k|t}
-\right].
-\end{aligned}
-\label{eq:mpcc_cost}
-\end{equation}
-Equivalently, after substituting
-(\ref{eq:mpcc_ec})--(\ref{eq:mpcc_eu}), the stage term is
-\begin{equation}
-\begin{aligned}
-L_{k|t}
-=&\;q_c\!
-\left[-(x_{k+1|t}-x_{k+1|t}^{r})\sin\theta_{k+1|t}^{r}
-+(y_{k+1|t}-y_{k+1|t}^{r})\cos\theta_{k+1|t}^{r}\right]^2\\
-&+q_\psi
-\left[\operatorname{wrap}(\theta_{k+1|t}-\theta_{k+1|t}^{r})\right]^2
-+r_V(V_{k|t}-V_{k|t}^{r})^2
-+r_\delta(\delta_{k|t}-\delta_{k|t}^{r})^2 .
-\end{aligned}
-\label{eq:mpcc_stage_expanded}
-\end{equation}
-Thus the optimizer is an MPCC because the lateral objective is written in the
-moving tangent--normal frame of the planned path, while its decision variables
-remain the physically meaningful speed and steering commands.
-
-The nonlinear program solved at each control cycle is
-\begin{equation}
-\begin{aligned}
-\mathcal{U}_t^\star
-=\argmin_{\mathcal{U}_t}\quad&
-J_t(\mathcal{U}_t)\\
-\mathrm{s.t.}\quad&
+\min_{\mathcal{U}_t}\;\;&
+q_{\Delta\delta}\bigl(\delta_{0|t}-\delta_{-1|t}\bigr)^2
++\sum_{k=0}^{N_c-1}\!
+\Bigl[
+q_c\, e_{c,k+1|t}^2
++q_\psi\, e_{\psi,k+1|t}^2
++\bm{e}_{\nu,k|t}^\top R_\nu\,\bm{e}_{\nu,k|t}
+\Bigr]\\[3pt]
+\mathrm{s.t.}\;\;&
 \bm{\chi}_{0|t}=\bm{0},\\
-&\bm{\chi}_{k+1|t}=f_d^{\rm mpcc}
-(\bm{\chi}_{k|t},\bm{\nu}_{k|t}),\\
-&V_{\min}\le V_{k|t}\le V_{\max},\\
-&|\delta_{k|t}|\le\delta_{\max}^{c},\\
-&|\Delta V_{k|t}|\le\Delta V_{\max},\\
-&|\Delta\delta_{k|t}|\le\dot\delta_{\max}^{c}T_c,\qquad
-k=0,\ldots,N_c-1,
+&\bm{\chi}_{k+1|t}
+=f_d(\bm{\chi}_{k|t},\bm{\nu}_{k|t}),
+\quad k=0,\ldots,N_c{-}1,\\
+&V_{\min}\le V_{k|t}\le v_{x,\max},\\
+&|\delta_{k|t}|\le\delta_{\max},\\
+&|V_{k|t}-V_{k-1|t}|\le\Delta V_{\max},\\
+&|\delta_{k|t}-\delta_{k-1|t}|\le\dot\delta_{\max}\,T_c,
 \end{aligned}
 \label{eq:mpcc_nlp}
 \end{equation}
-where $f_d^{\rm mpcc}$ denotes the discrete model in
-(\ref{eq:mpcc_model})--(\ref{eq:yaw_rate_fit}), and
-\begin{equation}
-\Delta V_{k|t}=V_{k|t}-V_{k-1|t},\qquad
-\Delta\delta_{k|t}=\delta_{k|t}-\delta_{k-1|t}.
-\label{eq:mpcc_rate}
-\end{equation}
-The previous command in~(\ref{eq:mpcc_initial}) defines the $k=0$ increments.
-The optimization variables are only the input sequence; the state sequence is
-generated recursively by the model.  This condensed form is the reason the
-problem remains small despite being nonlinear.
+where $R_\nu=\mathrm{diag}(r_V,r_\delta)$, and
+$f_d(\cdot)$ denotes the discrete dynamics
+in~(\ref{eq:mpcc_model})--(\ref{eq:yaw_rate_map}).
+The weight $q_{\Delta\delta}$ penalizes the first steering increment to
+enforce actuator continuity across cycles.  The speed and steering rate
+constraints prevent saturation and ensure smooth transitions during
+corridor-side switches initiated by the tactical layer.
 
-The NLP is solved by a warm-started primal--dual interior-point method.  If
+The NLP is solved in condensed form with $2N_c$ decision variables by a
+warm-started interior-point method.  The receding-horizon policy applies
+only $(V_{0|t}^\star,\delta_{0|t}^\star)$ and re-solves at the next cycle.
+The actuator mapping converts this pair into the physical command vector
 \begin{equation}
-\mathcal{U}_{t-1}^\star=
-\{(V_{0|t-1}^\star,\delta_{0|t-1}^\star),\ldots,
-(V_{N_c-1|t-1}^\star,\delta_{N_c-1|t-1}^\star)\},
+\bm{u}_{\rm act}=
+\mathcal{M}(V_{0|t}^\star,\delta_{0|t}^\star)
+=\bigl[T_{\rm cmd},\;P_{b,\rm cmd},\;S_{\rm cmd},\;g_{\rm cmd}\bigr]^\top,
+\label{eq:actuator_map}
 \end{equation}
-the initial guess at the next cycle is shifted as
+where $T_{\rm cmd}\in[0,100]$ is the throttle percentage,
+$P_{b,\rm cmd}\in[0,P_{b,\max}]$ is the brake pressure,
+$S_{\rm cmd}\in[S_{\min},S_{\max}]$ is the steering actuator position, and
+$g_{\rm cmd}\in\{1,\ldots,G\}$ is the gear.  The longitudinal force
+request driving the throttle/brake split is
 \begin{equation}
-\mathcal{U}_{t}^{(0)}=
-\{(V_{1|t-1}^\star,\delta_{1|t-1}^\star),\ldots,
-(V_{N_c-1|t-1}^\star,\delta_{N_c-1|t-1}^\star),
-(V_{N_c-1|t-1}^\star,\delta_{N_c-1|t-1}^\star)\}.
-\label{eq:mpcc_warm_start}
+F_x^{\rm req}=
+\underbrace{c_{d,2}V^2+c_{d,1}V+c_{d,0}
++m\frac{V_{\rm la}-V_{0|t}^\star}{T_{\rm la}}}_{F_{\rm ff}}
++\underbrace{K_p^V(V_{0|t}^\star-V_{\rm meas})
++K_i^V I_V}_{F_{\rm fb}},
+\label{eq:force_req}
 \end{equation}
-The receding-horizon command is
+and the allocation rule is
 \begin{equation}
-V_{\rm cmd}=V_{0|t}^{\star},\qquad
-\delta_{\rm cmd}=\delta_{0|t}^{\star},\qquad
-\widehat r_{\rm cmd}=\Omega(V_{\rm cmd},\delta_{\rm cmd}).
-\label{eq:mpcc_command}
-\end{equation}
-A solution is used only when the interior-point solver reports convergence
-and the objective value is below the admissible tracking threshold; otherwise
-the last stabilizing tracking command is retained for the current cycle.
-
-The optimizer output is not sent to the vehicle as an abstract acceleration.
-It is converted into the actuator vector
-\begin{equation}
-\bm{a}_{\rm act}=
-\bigl[T_{\rm cmd},\bm{P}_{b,{\rm cmd}},S_{\rm cmd},g_{\rm cmd}\bigr],
-\label{eq:actuator_vector}
-\end{equation}
-where $T_{\rm cmd}$ is throttle opening, $\bm{P}_{b,{\rm cmd}}$ is the
-four-wheel brake-pressure command, $S_{\rm cmd}$ is the steering actuator
-command, and $g_{\rm cmd}$ is the gear.  The longitudinal force request is
-computed from a speed feedforward--feedback law,
-\begin{align}
-e_{V,t} &= V_{\rm cmd}-V_{\rm meas},
-\label{eq:speed_error_ctrl}\\
-I_{V,t} &=
-\operatorname{clip}\bigl(I_{V,t-1}+T_c e_{V,t},
-I_{\min}(e_{V,t}),I_{\max}(e_{V,t})\bigr),
-\label{eq:int_speed_ctrl}\\
-F_{\rm fb} &=K_p^V e_{V,t}+K_i^V I_{V,t},
-\label{eq:fb_force_ctrl}\\
-F_{\rm ff} &=c_{d,2}V_{\rm meas}^2+c_{d,1}V_{\rm meas}+c_{d,0}
-+m\frac{V_{\rm la}-V_{\rm cmd}}{T_{\rm la}},
-\label{eq:ff_force_ctrl}\\
-F_x^{\rm req} &=F_{\rm ff}+F_{\rm fb}.
-\label{eq:total_force_ctrl}
-\end{align}
-Here $V_{\rm la}$ is the look-ahead speed sampled on the planned path.  The
-engine force available in gear $g$ is
-\begin{equation}
-F_{\max}(\omega_e,g)=
-\frac{i_g i_0}{r_w}
-\sum_{j=0}^{5}p_j\omega_e^{5-j},
-\label{eq:engine_force}
-\end{equation}
-where $i_g$ and $i_0$ are the gear and final-drive ratios, $r_w$ is wheel
-radius, and $\{p_j\}$ are the fitted engine-torque coefficients.  The
-throttle/brake split is
-\begin{equation}
-T_{\rm raw}=
+T_{\rm cmd}=
 \begin{cases}
-\max\!\left(100F_x^{\rm req}/F_{\max}(\omega_e,g),\,T_0\right),
-& F_x^{\rm req}>0,\\
-T_0\!\left(1-F_x^{\rm req}/F_0\right),
-& F_0<F_x^{\rm req}\le0,\\
-0, & F_x^{\rm req}\le F_0,
+\min\bigl\{100\,F_x^{\rm req}/F_{\max}(\omega_e,g),\;
+T_{\rm tc}\bigr\},
+& F_x^{\rm req}>0,\\[3pt]
+0, & \text{otherwise},
 \end{cases}
 \label{eq:throttle_map}
 \end{equation}
-and
 \begin{equation}
-P_b=
+P_{b,\rm cmd}=
 \begin{cases}
-0, & F_x^{\rm req}>F_0,\\
-\operatorname{clip}\!\left(
-\dfrac{-F_x^{\rm req}r_w\beta_b}{2k_b}\,10^5,\;
-P_{b,\min},P_{b,\max}\right),
-& F_x^{\rm req}\le F_0,
+0, & F_x^{\rm req}>0,\\[3pt]
+\mathrm{clip}\!\left(
+\dfrac{-F_x^{\rm req}\,r_w}{2k_b},\;0,\;P_{b,\max}\right),
+& \text{otherwise},
 \end{cases}
 \label{eq:brake_map}
 \end{equation}
-where $T_0$ is the zero-force throttle, $F_0<0$ is the force threshold at
-which braking begins, $\beta_b$ is the front brake bias, and $k_b$ converts
-brake pressure to wheel torque.  Front and rear pressures are assigned by
-\begin{equation}
-\bm{P}_{b}^{0}=
-\bigl[P_b,\;P_b,\;P_b(1-\beta_b)/\beta_b,\;
-P_b(1-\beta_b)/\beta_b\bigr]^\top ,
-\label{eq:brake_split}
-\end{equation}
-and the final brake vector is obtained from the ABS limiter,
-\begin{equation}
-\bm{P}_{b,{\rm cmd}}=
-\mathcal{A}_{\rm ABS}
-\bigl(\bm{P}_{b}^{0},\bm{\lambda},\dot{\bm{\lambda}},
-|\bm{\alpha}|\bigr).
-\label{eq:abs_map}
-\end{equation}
-The throttle command is clipped by the traction limiter,
-\begin{equation}
-T_{\rm cmd}=
-\operatorname{clip}\!\left(
-\min\{T_{\rm raw},T_{\rm tc}(\alpha_r,V_{\rm meas})\},
-T_{\min},T_{\max}\right).
-\label{eq:tc_map}
-\end{equation}
-
-The steering actuator command is a calibrated affine map of the MPCC front
-wheel angle,
-\begin{equation}
-S_{\rm cmd}=
-\operatorname{clip}\!\left(
-\mathcal{S}_{\delta}\bigl(r_s(\delta_{\rm cmd}+\delta_{\rm off})\bigr),
-S_{\min},S_{\max}\right),
-\label{eq:steer_actuator_map}
-\end{equation}
-where $r_s$ is the steering ratio and $\delta_{\rm off}$ is the identified
-steering offset.  Gear selection is hysteretic:
-\begin{equation}
-g_{\rm cmd}=
-\begin{cases}
-g+1,& \omega_e\ge\omega_{\uparrow,g},\;g<G,\;
-F_x^{\rm req}>0,\;\Delta t_g\ge T_{\rm shift},\\
-g-1,& \omega_e<\omega_{\downarrow,g},\;g>1,\;
-F_x^{\rm req}\le0,\;\Delta t_g\ge T_{\rm shift},\\
-1,& g=0,\;V_{\rm cmd}>V_{\min},\\
-g,& \text{otherwise}.
-\end{cases}
-\label{eq:gear_logic}
-\end{equation}
-Equations~(\ref{eq:mpcc_nlp})--(\ref{eq:gear_logic}) define the complete
-control law used in the experiments: the MPCC determines the locally feasible
-speed--steering pair, while the calibrated actuator layer realizes that pair
-as throttle, brake, steering and gear commands under the vehicle limits.
+where $T_{\rm tc}$ is the traction-control limit and $k_b$ converts
+pressure to wheel torque.  The steering actuator is mapped as
+$S_{\rm cmd}=r_s(\delta_{0|t}^\star+\delta_{\rm off})$
+with calibrated ratio $r_s$ and offset $\delta_{\rm off}$.
 
 \input{simulation_results_refined.tex}
 
@@ -1474,155 +1366,385 @@ to controlled track tests on the Dallara EAV24 platform, which will require
 addressing the sim-to-real gap in tire modeling, aerodynamic downforce, and
 communication latency.
 
-\begin{thebibliography}{38}
+% \begin{thebibliography}{38}
 
-% --- Time-optimal trajectory & lap-time ---
-\bibitem{christ2021}
-F.~Christ, A.~Wischnewski, A.~Heilmeier, and B.~Lohmann, ``Time-optimal trajectory planning for a race car considering variable tyre--road friction coefficients,'' \emph{Veh.\ Syst.\ Dyn.}, vol.~59, no.~4, pp.~588--612, 2021.
+% % --- Time-optimal trajectory & lap-time ---
+% \bibitem{christ2021}
+% F.~Christ, A.~Wischnewski, A.~Heilmeier, and B.~Lohmann, ``Time-optimal trajectory planning for a race car considering variable tyre--road friction coefficients,'' \emph{Veh.\ Syst.\ Dyn.}, vol.~59, no.~4, pp.~588--612, 2021.
 
-\bibitem{heilmeier2020}
-A.~Heilmeier, A.~Wischnewski, L.~Hermansdorfer, J.~Betz, M.~Lienkamp, and B.~Lohmann, ``Minimum curvature trajectory planning and control for an autonomous race car,'' \emph{Veh.\ Syst.\ Dyn.}, vol.~58, no.~10, pp.~1497--1527, 2020.
+% \bibitem{heilmeier2020}
+% A.~Heilmeier, A.~Wischnewski, L.~Hermansdorfer, J.~Betz, M.~Lienkamp, and B.~Lohmann, ``Minimum curvature trajectory planning and control for an autonomous race car,'' \emph{Veh.\ Syst.\ Dyn.}, vol.~58, no.~10, pp.~1497--1527, 2020.
 
-\bibitem{kapania2016}
-N.~R.~Kapania, J.~Subosits, and J.~C.~Gerdes, ``A sequential two-step algorithm for fast generation of vehicle racing trajectories,'' \emph{ASME J.\ Dyn.\ Syst.\ Meas.\ Control}, vol.~138, no.~9, art.~091005, 2016.
+% \bibitem{kapania2016}
+% N.~R.~Kapania, J.~Subosits, and J.~C.~Gerdes, ``A sequential two-step algorithm for fast generation of vehicle racing trajectories,'' \emph{ASME J.\ Dyn.\ Syst.\ Meas.\ Control}, vol.~138, no.~9, art.~091005, 2016.
 
-\bibitem{lipp2014}
-T.~Lipp and S.~Boyd, ``Minimum-time speed optimisation over a fixed path,'' \emph{Int.\ J.\ Control}, vol.~87, no.~6, pp.~1297--1311, 2014.
+% \bibitem{lipp2014}
+% T.~Lipp and S.~Boyd, ``Minimum-time speed optimisation over a fixed path,'' \emph{Int.\ J.\ Control}, vol.~87, no.~6, pp.~1297--1311, 2014.
 
-\bibitem{verschueren2014}
-R.~Verschueren, S.~De~Bruyne, M.~Zanon, J.~V.~Frasch, and M.~Diehl, ``Towards time-optimal race car driving using nonlinear MPC in real-time,'' in \emph{Proc.\ IEEE Conf.\ Decision Control (CDC)}, 2014, pp.~2505--2510.
+% \bibitem{verschueren2014}
+% R.~Verschueren, S.~De~Bruyne, M.~Zanon, J.~V.~Frasch, and M.~Diehl, ``Towards time-optimal race car driving using nonlinear MPC in real-time,'' in \emph{Proc.\ IEEE Conf.\ Decision Control (CDC)}, 2014, pp.~2505--2510.
 
-\bibitem{rosolia2020lmpc}
-U.~Rosolia and F.~Borrelli, ``Learning how to autonomously race a car: A predictive control approach,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~28, no.~6, pp.~2713--2719, 2020.
+% \bibitem{rosolia2020lmpc}
+% U.~Rosolia and F.~Borrelli, ``Learning how to autonomously race a car: A predictive control approach,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~28, no.~6, pp.~2713--2719, 2020.
 
-\bibitem{brunner2017}
-M.~Brunner, U.~Rosolia, J.~Gonzales, and F.~Borrelli, ``Repetitive learning model predictive control: An autonomous racing example,'' in \emph{Proc.\ IEEE Conf.\ Decision Control (CDC)}, 2017, pp.~2545--2550.
+% \bibitem{brunner2017}
+% M.~Brunner, U.~Rosolia, J.~Gonzales, and F.~Borrelli, ``Repetitive learning model predictive control: An autonomous racing example,'' in \emph{Proc.\ IEEE Conf.\ Decision Control (CDC)}, 2017, pp.~2545--2550.
 
-% --- Full-stack racing platforms ---
-\bibitem{kabzan2020amzracing}
-J.~Kabzan, M.~de~la~Iglesia~Valls, V.~Reijgwart \emph{et al.}, ``AMZ driverless: The full autonomous racing system,'' \emph{J.\ Field Robot.}, vol.~37, no.~7, pp.~1267--1294, 2020.
+% % --- Full-stack racing platforms ---
+% \bibitem{kabzan2020amzracing}
+% J.~Kabzan, M.~de~la~Iglesia~Valls, V.~Reijgwart \emph{et al.}, ``AMZ driverless: The full autonomous racing system,'' \emph{J.\ Field Robot.}, vol.~37, no.~7, pp.~1267--1294, 2020.
 
-\bibitem{wischnewski2022indy}
-A.~Wischnewski, M.~Geisslinger, J.~Betz \emph{et al.}, ``Indy autonomous challenge---Autonomous race cars at the handling limits,'' in \emph{Proc.\ FISITA World Automot.\ Congr.}, 2022, pp.~1--14.
+% \bibitem{wischnewski2022indy}
+% A.~Wischnewski, M.~Geisslinger, J.~Betz \emph{et al.}, ``Indy autonomous challenge---Autonomous race cars at the handling limits,'' in \emph{Proc.\ FISITA World Automot.\ Congr.}, 2022, pp.~1--14.
 
-\bibitem{betz2023autonomous}
-J.~Betz, T.~Betz, F.~Fent \emph{et al.}, ``TUM autonomous motorsport: An autonomous racing software for the Indy autonomous challenge,'' \emph{J.\ Field Robot.}, vol.~40, no.~4, pp.~783--809, 2023.
+% \bibitem{betz2023autonomous}
+% J.~Betz, T.~Betz, F.~Fent \emph{et al.}, ``TUM autonomous motorsport: An autonomous racing software for the Indy autonomous challenge,'' \emph{J.\ Field Robot.}, vol.~40, no.~4, pp.~783--809, 2023.
 
-\bibitem{jung2023iac}
-C.~Jung, A.~Finazzi, H.~Seong \emph{et al.}, ``An autonomous system for head-to-head race: Design, implementation and analysis,'' \emph{IEEE Trans.\ Intell.\ Transp.\ Syst.}, vol.~24, no.~10, pp.~10470--10486, 2023.
+% \bibitem{jung2023iac}
+% C.~Jung, A.~Finazzi, H.~Seong \emph{et al.}, ``An autonomous system for head-to-head race: Design, implementation and analysis,'' \emph{IEEE Trans.\ Intell.\ Transp.\ Syst.}, vol.~24, no.~10, pp.~10470--10486, 2023.
 
-\bibitem{raji2024kth}
-A.~Raji, A.~Liniger, A.~Giove \emph{et al.}, ``A tricycle model to accurately control an autonomous racecar with locked differentials,'' \emph{IEEE Robot.\ Autom.\ Lett.}, vol.~9, no.~3, pp.~2499--2506, 2024.
+% \bibitem{raji2024kth}
+% A.~Raji, A.~Liniger, A.~Giove \emph{et al.}, ``A tricycle model to accurately control an autonomous racecar with locked differentials,'' \emph{IEEE Robot.\ Autom.\ Lett.}, vol.~9, no.~3, pp.~2499--2506, 2024.
 
-% --- MPC at handling limit / MPCC / GP ---
-\bibitem{kabzan2019gpmpc}
-J.~Kabzan, L.~Hewing, A.~Liniger, and M.~N.~Zeilinger, ``Learning-based model predictive control for autonomous racing,'' \emph{IEEE Robot.\ Autom.\ Lett.}, vol.~4, no.~4, pp.~3363--3370, 2019.
+% % --- MPC at handling limit / MPCC / GP ---
+% \bibitem{kabzan2019gpmpc}
+% J.~Kabzan, L.~Hewing, A.~Liniger, and M.~N.~Zeilinger, ``Learning-based model predictive control for autonomous racing,'' \emph{IEEE Robot.\ Autom.\ Lett.}, vol.~4, no.~4, pp.~3363--3370, 2019.
 
-\bibitem{hewing2020}
-L.~Hewing, K.~P.~Wabersich, M.~Menner, and M.~N.~Zeilinger, ``Learning-based model predictive control: Toward safe learning in control,'' \emph{Annu.\ Rev.\ Control Robot.\ Auton.\ Syst.}, vol.~3, pp.~269--296, 2020.
+% \bibitem{hewing2020}
+% L.~Hewing, K.~P.~Wabersich, M.~Menner, and M.~N.~Zeilinger, ``Learning-based model predictive control: Toward safe learning in control,'' \emph{Annu.\ Rev.\ Control Robot.\ Auton.\ Syst.}, vol.~3, pp.~269--296, 2020.
 
-\bibitem{liniger2015}
-A.~Liniger, A.~Domahidi, and M.~Morari, ``Optimization-based autonomous racing of 1:43 scale RC cars,'' \emph{Optim.\ Control Appl.\ Methods}, vol.~36, no.~5, pp.~628--647, 2015.
+% \bibitem{liniger2015}
+% A.~Liniger, A.~Domahidi, and M.~Morari, ``Optimization-based autonomous racing of 1:43 scale RC cars,'' \emph{Optim.\ Control Appl.\ Methods}, vol.~36, no.~5, pp.~628--647, 2015.
 
-\bibitem{liniger2019rss}
-A.~Liniger and J.~Lygeros, ``A noncooperative game approach to autonomous racing,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~28, no.~3, pp.~884--897, 2020.
+% \bibitem{liniger2019rss}
+% A.~Liniger and J.~Lygeros, ``A noncooperative game approach to autonomous racing,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~28, no.~3, pp.~884--897, 2020.
 
-\bibitem{romero2022}
-A.~Romero, S.~Sun, P.~Foehn, and D.~Scaramuzza, ``Model predictive contouring control for time-optimal quadrotor flight,'' \emph{IEEE Trans.\ Robot.}, vol.~38, no.~6, pp.~3340--3356, 2022.
+% \bibitem{romero2022}
+% A.~Romero, S.~Sun, P.~Foehn, and D.~Scaramuzza, ``Model predictive contouring control for time-optimal quadrotor flight,'' \emph{IEEE Trans.\ Robot.}, vol.~38, no.~6, pp.~3340--3356, 2022.
 
-\bibitem{novi2020}
-T.~Novi, A.~Liniger, R.~Capitani, and C.~Annicchiarico, ``Real-time control for at-limit handling driving on a predefined path,'' \emph{Veh.\ Syst.\ Dyn.}, vol.~58, no.~7, pp.~1007--1036, 2020.
+% \bibitem{novi2020}
+% T.~Novi, A.~Liniger, R.~Capitani, and C.~Annicchiarico, ``Real-time control for at-limit handling driving on a predefined path,'' \emph{Veh.\ Syst.\ Dyn.}, vol.~58, no.~7, pp.~1007--1036, 2020.
 
-\bibitem{verschueren2022acados}
-R.~Verschueren, G.~Frison, D.~Kouzoupis \emph{et al.}, ``acados---A modular open-source framework for fast embedded optimal control,'' \emph{Math.\ Program.\ Comput.}, vol.~14, pp.~147--183, 2022.
+% \bibitem{verschueren2022acados}
+% R.~Verschueren, G.~Frison, D.~Kouzoupis \emph{et al.}, ``acados---A modular open-source framework for fast embedded optimal control,'' \emph{Math.\ Program.\ Comput.}, vol.~14, pp.~147--183, 2022.
 
-\bibitem{domahidi2014forces}
-A.~Domahidi and J.~Jerez, ``FORCES Professional,'' Embotech AG, 2014--2024. [Online]. Available: \url{https://embotech.com/forces-pro}.
+% \bibitem{domahidi2014forces}
+% A.~Domahidi and J.~Jerez, ``FORCES Professional,'' Embotech AG, 2014--2024. [Online]. Available: \url{https://embotech.com/forces-pro}.
 
-% --- Game-theoretic & multi-agent ---
-\bibitem{wang2021iterative}
-M.~Wang, Z.~Wang, J.~Talbot, J.~C.~Gerdes, and M.~Schwager, ``Game-theoretic planning for self-driving cars in multivehicle competitive scenarios,'' \emph{IEEE Trans.\ Robot.}, vol.~37, no.~4, pp.~1313--1325, 2021.
+% % --- Game-theoretic & multi-agent ---
+% \bibitem{wang2021iterative}
+% M.~Wang, Z.~Wang, J.~Talbot, J.~C.~Gerdes, and M.~Schwager, ``Game-theoretic planning for self-driving cars in multivehicle competitive scenarios,'' \emph{IEEE Trans.\ Robot.}, vol.~37, no.~4, pp.~1313--1325, 2021.
 
-\bibitem{schwarting2021}
-W.~Schwarting, T.~Seyde, I.~Gilitschenski, L.~Liebenwein, R.~Sander, S.~Karaman, and D.~Rus, ``Deep latent competition: Learning to race using visual control policies in latent space,'' in \emph{Proc.\ Conf.\ Robot Learn.\ (CoRL)}, 2021, pp.~1855--1870.
+% \bibitem{schwarting2021}
+% W.~Schwarting, T.~Seyde, I.~Gilitschenski, L.~Liebenwein, R.~Sander, S.~Karaman, and D.~Rus, ``Deep latent competition: Learning to race using visual control policies in latent space,'' in \emph{Proc.\ Conf.\ Robot Learn.\ (CoRL)}, 2021, pp.~1855--1870.
 
-\bibitem{fridovich2020ilqgames}
-D.~Fridovich-Keil, E.~Ratner, L.~Peters, A.~D.~Dragan, and C.~J.~Tomlin, ``Efficient iterative linear-quadratic approximations for nonlinear multi-player general-sum differential games,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2020, pp.~1475--1481.
+% \bibitem{fridovich2020ilqgames}
+% D.~Fridovich-Keil, E.~Ratner, L.~Peters, A.~D.~Dragan, and C.~J.~Tomlin, ``Efficient iterative linear-quadratic approximations for nonlinear multi-player general-sum differential games,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2020, pp.~1475--1481.
 
-\bibitem{laine2023}
-F.~Laine, D.~Fridovich-Keil, C.-Y.~Chiu, and C.~J.~Tomlin, ``The computation of approximate generalized feedback Nash equilibria,'' \emph{SIAM J.\ Optim.}, vol.~33, no.~1, pp.~294--318, 2023.
+% \bibitem{laine2023}
+% F.~Laine, D.~Fridovich-Keil, C.-Y.~Chiu, and C.~J.~Tomlin, ``The computation of approximate generalized feedback Nash equilibria,'' \emph{SIAM J.\ Optim.}, vol.~33, no.~1, pp.~294--318, 2023.
 
-\bibitem{spica2020}
-R.~Spica, E.~Cristofalo, Z.~Wang, E.~Montijano, and M.~Schwager, ``A real-time game theoretic planner for autonomous two-player drone racing,'' \emph{IEEE Trans.\ Robot.}, vol.~36, no.~5, pp.~1389--1403, 2020.
+% \bibitem{spica2020}
+% R.~Spica, E.~Cristofalo, Z.~Wang, E.~Montijano, and M.~Schwager, ``A real-time game theoretic planner for autonomous two-player drone racing,'' \emph{IEEE Trans.\ Robot.}, vol.~36, no.~5, pp.~1389--1403, 2020.
 
-\bibitem{liniger2020stackelberg}
-A.~Liniger and J.~Lygeros, ``Real-time control for autonomous racing based on viability theory,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~27, no.~2, pp.~464--478, 2019.
+% \bibitem{liniger2020stackelberg}
+% A.~Liniger and J.~Lygeros, ``Real-time control for autonomous racing based on viability theory,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~27, no.~2, pp.~464--478, 2019.
 
-\bibitem{williams2018best}
-G.~Williams, P.~Drews, B.~Goldfain, J.~M.~Rehg, and E.~A.~Theodorou, ``Information-theoretic model predictive control: Theory and applications to autonomous driving,'' \emph{IEEE Trans.\ Robot.}, vol.~34, no.~6, pp.~1603--1622, 2018.
+% \bibitem{williams2018best}
+% G.~Williams, P.~Drews, B.~Goldfain, J.~M.~Rehg, and E.~A.~Theodorou, ``Information-theoretic model predictive control: Theory and applications to autonomous driving,'' \emph{IEEE Trans.\ Robot.}, vol.~34, no.~6, pp.~1603--1622, 2018.
 
-\bibitem{wurman2022gtsophy}
-P.~R.~Wurman, S.~Barrett, K.~Kawamoto \emph{et al.}, ``Outracing champion Gran Turismo drivers with deep reinforcement learning,'' \emph{Nature}, vol.~602, no.~7896, pp.~223--228, 2022.
+% \bibitem{wurman2022gtsophy}
+% P.~R.~Wurman, S.~Barrett, K.~Kawamoto \emph{et al.}, ``Outracing champion Gran Turismo drivers with deep reinforcement learning,'' \emph{Nature}, vol.~602, no.~7896, pp.~223--228, 2022.
 
-\bibitem{jia2023bayesianrace}
-H.~Jia, Y.~Wu, X.~Yang, J.~Pan, and L.~Liu, ``Bayesian intent inference for head-to-head autonomous racing,'' \emph{IEEE Trans.\ Intell.\ Veh.}, vol.~8, no.~7, pp.~3851--3863, 2023.
+% \bibitem{jia2023bayesianrace}
+% H.~Jia, Y.~Wu, X.~Yang, J.~Pan, and L.~Liu, ``Bayesian intent inference for head-to-head autonomous racing,'' \emph{IEEE Trans.\ Intell.\ Veh.}, vol.~8, no.~7, pp.~3851--3863, 2023.
 
-% --- RL on real hardware / safe RL ---
-\bibitem{fuchs2021superhuman}
-F.~Fuchs, Y.~Song, E.~Kaufmann, D.~Scaramuzza, and P.~Duerr, ``Super-human performance in Gran Turismo Sport using deep reinforcement learning,'' \emph{IEEE Robot.\ Autom.\ Lett.}, vol.~6, no.~3, pp.~4257--4264, 2021.
+% % --- RL on real hardware / safe RL ---
+% \bibitem{fuchs2021superhuman}
+% F.~Fuchs, Y.~Song, E.~Kaufmann, D.~Scaramuzza, and P.~Duerr, ``Super-human performance in Gran Turismo Sport using deep reinforcement learning,'' \emph{IEEE Robot.\ Autom.\ Lett.}, vol.~6, no.~3, pp.~4257--4264, 2021.
 
-\bibitem{song2021autonomous}
-Y.~Song, H.~Lin, E.~Kaufmann, P.~Duerr, and D.~Scaramuzza, ``Autonomous overtaking in Gran Turismo Sport using curriculum reinforcement learning,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2021, pp.~9403--9409.
+% \bibitem{song2021autonomous}
+% Y.~Song, H.~Lin, E.~Kaufmann, P.~Duerr, and D.~Scaramuzza, ``Autonomous overtaking in Gran Turismo Sport using curriculum reinforcement learning,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2021, pp.~9403--9409.
 
-\bibitem{evans2023safelearning}
-B.~D.~Evans, H.~A.~Engelbrecht, and H.~W.~Jordaan, ``Safe reinforcement learning for high-speed autonomous racing,'' \emph{Cogn.\ Robot.}, vol.~3, pp.~107--126, 2023.
+% \bibitem{evans2023safelearning}
+% B.~D.~Evans, H.~A.~Engelbrecht, and H.~W.~Jordaan, ``Safe reinforcement learning for high-speed autonomous racing,'' \emph{Cogn.\ Robot.}, vol.~3, pp.~107--126, 2023.
 
-\bibitem{brunnbauer2022learning}
-A.~Brunnbauer, L.~Berducci, A.~Brandst\"atter \emph{et al.}, ``Latent imagination facilitates zero-shot transfer in autonomous racing,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2022, pp.~7513--7520.
+% \bibitem{brunnbauer2022learning}
+% A.~Brunnbauer, L.~Berducci, A.~Brandst\"atter \emph{et al.}, ``Latent imagination facilitates zero-shot transfer in autonomous racing,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2022, pp.~7513--7520.
 
-\bibitem{he2023ralrace}
-S.~He, J.~Zeng, B.~Zhang, and K.~Sreenath, ``Rule-based safety-critical control design using control barrier functions with application to autonomous lane change,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~31, no.~6, pp.~2701--2715, 2023.
+% \bibitem{he2023ralrace}
+% S.~He, J.~Zeng, B.~Zhang, and K.~Sreenath, ``Rule-based safety-critical control design using control barrier functions with application to autonomous lane change,'' \emph{IEEE Trans.\ Control Syst.\ Technol.}, vol.~31, no.~6, pp.~2701--2715, 2023.
 
-\bibitem{ye2021mcts}
-Y.~Ye, X.~Zhang, and J.~Sun, ``Automated vehicle's behavior decision making using deep reinforcement learning and high-fidelity simulation environment,'' \emph{Transp.\ Res.\ Part C}, vol.~107, pp.~155--170, 2019.
+% \bibitem{ye2021mcts}
+% Y.~Ye, X.~Zhang, and J.~Sun, ``Automated vehicle's behavior decision making using deep reinforcement learning and high-fidelity simulation environment,'' \emph{Transp.\ Res.\ Part C}, vol.~107, pp.~155--170, 2019.
 
-\bibitem{sunberg2017pomdp}
-Z.~N.~Sunberg, C.~J.~Ho, and M.~J.~Kochenderfer, ``The value of inferring the internal state of traffic participants for autonomous freeway driving,'' in \emph{Proc.\ Amer.\ Control Conf.\ (ACC)}, 2017, pp.~3004--3010.
+% \bibitem{sunberg2017pomdp}
+% Z.~N.~Sunberg, C.~J.~Ho, and M.~J.~Kochenderfer, ``The value of inferring the internal state of traffic participants for autonomous freeway driving,'' in \emph{Proc.\ Amer.\ Control Conf.\ (ACC)}, 2017, pp.~3004--3010.
 
-% --- Surveys & corridor / safe set ---
+% % --- Surveys & corridor / safe set ---
+% \bibitem{paden2016survey}
+% B.~Paden, M.~\v{C}\'ap, S.~Z.~Yong, D.~Yershov, and E.~Frazzoli, ``A survey of motion planning and control techniques for self-driving urban vehicles,'' \emph{IEEE Trans.\ Intell.\ Veh.}, vol.~1, no.~1, pp.~33--55, 2016.
+
+% \bibitem{gonzalez2016review}
+% D.~Gonz\'alez, J.~P\'erez, V.~Milan\'es, and F.~Nashashibi, ``A review of motion planning techniques for automated vehicles,'' \emph{IEEE Trans.\ Intell.\ Transp.\ Syst.}, vol.~17, no.~4, pp.~1135--1145, 2016.
+
+% \bibitem{betz2022software}
+% J.~Betz, H.~Zheng, A.~Liniger \emph{et al.}, ``Autonomous vehicles on the edge: A survey on autonomous vehicle racing,'' \emph{IEEE Open J.\ Intell.\ Transp.\ Syst.}, vol.~3, pp.~458--488, 2022.
+
+% \bibitem{betz2022survey}
+% J.~Betz, A.~Wischnewski, A.~Heilmeier \emph{et al.}, ``A software architecture for the dynamic path planning of an autonomous racecar at the limits of handling,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Connect.\ Veh.\ Expo (ICCVE)}, 2019, pp.~1--8.
+
+% \bibitem{kaufmann2023champion}
+% E.~Kaufmann, L.~Bauersfeld, A.~Loquercio \emph{et al.}, ``Champion-level drone racing using deep reinforcement learning,'' \emph{Nature}, vol.~620, no.~7976, pp.~982--987, 2023.
+
+% \bibitem{ziegler2014baidu}
+% J.~Ziegler, P.~Bender, M.~Schreiber \emph{et al.}, ``Making Bertha drive---An autonomous journey on a historic route,'' \emph{IEEE Intell.\ Transp.\ Syst.\ Mag.}, vol.~6, no.~2, pp.~8--20, 2014.
+
+% \bibitem{werling2010frenet}
+% M.~Werling, J.~Ziegler, S.~Kammel, and S.~Thrun, ``Optimal trajectory generation for dynamic street scenarios in a Fr\'enet frame,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2010, pp.~987--993.
+
+% \bibitem{rosolia2018sample}
+% U.~Rosolia and F.~Borrelli, ``Learning model predictive control for iterative tasks. A data-driven control framework,'' \emph{IEEE Trans.\ Autom.\ Control}, vol.~63, no.~7, pp.~1883--1896, 2018.
+
+% \bibitem{brunke2022safe}
+% L.~Brunke, M.~Greeff, A.~W.~Hall \emph{et al.}, ``Safe learning in robotics: From learning-based control to safe reinforcement learning,'' \emph{Annu.\ Rev.\ Control Robot.\ Auton.\ Syst.}, vol.~5, pp.~411--444, 2022.
+
+% \bibitem{lin2024racellm}
+% H.~Lin, Y.~Song, and D.~Scaramuzza, ``Reaching the limit in autonomous racing: Optimal control versus reinforcement learning,'' \emph{Sci.\ Robot.}, vol.~8, no.~82, art.~eadg1462, 2023.
+
+% \bibitem{remonda2024}
+% A.~Remonda, E.~Veas, and G.~Luzhnica, ``Comparing the performance of reinforcement learning algorithms for autonomous racing,'' \emph{Eng.\ Appl.\ Artif.\ Intell.}, vol.~118, art.~105692, 2023.
+
+% \end{thebibliography}
+
+
+
+
+\begin{thebibliography}{35}
+
 \bibitem{paden2016survey}
-B.~Paden, M.~\v{C}\'ap, S.~Z.~Yong, D.~Yershov, and E.~Frazzoli, ``A survey of motion planning and control techniques for self-driving urban vehicles,'' \emph{IEEE Trans.\ Intell.\ Veh.}, vol.~1, no.~1, pp.~33--55, 2016.
+B.~Paden, M.~\v{C}\'ap, S.~Z.~Yong, D.~Yershov, and E.~Frazzoli,
+``A survey of motion planning and control techniques for self-driving urban
+vehicles,'' \emph{IEEE Transactions on Intelligent Vehicles}, vol.~1, no.~1,
+pp.~33--55, 2016.
 
 \bibitem{gonzalez2016review}
-D.~Gonz\'alez, J.~P\'erez, V.~Milan\'es, and F.~Nashashibi, ``A review of motion planning techniques for automated vehicles,'' \emph{IEEE Trans.\ Intell.\ Transp.\ Syst.}, vol.~17, no.~4, pp.~1135--1145, 2016.
-
-\bibitem{betz2022software}
-J.~Betz, H.~Zheng, A.~Liniger \emph{et al.}, ``Autonomous vehicles on the edge: A survey on autonomous vehicle racing,'' \emph{IEEE Open J.\ Intell.\ Transp.\ Syst.}, vol.~3, pp.~458--488, 2022.
-
-\bibitem{betz2022survey}
-J.~Betz, A.~Wischnewski, A.~Heilmeier \emph{et al.}, ``A software architecture for the dynamic path planning of an autonomous racecar at the limits of handling,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Connect.\ Veh.\ Expo (ICCVE)}, 2019, pp.~1--8.
-
-\bibitem{kaufmann2023champion}
-E.~Kaufmann, L.~Bauersfeld, A.~Loquercio \emph{et al.}, ``Champion-level drone racing using deep reinforcement learning,'' \emph{Nature}, vol.~620, no.~7976, pp.~982--987, 2023.
-
-\bibitem{ziegler2014baidu}
-J.~Ziegler, P.~Bender, M.~Schreiber \emph{et al.}, ``Making Bertha drive---An autonomous journey on a historic route,'' \emph{IEEE Intell.\ Transp.\ Syst.\ Mag.}, vol.~6, no.~2, pp.~8--20, 2014.
+D.~Gonz\'alez, J.~P\'erez, V.~Milan\'es, and F.~Nashashibi,
+``A review of motion planning techniques for automated vehicles,''
+\emph{IEEE Transactions on Intelligent Transportation Systems}, vol.~17,
+no.~4, pp.~1135--1145, 2016.
 
 \bibitem{werling2010frenet}
-M.~Werling, J.~Ziegler, S.~Kammel, and S.~Thrun, ``Optimal trajectory generation for dynamic street scenarios in a Fr\'enet frame,'' in \emph{Proc.\ IEEE Int.\ Conf.\ Robot.\ Autom.\ (ICRA)}, 2010, pp.~987--993.
+M.~Werling, J.~Ziegler, S.~Kammel, and S.~Thrun,
+``Optimal trajectory generation for dynamic street scenarios in a Frenet
+frame,'' in \emph{Proc. IEEE International Conference on Robotics and
+Automation (ICRA)}, 2010, pp.~987--993.
 
-\bibitem{rosolia2018sample}
-U.~Rosolia and F.~Borrelli, ``Learning model predictive control for iterative tasks. A data-driven control framework,'' \emph{IEEE Trans.\ Autom.\ Control}, vol.~63, no.~7, pp.~1883--1896, 2018.
+\bibitem{ziegler2014baidu}
+J.~Ziegler, P.~Bender, M.~Schreiber, H.~Lategahn, T.~Strauss, C.~Stiller,
+T.~Dang, U.~Franke, N.~Appenrodt, C.~G.~Keller, E.~Kaus, R.~G.~Herrtwich,
+C.~Rabe, D.~Pfeiffer, F.~Lindner, F.~Stein, F.~Erbs, M.~Enzweiler,
+C.~Kn\"oppel, J.~Hipp, M.~Haueis, M.~Trepte, C.~Brenk, A.~Tamke,
+M.~Ghanaat, M.~Braun, A.~Joos, H.~Fritz, H.~Mock, M.~Hein, and E.~Zeeb,
+``Making Bertha drive---An autonomous journey on a historic route,''
+\emph{IEEE Intelligent Transportation Systems Magazine}, vol.~6, no.~2,
+pp.~8--20, 2014.
 
-\bibitem{brunke2022safe}
-L.~Brunke, M.~Greeff, A.~W.~Hall \emph{et al.}, ``Safe learning in robotics: From learning-based control to safe reinforcement learning,'' \emph{Annu.\ Rev.\ Control Robot.\ Auton.\ Syst.}, vol.~5, pp.~411--444, 2022.
+\bibitem{betz2019architecture}
+J.~Betz, A.~Wischnewski, A.~Heilmeier, F.~Nobis, L.~Hermansdorfer,
+T.~Stahl, T.~Herrmann, and M.~Lienkamp,
+``A software architecture for the dynamic path planning of an autonomous
+racecar at the limits of handling,'' in \emph{Proc. IEEE Intelligent Vehicles
+Symposium (IV)}, 2019, pp.~1--8.
 
-\bibitem{lin2024racellm}
-H.~Lin, Y.~Song, and D.~Scaramuzza, ``Reaching the limit in autonomous racing: Optimal control versus reinforcement learning,'' \emph{Sci.\ Robot.}, vol.~8, no.~82, art.~eadg1462, 2023.
+\bibitem{kabzan2020amzracing}
+J.~Kabzan, M.~de~la~Iglesia~Valls, V.~J.~F.~Reijgwart, H.~F.~C.~Hendrikx,
+C.~Ehmke, M.~Prajapat, A.~B\"uhler, N.~Gosala, M.~Gupta, R.~Sivanesan,
+A.~Dhall, E.~Chisari, N.~Kumar, I.~A.~Paireda, and A.~Liniger,
+``AMZ driverless: The full autonomous racing system,'' \emph{Journal of Field
+Robotics}, vol.~37, no.~7, pp.~1267--1294, 2020.
 
-\bibitem{remonda2024}
-A.~Remonda, E.~Veas, and G.~Luzhnica, ``Comparing the performance of reinforcement learning algorithms for autonomous racing,'' \emph{Eng.\ Appl.\ Artif.\ Intell.}, vol.~118, art.~105692, 2023.
+\bibitem{betz2022survey}
+J.~Betz, H.~Zheng, A.~Liniger, U.~Rosolia, P.~Karle, M.~Behl, V.~Krovi, and
+R.~Mangharam,
+``Autonomous vehicles on the edge: A survey on autonomous vehicle racing,''
+\emph{IEEE Open Journal of Intelligent Transportation Systems}, vol.~3,
+pp.~458--488, 2022.
+
+\bibitem{betz2023autonomous}
+J.~Betz, T.~Betz, F.~Fent \emph{et al.},
+``TUM autonomous motorsport: An autonomous racing software for the Indy
+Autonomous Challenge,'' \emph{Journal of Field Robotics}, vol.~40, no.~4,
+pp.~783--809, 2023.
+
+\bibitem{jung2023iac}
+C.~Jung, A.~Finazzi, H.~Seong \emph{et al.},
+``An autonomous system for head-to-head race: Design, implementation and
+analysis,'' \emph{IEEE Transactions on Intelligent Transportation Systems},
+vol.~24, no.~10, pp.~10470--10486, 2023.
+
+\bibitem{liniger2019game}
+A.~Liniger and J.~Lygeros,
+``A noncooperative game approach to autonomous racing,''
+\emph{IEEE Transactions on Control Systems Technology}, vol.~28, no.~3,
+pp.~884--897, 2020.
+
+\bibitem{wang2021game}
+M.~Wang, Z.~Wang, J.~Talbot, J.~C.~Gerdes, and M.~Schwager,
+``Game-theoretic planning for self-driving cars in multivehicle competitive
+scenarios,'' \emph{IEEE Transactions on Robotics}, vol.~37, no.~4,
+pp.~1313--1325, 2021.
+
+\bibitem{fridovich2020ilqgames}
+D.~Fridovich-Keil, E.~Ratner, L.~Peters, A.~D.~Dragan, and C.~J.~Tomlin,
+``Efficient iterative linear-quadratic approximations for nonlinear
+multi-player general-sum differential games,'' in \emph{Proc. IEEE
+International Conference on Robotics and Automation (ICRA)}, 2020,
+pp.~1475--1481.
+
+\bibitem{laine2021multi}
+F.~Laine, D.~Fridovich-Keil, C.-Y.~Chiu, and C.~J.~Tomlin,
+``Multi-hypothesis interactions in game-theoretic motion planning,'' in
+\emph{Proc. IEEE International Conference on Robotics and Automation (ICRA)},
+2021, pp.~8016--8023.
+
+\bibitem{spica2020game}
+R.~Spica, E.~Cristofalo, Z.~Wang, E.~Montijano, and M.~Schwager,
+``A real-time game theoretic planner for autonomous two-player drone racing,''
+\emph{IEEE Transactions on Robotics}, vol.~36, no.~5, pp.~1389--1403, 2020.
+
+\bibitem{jia2023bayesian}
+Y.~Jia, M.~Bhatt, and N.~Mehr,
+``RAPID: Autonomous multi-agent racing using constrained potential dynamic
+games,'' in \emph{Proc. European Control Conference (ECC)}, 2023, pp.~1--8.
+
+\bibitem{kalaria2025alpha}
+D.~Kalaria, C.~Maheshwari, and S.~Sastry,
+``$\alpha$-RACER: Real-time algorithm for game-theoretic motion planning and
+control in autonomous racing using $\alpha$-potential function,'' in
+\emph{Proc. Learning for Dynamics and Control Conference (L4DC)}, PMLR,
+vol.~283, pp.~1--18, 2025.
+
+\bibitem{wurman2022gtsophy}
+P.~R.~Wurman, S.~Barrett, K.~Kawamoto \emph{et al.},
+``Outracing champion Gran Turismo drivers with deep reinforcement learning,''
+\emph{Nature}, vol.~602, no.~7896, pp.~223--228, 2022.
+
+\bibitem{fuchs2021superhuman}
+F.~Fuchs, Y.~Song, E.~Kaufmann, D.~Scaramuzza, and P.~D\"urr,
+``Super-human performance in Gran Turismo Sport using deep reinforcement
+learning,'' \emph{IEEE Robotics and Automation Letters}, vol.~6, no.~3,
+pp.~4257--4264, 2021.
+
+\bibitem{song2021overtaking}
+Y.~Song, H.~Lin, E.~Kaufmann, P.~D\"urr, and D.~Scaramuzza,
+``Autonomous overtaking in Gran Turismo Sport using curriculum reinforcement
+learning,'' in \emph{Proc. IEEE International Conference on Robotics and
+Automation (ICRA)}, 2021, pp.~9403--9409.
+
+\bibitem{kaufmann2023drone}
+E.~Kaufmann, L.~Bauersfeld, A.~Loquercio, M.~M\"uller, V.~Koltun, and
+D.~Scaramuzza,
+``Champion-level drone racing using deep reinforcement learning,''
+\emph{Nature}, vol.~620, no.~7976, pp.~982--987, 2023.
+
+\bibitem{lin2023limit}
+H.~Lin, Y.~Song, and D.~Scaramuzza,
+``Reaching the limit in autonomous racing: Optimal control versus
+reinforcement learning,'' \emph{Science Robotics}, vol.~8, no.~82,
+art.~eadg1462, 2023.
+
+\bibitem{christ2021time}
+F.~Christ, A.~Wischnewski, A.~Heilmeier, and B.~Lohmann,
+``Time-optimal trajectory planning for a race car considering variable
+tyre--road friction coefficients,'' \emph{Vehicle System Dynamics}, vol.~59,
+no.~4, pp.~588--612, 2021.
+
+\bibitem{heilmeier2020mincurv}
+A.~Heilmeier, A.~Wischnewski, L.~Hermansdorfer, J.~Betz, M.~Lienkamp, and
+B.~Lohmann,
+``Minimum curvature trajectory planning and control for an autonomous race
+car,'' \emph{Vehicle System Dynamics}, vol.~58, no.~10, pp.~1497--1527, 2020.
+
+\bibitem{kapania2016sequential}
+N.~R.~Kapania, J.~Subosits, and J.~C.~Gerdes,
+``A sequential two-step algorithm for fast generation of vehicle racing
+trajectories,'' \emph{ASME Journal of Dynamic Systems, Measurement, and
+Control}, vol.~138, no.~9, art.~091005, 2016.
+
+\bibitem{lipp2014minimumtime}
+T.~Lipp and S.~Boyd,
+``Minimum-time speed optimisation over a fixed path,'' \emph{International
+Journal of Control}, vol.~87, no.~6, pp.~1297--1311, 2014.
+
+\bibitem{verschueren2014nmpc}
+R.~Verschueren, S.~De~Bruyne, M.~Zanon, J.~V.~Frasch, and M.~Diehl,
+``Towards time-optimal race car driving using nonlinear MPC in real-time,''
+in \emph{Proc. IEEE Conference on Decision and Control (CDC)}, 2014,
+pp.~2505--2510.
+
+\bibitem{he2021parallelized}
+S.~He, J.~Zeng, and K.~Sreenath,
+``Autonomous racing with multiple vehicles using a parallelized optimization
+with safety guarantee using control barrier functions,'' arXiv preprint
+arXiv:2112.06435, 2021.
+
+\bibitem{wischnewski2023tube}
+A.~Wischnewski, T.~Herrmann, F.~Werner, and B.~Lohmann,
+``A Tube-MPC approach to autonomous multi-vehicle racing on high-speed ovals,''
+\emph{IEEE Transactions on Intelligent Vehicles}, vol.~8, no.~1,
+pp.~368--378, 2023.
+
+\bibitem{liniger2015optimization}
+A.~Liniger, A.~Domahidi, and M.~Morari,
+``Optimization-based autonomous racing of 1:43 scale RC cars,''
+\emph{Optimal Control Applications and Methods}, vol.~36, no.~5,
+pp.~628--647, 2015.
+
+\bibitem{rosolia2020learning}
+U.~Rosolia and F.~Borrelli,
+``Learning how to autonomously race a car: A predictive control approach,''
+\emph{IEEE Transactions on Control Systems Technology}, vol.~28, no.~6,
+pp.~2713--2719, 2020.
+
+\bibitem{kabzan2019learning}
+J.~Kabzan, L.~Hewing, A.~Liniger, and M.~N.~Zeilinger,
+``Learning-based model predictive control for autonomous racing,''
+\emph{IEEE Robotics and Automation Letters}, vol.~4, no.~4, pp.~3363--3370,
+2019.
+
+\bibitem{brunner2017repetitive}
+M.~Brunner, U.~Rosolia, J.~Gonzales, and F.~Borrelli,
+``Repetitive learning model predictive control: An autonomous racing example,''
+in \emph{Proc. IEEE Conference on Decision and Control (CDC)}, 2017,
+pp.~2545--2550.
+
+\bibitem{novi2020realtime}
+T.~Novi, A.~Liniger, R.~Capitani, and C.~Annicchiarico,
+``Real-time control for at-limit handling driving on a predefined path,''
+\emph{Vehicle System Dynamics}, vol.~58, no.~7, pp.~1007--1036, 2020.
+
+\bibitem{rosolia2018lmpc}
+U.~Rosolia and F.~Borrelli,
+``Learning model predictive control for iterative tasks: A data-driven control
+framework,'' \emph{IEEE Transactions on Automatic Control}, vol.~63, no.~7,
+pp.~1883--1896, 2018.
+
+\bibitem{hewing2020learning}
+L.~Hewing, K.~P.~Wabersich, M.~Menner, and M.~N.~Zeilinger,
+``Learning-based model predictive control: Toward safe learning in control,''
+\emph{Annual Review of Control, Robotics, and Autonomous Systems}, vol.~3,
+pp.~269--296, 2020.
+
+\bibitem{brunke2022safelearning}
+L.~Brunke, M.~Greeff, A.~W.~Hall \emph{et al.},
+``Safe learning in robotics: From learning-based control to safe reinforcement
+learning,'' \emph{Annual Review of Control, Robotics, and Autonomous Systems},
+vol.~5, pp.~411--444, 2022.
 
 \end{thebibliography}
+
+
+
 
 \end{document}
