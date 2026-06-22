@@ -32,7 +32,7 @@
 
 \title{Hierarchical Game-Guided Tactical Corridor Planning and Control for Competitive Autonomous Racing}
 
-\author{Shuyi Gao, Defu Lin and Ren Jin}
+\author{Shuyi Gao, Ren Jin and Defu Lin}
 
 \affil{School of Aerospace Engineering, Beijing Institute of Technology, Beijing, China}
 
@@ -297,12 +297,12 @@ The resulting Newton--Euler equations are
 \label{eq:vxdot}\\
 \dot v_y &= \frac{1}{m}\bigl(F_{yf}\cos\delta+F_{yr}\bigr)-r v_x,
 \label{eq:vydot}\\
-\dot r &= \frac{1}{I_z}\bigl(l_fF_{yf}\cos\delta-l_rF_{yr}\bigr),
-\label{eq:rdot}\\
-\dot\delta &= \dot\delta .
-\label{eq:deltadot}
+\dot r &= \frac{1}{I_z}\bigl(l_fF_{yf}\cos\delta-l_rF_{yr}\bigr).
+\label{eq:rdot}
 \end{align}
-Equations~(\ref{eq:kin})--(\ref{eq:deltadot}) define
+The steering angle evolves as $\dot\delta=u_\delta$ where $u_\delta$ is the
+steering-rate input in~(\ref{eq:state}).
+Equations~(\ref{eq:kin})--(\ref{eq:rdot}) define
 \begin{equation}
 \dot{\bm{x}}=f_c(\bm{x},\bm{u}),\qquad
 \bm{x}_{k+1}=f_d(\bm{x}_k,\bm{u}_k),
@@ -519,33 +519,30 @@ V_{\min}^{\rm ggv}(s)=
 \min_{\ell\in[s,s+d_p]}V_{\rm ggv}(\ell).
 \label{eq:prior_statistics}
 \end{equation}
-Querying $\mathcal{P}$ at progress $s$ returns
+Querying $\mathcal{P}$ at progress $s$ returns a 14-dimensional vector
 \begin{equation}
-\begin{aligned}
 \bm{\rho}(s)=
-\bigl[&
-\bar\kappa_0,\;
-\bar\kappa_{0:d_1}^{\max},\;
-\bar\kappa_{d_1:d_2}^{\max},\;
-\bar\kappa_{d_2:d_3}^{\max},\;
+\bigl[
+\underbrace{\bar\kappa_0,\;
+\bar\kappa_{0:d_1}^{\max},\ldots,
 \bar\kappa_{d_3:d_p}^{\max},\;
 \bar\kappa_{\rm mean},\;
-\bar\kappa_{\rm std},\\
-&\bar W_{\min}^{L},\;
+\bar\kappa_{\rm std}}_{\text{curvature preview (7)}},\;
+\underbrace{\bar W_{\min}^{L},\;
 \bar W_{\min}^{R},\;
 \bar W_0^L,\;
 \bar W_0^R,\;
-\bar{\Delta W}_{\min},\;
-\bar V_0^{\rm ggv},\;
-\bar V_{\min}^{\rm ggv}
-\bigr]^\top .
-\end{aligned}
+\bar{\Delta W}_{\min}}_{\text{width (5)}},\;
+\underbrace{\bar V_0^{\rm ggv},\;
+\bar V_{\min}^{\rm ggv}}_{\text{GGV (2)}}
+\bigr]^\top\!.
 \label{eq:track_prior}
 \end{equation}
-The curvature terms encode how rapidly the track is about to turn, the width
-terms encode whether an overtake side remains open, and the GGV terms encode
-whether that side can be exploited by the present vehicle without exceeding
-normal-acceleration capability.  The final actor--critic input is
+The curvature terms encode upcoming cornering severity at four look-ahead
+intervals, the width terms encode whether an overtake side remains
+geometrically open, and the GGV terms encode whether the vehicle can
+exploit that side without exceeding lateral-acceleration capability.  The
+final actor--critic input is
 \begin{equation}
 \widetilde{\bm{o}}_t=
 \bigl[\bm{o}_t,\bm{\rho}(s_e),\bm{\rho}(s_o)\bigr]\in\mathbb{R}^{51},
@@ -646,6 +643,43 @@ the local interaction window.  Therefore the policy adjusts thresholds and
 side preference, while the hybrid logic preserves a persistent mode sequence
 for the downstream optimizer.
 
+
+Figure~\ref{fig:tactical_mode_semantics} illustrates the geometric meaning of the FSM modes and the corresponding tactical corridors.  The green shaded area denotes the feasible corridor published by the tactical layer, and the green curves denote its lateral boundaries.  \textsc{Raceline} and \textsc{Hold} share the same full-track-width corridor; the former encourages lap-time-oriented driving, whereas the latter keeps the corridor open but regulates the speed profile through $V_{{\rm cap},t}$ to maintain a safe gap to the preceding vehicle.  \textsc{Shadow}, \textsc{Overtake}, and \textsc{Defend} further reshape the corridor according to the opponent position, respectively supporting close following, side-specific passing, and blocking the opponent's forward driving direction.
+
+\begin{figure*}[!t]
+\centering
+\subfloat[\textsc{Raceline}/\textsc{Hold}.]{
+\includegraphics[width=0.46\textwidth]{sim_pic/race.png}
+\label{fig:mode_race_hold}
+}
+\hfill
+\subfloat[\textsc{Shadow}.]{
+\includegraphics[width=0.48\textwidth]{sim_pic/shadow.png}
+\label{fig:mode_shadow}
+}
+
+\vspace{1.5mm}
+
+\subfloat[\textsc{Overtake}.]{
+    \includegraphics[width=0.47\textwidth]{sim_pic/overtake.png}
+    \label{fig:mode_overtake}
+}
+\hfill
+\subfloat[\textsc{Defend}.]{
+    \includegraphics[width=0.46\textwidth]{sim_pic/defend.png}
+    \label{fig:mode_defend}
+}
+
+\caption{Geometric semantics of mode-dependent tactical corridors.  The feasible corridor is released to the full track width in \textsc{Raceline}/\textsc{Hold}, biased toward the opponent in \textsc{Shadow}, reshaped for side-specific passing in \textsc{Overtake}, and placed in front of the following opponent in \textsc{Defend}.}
+\label{fig:tactical_mode_semantics}
+
+\end{figure*}
+
+
+
+
+
+
 The reward is defined on tactical outcome and constraint quality.  At each
 step,
 \begin{equation}
@@ -728,11 +762,18 @@ being overtaken, collision, unnecessary raceline deviation, lateral
 compression, action jitter and corridor jitter.  Hence the reward shapes only
 the tactical interface; it does not modify the SOCP or MPCC objectives.
 
-The policy is optimized with Truncated Quantile Critics.  Two critics
-parameterized by $\varphi_i$ approximate the soft return distribution with
-atoms $\{z_{\varphi_i}^{j}(\widetilde{\bm{o}},\bm{u})\}_{j=1}^{N_q}$.  Given
+The policy is optimized with Truncated Quantile Critics (TQC), a
+distributional off-policy algorithm chosen specifically because its
+pessimistic value estimate reduces the risk of committing to corridors
+that appear advantageous in expectation but carry high collision
+probability in the tail---a property validated by the ablation study in
+Sec.~\ref{sec:experiments} where replacing TQC with standard SAC increases
+collisions from zero to five.  Two critics parameterized by $\varphi_i$
+approximate the return distribution with $N_q$ quantile atoms
+$\{z_{\varphi_i}^{j}(\widetilde{\bm{o}},\bm{u})\}_{j=1}^{N_q}$.  Given
 a replay transition, draw
-$\bm{u}'\sim\pi_\theta(\cdot|\widetilde{\bm{o}}')$ and form
+$\bm{u}'\sim\pi_\theta(\cdot|\widetilde{\bm{o}}')$ and form the truncated
+target
 \begin{equation}
 \mathcal{Z}_{\rm targ}=
 \operatorname{sort}\Bigl(
@@ -742,8 +783,9 @@ $\bm{u}'\sim\pi_\theta(\cdot|\widetilde{\bm{o}}')$ and form
 \Bigr)_{1:K}.
 \label{eq:tqc_target}
 \end{equation}
-Retaining the lowest $K$ atoms reduces overestimation of rare, unsafe passes.
-The critic minimizes
+Retaining only the lowest $K$ out of $2N_q$ atoms suppresses
+overestimation of rare high-reward overtakes that coincide with near-miss
+geometries.  The critic minimizes the quantile Huber loss
 \begin{equation}
 J_Q(\varphi)=
 \sum_{i=1}^{2}\sum_{j=1}^{N_q}
@@ -756,23 +798,22 @@ y-z_{\varphi_i}^{j}(\widetilde{\bm{o}}_t,\bm{u}_t)
 \right],
 \label{eq:tqc_critic}
 \end{equation}
-where $y\in\mathcal{Z}_{\rm targ}$, and the actor minimizes
+where $y\in\mathcal{Z}_{\rm targ}$, and the actor maximizes the truncated
+Q-value with entropy regularization:
 \begin{equation}
 J_\pi(\theta)=
 \mathbb{E}_{\widetilde{\bm{o}}\sim\mathcal D,\bm{u}\sim\pi_\theta}
 \left[
 \alpha\log\pi_\theta(\bm{u}|\widetilde{\bm{o}})
 -\frac{1}{K}\sum_{z\in\mathcal{Z}_{K}(\widetilde{\bm{o}},\bm{u})}z
-\right],
+\right].
 \label{eq:tqc_actor}
 \end{equation}
-where $\mathcal{Z}_{K}$ denotes the truncated critic atoms at
-$(\widetilde{\bm{o}},\bm{u})$.  The entropy temperature $\alpha$ is tuned
-automatically.  Training episodes randomize initial gap, relative speed,
-lateral offset and opponent behavior; termination occurs at pass completion,
-being overtaken, collision, off-track excursion, communication loss or
-timeout.  Evaluation uses the deterministic mean action with the same FSM and
-corridor carver.
+The entropy temperature $\alpha$ is tuned automatically.  Training episodes
+randomize initial gap, relative speed, lateral offset and opponent behavior;
+termination occurs at pass completion, being overtaken, collision, off-track
+excursion, communication loss or timeout.  Evaluation uses the deterministic
+mean action with the same FSM and corridor carver.
 
 The tactical output consumed by the planner is
 \begin{equation}
@@ -1147,13 +1188,16 @@ after resampling the path, speed and time arrays to the controller cadence.
 % =====================================================================
 The control layer tracks the path-speed reference $\mathcal{R}_t$
 from~(\ref{eq:reference_tuple}) by solving a receding-horizon nonlinear
-program at each actuation cycle.  Unlike time-optimal MPCC formulations that
-maximize progress along a fixed raceline, the controller here tracks a
-reference that is replanned at the tactical rate; consequently the objective
-penalizes geometric contouring deviation rather than arc-length progress.
-This decoupling ensures that a corridor-side switch by the tactical layer
-does not require controller re-initialization---only the reference sequence
-changes.
+program at the actuation rate $1/T_c$ ($T_c=T_s=0.05\,\mathrm{s}$).
+A standard path-tracking MPC penalizes Cartesian deviations
+$(x-x^r)^2+(y-y^r)^2$; this couples longitudinal timing to lateral
+accuracy and causes aggressive re-plans when the tactical layer shifts
+the corridor.  By contrast, the MPCC formulation decomposes the error into
+a \emph{contouring} component (normal to the path) and a \emph{lag}
+component (tangential to the path), and penalizes only the former.
+Longitudinal timing is recovered through a speed-reference term, so a
+corridor-side switch only changes the reference sequence without requiring
+controller re-initialization.
 
 At control instant $t$ the current vehicle pose defines the local origin.
 The state is the planar pose
@@ -1252,7 +1296,7 @@ q_c\, e_{c,k+1|t}^2
 \mathrm{s.t.}\;\;&
 \bm{\chi}_{0|t}=\bm{0},\\
 &\bm{\chi}_{k+1|t}
-=f_d(\bm{\chi}_{k|t},\bm{\nu}_{k|t}),
+=f_d^{\rm kin}(\bm{\chi}_{k|t},\bm{\nu}_{k|t}),
 \quad k=0,\ldots,N_c{-}1,\\
 &V_{\min}\le V_{k|t}\le v_{x,\max},\\
 &|\delta_{k|t}|\le\delta_{\max},\\
@@ -1262,7 +1306,7 @@ q_c\, e_{c,k+1|t}^2
 \label{eq:mpcc_nlp}
 \end{equation}
 where $R_\nu=\mathrm{diag}(r_V,r_\delta)$, and
-$f_d(\cdot)$ denotes the discrete dynamics
+$f_d^{\rm kin}(\cdot)$ denotes the kinematic discrete dynamics
 in~(\ref{eq:mpcc_model})--(\ref{eq:yaw_rate_map}).
 The weight $q_{\Delta\delta}$ penalizes the first steering increment to
 enforce actuator continuity across cycles.  The speed and steering rate
