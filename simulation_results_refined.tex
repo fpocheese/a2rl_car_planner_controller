@@ -1,39 +1,30 @@
 % =====================================================================
 \section{Simulation Results}\label{sec:experiments}
 % =====================================================================
-This section evaluates the proposed tactical--planning--control hierarchy in
-the semi-physical simulation environment used by the Abu Dhabi Autonomous
-Racing League (A2RL).  The evaluation is organized as follows.  First, the
-hardware-in-the-loop simulation environment and the communication interface
-are described.  Second, all numerical parameters used by the vehicle model,
-tactical layer, planner, learning module, and controller are consolidated in a
-single table.  Two representative overtaking cases are then analyzed in
-detail, followed by an aggregate 1000-lap validation.
 
-\subsection{Semi-Physical A2RL Simulation Environment}
+\subsection{High-Fidelity A2RL Simulation Environment}
 \label{subsec:hil_env}
-The closed-loop experiments were carried out in the official simulator
-developed by the A2RL race organizer.  The simulator provides the Yas Marina
-track geometry, the Dallara EAV24 vehicle interface, the opponent vehicle, and
-the race-control message stream.  The planner and controller were not coupled
-to the simulator through direct function calls.  Instead, the software stack
-communicated with the virtual vehicle platform through a virtual CAN channel,
-using the same message abstraction as the race vehicle interface.  Sensor
-states, opponent states, race-control flags, and vehicle feedback were received
-from the simulator, while planned actuation commands were returned through the
-same virtual CAN loop.
+The closed-loop experiments were carried out in the high-fidelity simulator
+provided by the Abu Dhabi Autonomous Racing League (A2RL)~\cite{a2rl2024}, an
+international competition for full-scale autonomous racecars, which embeds a
+detailed Dallara EAV24 vehicle-dynamics model together with the Yas Marina
+track and environment model.  Internally, the simulator and the decision stack communicate over a
+ROS2 platform, while the final actuator commands are delivered through a
+virtual CAN channel that mirrors the real race-vehicle interface.  Sensor
+states, opponent states, and race-control flags are received from the
+simulator, and throttle, brake, steering, and gear commands are
+returned through the same loop.  Because the decision stack runs as an
+external real-time process and all timing must survive the message transport
+layer, failures caused by delayed tactical updates, infeasible planner
+outputs, or controller fallback appear in the closed loop exactly as they
+would on the race vehicle.
 
-This configuration is a semi-physical simulation rather than a purely
-algorithmic benchmark: the decision stack runs as an external real-time
-process, all inter-layer and vehicle-interface timing must survive the message
-transport layer, and the controller receives only the state variables exposed
-by the platform interface.  Consequently, failures caused by delayed tactical
-updates, infeasible planner outputs, or controller fallback logic appear in the
-closed loop exactly as they would in the vehicle software stack.  The
-experiments therefore test not only whether an overtake trajectory exists, but
-whether the learned corridor, the SOCP planner, the speed profiler, and the
-MPCC controller remain mutually executable under the simulator's virtual-CAN
-timing and race-control constraints.
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{image/a2rl_sim.png}
+\caption{A2RL high-fidelity simulation environment.}
+\label{fig:a2rl_sim}
+\end{figure}
 
 \subsection{Parameter Configuration and Scenario Design}
 \label{subsec:param_setup}
@@ -494,7 +485,7 @@ of $94.7\%$ (947 out of 1000 laps) indicates that the learned tactical layer
 generalizes across a large number of repeated race interactions while
 preserving compatibility with the model-based planner and controller.
 Equally important, the validation was performed through the virtual-CAN
-semi-physical interface, so successful laps reflect end-to-end timing
+simulation interface, so successful laps reflect end-to-end timing
 consistency rather than offline trajectory feasibility alone.
 
 Overall, the experiments support the central design principle of the paper:
@@ -503,6 +494,6 @@ the planner and controller enforce geometric consistency, handling-limit speed
 selection, and closed-loop vehicle execution.  The short-pass, long-pass, and
 equal-speed adversarial cases show that the architecture is not tuned to a
 single overtaking geometry, and the 1000-lap validation demonstrates that this
-separation remains robust under repeated semi-physical simulation.
+separation remains robust under repeated high-fidelity simulation.
 
 \input{comparison_tables}

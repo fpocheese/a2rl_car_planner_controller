@@ -74,8 +74,7 @@ Reactive APF does not attempt overtakes (TTO, Avg TTC undefined).}
 
 HG-Corridor achieves an overtake success rate of $94.7\%$, nearly doubling the
 best baseline (Rule-based GT at $51.6\%$) while maintaining zero collisions
-and a minimum passing gap of $5.83\,\mathrm{m}$ (approximately three vehicle
-widths).  The A2RL OCP baseline closes to within $0.1\,\mathrm{m}$ and
+and a minimum passing gap of $5.83\,\mathrm{m}$.  The A2RL OCP baseline closes to within $0.1\,\mathrm{m}$ and
 accumulates $19$ collision events because it treats the opponent as a static
 obstacle without anticipating the interaction dynamics.  The Rule-based GT
 produces $48$ collisions because its fixed thresholds cannot adapt to the
@@ -83,10 +82,10 @@ diversity of overtaking geometries across different track sections---a
 limitation that the learned TQC policy overcomes by adjusting gap thresholds
 and corridor width continuously from the 51-dimensional observation.
 
-The time-to-overtake comparison confirms that HG-Corridor not only succeeds
-more frequently, but completes passes faster ($4.82\,\mathrm{s}$ vs.\
-$7.25\,\mathrm{s}$ for Pure Raceline) by committing to the corridor early and
-exploiting geometric windows that reactive methods miss.
+% The time-to-overtake comparison confirms that HG-Corridor not only succeeds
+% more frequently, but completes passes faster ($4.82\,\mathrm{s}$ vs.\
+% $7.25\,\mathrm{s}$ for Pure Raceline) by committing to the corridor early and
+% exploiting geometric windows that reactive methods miss.
 
 \subsection{Ablation Study}
 \label{subsec:ablation}
