@@ -48,9 +48,9 @@ overtaking opportunities, this paper proposes a hierarchical game-guided tactica
 planning and control method. First, a game-based competitive situation model is established 
 in the track Frenet frame under racecar performance-limit constraints to characterize the 
 feasible motion space subject to track boundaries, curvature variations, and tire-friction limits. 
-Then, fixed track priors are embedded into a Truncated Quantile Critics reinforcement learning 
-algorithm at the tactical layer to generate behavior decisions, overtaking-side selections, 
-and time-varying Frenet tactical corridors. Within the tactical corridor, a sparse second-order 
+Then, the game-theoretic interaction model is amortized by a Truncated Quantile Critics
+reinforcement learning policy at the tactical layer, which adaptively generates behavior
+decisions, overtaking-side selections, and time-varying Frenet tactical corridors. Within the tactical corridor, a sparse second-order 
 cone program is employed to generate curvature-regularized paths, while forward--backward speed 
 planning and model predictive contouring control are integrated to achieve dynamically feasible 
 trajectory generation and closed-loop tracking. High-fidelity simulation results show 
@@ -119,11 +119,12 @@ sensitive to opponent cost assumptions and planning-horizon selection. In
 parallel, reinforcement learning has shown strong capability in learning
 complex racing tactics from interaction data~\cite{wurman2022gtsophy,
 fuchs2021superhuman,song2021overtaking,kaufmann2023drone,lin2023limit}.
-However, end-to-end policies usually lack interpretability and cannot directly
-exploit fixed track priors such as curvature distribution, track width, and
-vehicle performance boundaries. Therefore, high-speed competitive racing still
-requires a behavior-planning method that combines learning-based tactical
-adaptation with structured track and vehicle-limit information.
+However, end-to-end policies usually lack interpretability and do not
+incorporate game-theoretic interaction structures, making it difficult to
+reason about competitive feasibility under track and vehicle-performance
+constraints. Therefore, high-speed competitive racing still
+requires a behavior-planning method that fuses game-theoretic interaction
+modeling with learning-based tactical adaptation.
 
 At the local motion-planning layer, the selected behavior or tactical intention
 must be transformed into a smooth, collision-free, and dynamically feasible
@@ -196,12 +197,13 @@ autonomous racing, and proposes a hierarchical game-guided tactical corridor
 planning and control method to solve the problems of overtaking-timing
 selection, feasible overtaking-space reconstruction, and weak coordination
 between planning and control under complex interactive racing scenarios. The
-proposed method embeds fixed track priors into a Truncated Quantile Critics
-reinforcement learning policy for tactical decision making, constructs an
-overtaking feasible-region reconstruction mechanism based on time-varying
-Frenet tactical corridors, and integrates sparse second-order cone programming,
-forward--backward speed planning, and model predictive contouring control to
-achieve dynamically feasible trajectory generation and closed-loop execution.
+proposed method amortizes game-theoretic equilibrium solutions via a Truncated
+Quantile Critics reinforcement learning policy for tactical decision making,
+constructs an overtaking feasible-region reconstruction mechanism based on
+time-varying Frenet tactical corridors, and integrates sparse second-order cone
+programming, forward--backward speed planning, and model predictive contouring
+control to achieve dynamically feasible trajectory generation and closed-loop
+execution.
 The proposed hierarchical game-guided tactical corridor planning and control
 method has the following advantages:
 
@@ -210,7 +212,7 @@ method has the following advantages:
 
 
 \begin{enumerate}
-    \item A game-guided reinforcement learning method for tactical corridor synthesis, in which a Stackelberg--IBR tactical game provides a structured interaction model and theory prior, while a Truncated Quantile Critics policy amortizes the equilibrium solution to adaptively generate behavior decisions, overtaking-side selections, and time-varying Frenet tactical corridors under track-geometry and vehicle-performance priors.
+    \item A game-guided reinforcement learning method for tactical corridor synthesis, in which a Stackelberg--IBR tactical game provides a structured interaction model and theory prior, while a Truncated Quantile Critics policy amortizes the equilibrium solution to adaptively generate behavior decisions, overtaking-side selections, and time-varying Frenet tactical corridors under track-geometry and vehicle-performance constraints.
 
     \item A curvature-regularized trajectory planning method under tactical-corridor constraints, where a sparse second-order cone program generates feasible paths and a forward--backward speed strategy enforces vehicle performance limits, connecting feasible-region reconstruction with dynamically feasible trajectory generation.
 
@@ -655,7 +657,7 @@ admissibility---so that the resulting corridor policy is simultaneously
 data-efficient, interaction-aware, and planner-compatible.
 
 % ---------------------------------------------------------------------
-\subsection{Observation Encoding and Track Prior}
+\subsection{Observation Encoding and Map-Conditioned Features}
 \label{subsec:obs_encoding}
 % ---------------------------------------------------------------------
 
@@ -669,8 +671,9 @@ component $c_t$ is implemented by the ten-dimensional parameter vector
 $\bm{a}_t$ through the tanh mapping and projection
 $\Pi_{\mathcal{A}}$ defined below.
 
-The encoder $\mathcal{E}$ combines a duel-state observation, a fixed track
-prior, and a vehicle-capability prior.  The dynamic observation is
+The encoder $\mathcal{E}$ combines a duel-state observation with
+map-conditioned features that provide curvature, width, and
+vehicle-capability context.  The dynamic observation is
 \begin{align}
 \bm{o}_t^{\rm ego}
 &=\bigl[
@@ -1607,18 +1610,20 @@ tactical interaction as a Stackelberg--IBR game whose robust equilibrium is
 amortized by a theory-guided Truncated Quantile Critics policy: the game
 supplies a structured prior and auxiliary value target, while the TQC
 distributional critic suppresses overestimation of collision-prone corridors.
-A map-conditioned observation embedding encodes fixed track priors to
-generate behavior decisions, overtaking-side selections, and the parameters of
-a time-varying Frenet corridor, while a hysteretic finite-state machine and a
-deterministic carver convert these into auditable spatial constraints.  Within
+A map-conditioned observation embedding provides curvature and width context,
+enabling the policy to generate behavior decisions, overtaking-side selections,
+and the parameters of a time-varying Frenet corridor, while a hysteretic
+finite-state machine and a deterministic carver convert these into auditable
+spatial constraints.  Within
 the corridor, a sparse second-order cone program produces curvature-regularized
 paths, a forward--backward sweep enforces the GGV handling envelope, and a model
 predictive contouring controller executes the reference at the vehicle handling
 limit.  By separating tactical intent from physical execution, the learned
 policy determines where the vehicle is permitted to drive while the model-based
-layers guarantee that tire limits, actuator bounds, and closed-loop dynamics are
-never violated, yielding an adaptive yet interpretable solution for competitive
-autonomous racing.  Future work will extend the framework to multi-opponent
+layers enforce tire limits, actuator bounds, and closed-loop dynamics
+in the nominal planner and controller---as empirically validated
+in high-fidelity simulation without observed constraint violations---yielding
+an adaptive yet interpretable solution for competitive autonomous racing.  Future work will extend the framework to multi-opponent
 races with multi-agent game equilibria, incorporate probabilistic opponent
 prediction into the corridor constraints, and transfer the approach to
 controlled track tests on the Dallara EAV24 platform.
