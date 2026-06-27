@@ -104,14 +104,14 @@ adopted in autonomous racing systems, where behavior planners switch among
 raceline following, obstacle avoidance, and overtaking modes according to
 opponent position, track availability, and racing regulations
 ~\cite{betz2019architecture,kabzan2020amzracing,betz2022survey,
-betz2023autonomous,jung2023iac}. These rule-based methods are interpretable
+jung2023iac}. These rule-based methods are interpretable
 and easy to integrate into real vehicles, but their tactical performance
 strongly depends on manually designed thresholds and track-specific tuning.
 To explicitly model the strategic coupling between competing vehicles,
 game-theoretic methods formulate autonomous racing as a non-cooperative
 dynamic game and compute best-response, Stackelberg, Nash-type, or
 potential-game strategies~\cite{liniger2019game,wang2021game,
-fridovich2020ilqgames,laine2021multi,spica2020game,jia2023bayesian,
+laine2021multi,spica2020game,jia2023bayesian,
 kalaria2025alpha}. Such methods provide a principled way to describe
 interactive racing behaviors, but exact equilibria of continuous dynamic games
 are generally difficult to obtain in real time, and approximate solvers may be
@@ -166,7 +166,7 @@ robust, and tube-MPC variants further improve accuracy and closed-loop
 robustness under model mismatch and friction variation~\cite{rosolia2018lmpc,
 hewing2020learning,wischnewski2023tube,brunke2022safelearning,he2021parallelized}.
 However, the control performance depends heavily on the feasibility and
-smoothness of the planned reference~\cite{betz2022software,betz2023autonomous,wischnewski2022indy}:
+smoothness of the planned reference~\cite{betz2022software,betz2023autonomous}:
 if the path ignores curvature regularity, speed feasibility, or tire-friction
 limits, the controller is forced to compensate for dynamically inconsistent
 commands, leading to oscillatory actuation or degraded robustness~\cite{verschueren2014}.
@@ -210,7 +210,7 @@ method has the following advantages:
 
 
 \begin{enumerate}
-    \item A fixed-track-prior-guided reinforcement learning method for tactical decision making, which embeds track geometry, curvature, and vehicle performance boundaries into a Truncated Quantile Critics framework to adaptively generate behavior decisions, overtaking-side selections, and time-varying Frenet tactical corridors.
+    \item A game-guided reinforcement learning method for tactical corridor synthesis, in which a Stackelberg--IBR tactical game provides a structured interaction model and theory prior, while a Truncated Quantile Critics policy amortizes the equilibrium solution to adaptively generate behavior decisions, overtaking-side selections, and time-varying Frenet tactical corridors under track-geometry and vehicle-performance priors.
 
     \item A curvature-regularized trajectory planning method under tactical-corridor constraints, where a sparse second-order cone program generates feasible paths and a forward--backward speed strategy enforces vehicle performance limits, connecting feasible-region reconstruction with dynamically feasible trajectory generation.
 
@@ -221,7 +221,7 @@ method has the following advantages:
 
 The remainder of the paper is organized as follows.
 Section~\ref{sec:model} derives the unified vehicle and Frenet models.
-Section~\ref{sec:tactical} presents the RL-driven tactical layer.
+Section~\ref{sec:tactical} presents the game-guided tactical layer.
 Section~\ref{sec:planner} details the SOCP path planner and the FB speed
 profiler.
 Section~\ref{sec:controller} formulates the MPCC controller.
@@ -396,8 +396,12 @@ controller.
 % =====================================================================
 \section{Tactical Corridor Synthesis}\label{sec:tactical}
 % =====================================================================
-The tactical layer is a learned decision module with a deterministic
-optimization interface.  The reinforcement learning policy outputs a
+The tactical layer is a game-guided learned decision module with a
+deterministic optimization interface.  Its design is motivated by a
+Stackelberg--IBR tactical game
+(Sec.~\ref{subsec:game_formulation}) whose repeated online solution is
+amortized by a theory-guided TQC policy
+(Sec.~\ref{subsec:theory_guided_rl}).  The policy outputs a
 low-dimensional parameter vector encoding the behavior mode, overtaking side,
 and corridor-shaping parameters, from which a deterministic carver constructs
 the time-varying Frenet corridor.
@@ -437,6 +441,233 @@ r\bigl(\widetilde{\bm{o}}_t,\bm{a}_t,m_t,\mathcal{C}_t\bigr)
 \end{equation}
 so reinforcement learning is used to select a tactical feasible set rather
 than low-level steering or throttle.
+
+Before presenting the RL implementation, the next two subsections establish the
+game-theoretic model that motivates the policy structure and supplies its
+theory-guided prior.
+
+% ---------------------------------------------------------------------
+\subsection{Stackelberg Tactical Game Formulation}
+\label{subsec:game_formulation}
+% ---------------------------------------------------------------------
+
+The corridor-synthesis problem is fundamentally interactive: the tactical
+value of a candidate maneuver depends not only on the currently visible free
+space, but also on the response it induces in surrounding vehicles and on the
+terminal planning quality it leaves for subsequent receding-horizon cycles.
+Therefore, the tactical layer is modeled as a leader--follower (Stackelberg)
+game in which the ego vehicle (leader) proposes a hybrid tactical action and
+the surrounding vehicles (followers) respond through a constrained continuous
+subgame.
+
+Let $\mathcal{N}=\{1,\dots,N_v\}$ denote the vehicle set and $e\in\mathcal{N}$
+the ego.  Each vehicle $i\in\mathcal{N}$ selects a hybrid tactical action
+\begin{equation}
+a_i=(d_i,c_i),\qquad d_i=(m_i,\ell_i),\qquad c_i=(\alpha_i,\rho_i),
+\label{eq:hybrid_action_game}
+\end{equation}
+where $d_i$ is the discrete component (mode $m_i$ and lateral intention
+$\ell_i$) and $c_i$ is the continuous component (aggressiveness $\alpha_i$ and
+preference $\rho_i$).  The tactical utility of vehicle $i$ is decomposed as
+\begin{equation}
+U_i
+=
+U_i^{\mathrm{prog}}
++U_i^{\mathrm{race}}
++U_i^{\mathrm{safe}}
++U_i^{\mathrm{term}}
++U_i^{\mathrm{ctrl}},
+\label{eq:utility_decomposition}
+\end{equation}
+instantiated for the ego as
+\begin{align}
+U_e^{\mathrm{prog}} &= w_p\,\Delta s_e,
+\label{eq:ego_prog}\\
+U_e^{\mathrm{race}} &= w_r\sum_{j\in\mathcal{N}_{-e}}
+                      (\Delta s_{ej}^{k+H}-\Delta s_{ej}^k),
+\label{eq:ego_race}\\
+U_e^{\mathrm{safe}} &= -w_s\sum_{j\in\mathcal{N}_{-e}}
+                      \phi_s(\Delta_{ej},\tau_{ej}),
+\label{eq:ego_safe}\\
+U_e^{\mathrm{term}} &= w_t\,\Phi_{\mathrm{rec}}(x_e^N,\mathcal{R}_e),
+\label{eq:ego_term}\\
+U_e^{\mathrm{ctrl}} &= -w_c\,\|a_e^k-a_e^{k-1}\|^2,
+\label{eq:ego_ctrl}
+\end{align}
+where $\Delta_{ej}$ is an interaction-sensitive separation metric,
+$\tau_{ej}$ a severity indicator, and
+$\Phi_{\mathrm{rec}}$ measures the recursive planning quality of
+the terminal state delivered to the next local OCP cycle.
+Each follower $i\in\mathcal{N}_{-e}$ maximizes an analogous utility
+\begin{equation}
+U_i = w_i^p\Phi_i^p + w_i^r\Phi_i^r - w_i^s\Phi_i^s
+      + w_i^t\Phi_i^t - w_i^c\Phi_i^c.
+\label{eq:follower_utility}
+\end{equation}
+
+Conditioning on a fixed discrete profile $d=(d_e,d_{-e})$, the followers
+interact over the continuous variables
+$c_{-e}=\mathrm{col}(c_i)_{i\in\mathcal{N}_{-e}}$ through the constrained
+response
+\begin{equation}
+\max_{c_i\in\mathcal{C}_i(d_i)} U_i,\qquad
+\mathcal{C}_i(d_i)=\{c_i\mid g_i\le0,\;h_i=0\}.
+\label{eq:follower_response}
+\end{equation}
+Define the pseudo-gradient mapping
+\begin{equation}
+G_c(c_{-e};d,c_e)
+=\mathrm{col}\!\bigl(
+-\nabla_{c_i}U_i
+\bigr)_{i\in\mathcal{N}_{-e}}.
+\label{eq:pseudogradient}
+\end{equation}
+A conditioned continuous follower equilibrium $c_{-e}^\star$ satisfies the
+variational inequality (VI)
+\begin{equation}
+\bigl\langle
+G_c(c_{-e}^\star;d,c_e),\;c_{-e}-c_{-e}^\star
+\bigr\rangle\ge0,
+\quad\forall\,c_{-e}\in\mathcal{C}_{-e}(d_{-e}),
+\label{eq:vi_equilibrium}
+\end{equation}
+with $\mathcal{C}_{-e}=\prod_{i\in\mathcal{N}_{-e}}\mathcal{C}_i$.
+Because the tactical layer must remain synchronous with the
+receding-horizon planner, an iterative best-response (IBR) approximation
+replaces the VI solver:
+\begin{equation}
+c_i^{(\nu+1)}\in
+\arg\max_{c_i\in\mathcal{C}_i(d_i)}
+U_i\bigl(z_i,d,c_e,c_i,c_{-i}^{(\nu)}\bigr),
+\label{eq:ibr_update}
+\end{equation}
+yielding, at convergence,
+$c_{-e}^{\mathrm{IBR}\star}(d,c_e)=\lim_{\nu\to\infty}c_{-e}^{(\nu)}$.
+
+To guard against fragile single-response predictions, a local response
+neighborhood is defined as
+\begin{equation}
+\mathfrak{R}_{-e}(d,c_e)=
+\left\{c_{-e}\in\mathcal{C}_{-e}
+\;\middle|\;
+\|c_{-e}-c_{-e}^{\mathrm{IBR}\star}\|\le\delta\right\},
+\label{eq:response_neighborhood}
+\end{equation}
+and the robust tactical value is
+\begin{equation}
+\underline{\mathcal{V}}_e(d,c_e)=
+\min_{c_{-e}\in\mathfrak{R}_{-e}(d,c_e)}
+U_e\!\bigl((d_e,c_e),(d_{-e},c_{-e})\bigr).
+\label{eq:robust_tactical_value}
+\end{equation}
+The safe tactical set
+$\mathcal{A}_e^{\mathrm{safe}}(o_k)\subseteq\mathcal{A}_e$ excludes
+tactically unsafe or planner-destructive actions.  The upper-layer decision
+is therefore
+\begin{equation}
+a_e^{k,\star}\in
+\arg\max_{(d_e,c_e)\in\mathcal{A}_e^{\mathrm{safe}}(o_k)}
+\underline{\mathcal{V}}_e(d,c_e).
+\label{eq:ego_tactical_decision}
+\end{equation}
+The existence of a well-defined tactical decision follows from the strong
+monotonicity of $G_c$ on the compact convex follower set and the Weierstrass
+theorem on the compact safe action set.
+
+% ---------------------------------------------------------------------
+\subsection{Theory-Guided RL Approximation of the Tactical Equilibrium}
+\label{subsec:theory_guided_rl}
+% ---------------------------------------------------------------------
+
+Exact online evaluation of~\eqref{eq:ego_tactical_decision} is
+computationally expensive because each candidate action requires follower
+IBR convergence and terminal quality assessment.  The role of the TQC policy
+$\pi_\theta$ in~\eqref{eq:tactical_stack} is therefore to \emph{amortize}
+repeated solutions of~\eqref{eq:ego_tactical_decision} while preserving its
+strategic semantics.  Concretely, the Stackelberg--IBR game supplies three
+structural priors to the learning problem:
+
+\paragraph{Game-induced reward decomposition.}
+The RL reward mirrors the utility decomposition~\eqref{eq:utility_decomposition}
+so that its gradient landscape remains consistent with the upper-layer game.
+
+\paragraph{Theory-guided prior policy.}
+The game induces a structured prior over the continuous tactical parameter
+space.  Denote the IBR-consistent tactical parameters by
+$\bm{a}_{\mathrm{th}}^\star(\widetilde{\bm{o}}_t)$.  This prior regularizes
+the learned policy mean through a weighted penalty:
+\begin{equation}
+\mathcal{L}_{\mathrm{prior}}=
+\bigl\|\mu_\theta(\widetilde{\bm{o}}_t)
+-\bm{a}_{\mathrm{th}}^\star(\widetilde{\bm{o}}_t)\bigr\|_{W_c}^2,
+\label{eq:prior_mse}
+\end{equation}
+where $\mu_\theta$ is the deterministic policy mean and $W_c$ is a
+diagonal weighting matrix that emphasizes safety-critical components
+(gap thresholds, clearance) over preference parameters (lateral bias).
+
+\paragraph{Auxiliary game-value head.}
+An auxiliary critic head
+$\hat{\mathcal{G}}_\psi(\widetilde{\bm{o}}_t,\bm{a}_t)$ is trained to
+approximate the robust tactical value:
+\begin{equation}
+\mathcal{L}_{\mathrm{game}}=
+\bigl(\hat{\mathcal{G}}_\psi(\widetilde{\bm{o}}_t,\bm{a}_t)
+-\underline{\mathcal{V}}_e(\bm{a}_t\mid\widetilde{\bm{o}}_t)\bigr)^2.
+\label{eq:game_value_loss}
+\end{equation}
+This head improves credit assignment and keeps the learned Q-value anchored
+to the interaction-aware tactical game, rather than drifting toward an
+experience-biased value estimate.
+
+\paragraph{Safe masking.}
+In the game formulation, $\mathcal{A}_e^{\mathrm{safe}}(o_k)$ excludes
+inadmissible tactical actions.  In the implementation, this is realized through
+the projection $\Pi_{\mathcal{A}}$ in~\eqref{eq:safety_clip} and the
+readiness gate of the FSM: a mode transition to \textsc{Overtake} is blocked
+unless the corridor-width and GGV-speed admissibility conditions are
+simultaneously satisfied.  Formally, the effective safe policy satisfies
+\begin{equation}
+\tilde\pi_\theta(\bm{u}\mid\widetilde{\bm{o}}_t)\propto
+\pi_\theta(\bm{u}\mid\widetilde{\bm{o}}_t)\,
+\mathbf{1}\!\bigl[\Pi_{\mathcal{A}}(\bm{u})\in
+\widehat{\mathcal{A}}_e^{\mathrm{safe}}(\widetilde{\bm{o}}_t)\bigr],
+\label{eq:safe_mask}
+\end{equation}
+which eliminates exploration of corridor parameters that would yield
+infeasible or collision-prone FSM transitions.
+
+The overall TQC training objective combines the standard distributional
+Bellman loss with the game-derived regularizers:
+\begin{equation}
+\mathcal{L}=
+J_Q(\varphi)
++\lambda_\pi J_\pi(\theta)
++\lambda_p\mathcal{L}_{\mathrm{prior}}
++\lambda_g\mathcal{L}_{\mathrm{game}},
+\label{eq:total_loss}
+\end{equation}
+where $J_Q$ and $J_\pi$ are the quantile-Huber critic loss and the entropy-regularized actor loss defined below.
+The learning problem therefore remains structurally anchored to the
+Stackelberg--IBR tactical game: TQC amortizes the equilibrium computation,
+the game supplies the structural prior, and safe masking preserves
+admissibility---so that the resulting corridor policy is simultaneously
+data-efficient, interaction-aware, and planner-compatible.
+
+% ---------------------------------------------------------------------
+\subsection{Observation Encoding and Track Prior}
+\label{subsec:obs_encoding}
+% ---------------------------------------------------------------------
+
+The remaining subsections instantiate the abstract game quantities into
+concrete policy variables.  The tactical step index $k$ used in the game
+formulation is hereafter written as $t$ to emphasize real-time operation.
+The abstract observation $o_k$ is realized as
+$\widetilde{\bm{o}}_t$; the discrete component $(m_t,\sigma_t)$
+corresponds to the FSM mode and committed pass side; and the continuous
+component $c_t$ is implemented by the ten-dimensional parameter vector
+$\bm{a}_t$ through the tanh mapping and projection
+$\Pi_{\mathcal{A}}$ defined below.
 
 The encoder $\mathcal{E}$ combines a duel-state observation, a fixed track
 prior, and a vehicle-capability prior.  The dynamic observation is
@@ -752,6 +983,12 @@ side-by-side tenure and non-degenerate corridors.  Negative weights penalize
 being overtaken, collision, unnecessary raceline deviation, lateral
 compression, action jitter and corridor jitter.  Hence the reward shapes only
 the tactical interface; it does not modify the SOCP or MPCC objectives.
+This reward construction preserves the same strategic decomposition that
+defines the tactical utility~\eqref{eq:utility_decomposition}, ensuring
+consistency between the game-derived prior and the learning signal.
+
+\subsection{Distributional Policy Optimization with TQC}
+\label{subsec:tqc_optimization}
 
 The policy is optimized with Truncated Quantile Critics (TQC), a
 distributional off-policy algorithm chosen specifically because its
@@ -800,7 +1037,12 @@ J_\pi(\theta)=
 \right].
 \label{eq:tqc_actor}
 \end{equation}
-The entropy temperature $\alpha$ is tuned automatically.  Training episodes
+The entropy temperature $\alpha$ is tuned automatically.
+Together with the game-derived
+regularizers~\eqref{eq:prior_mse}--\eqref{eq:game_value_loss}, the combined
+objective~\eqref{eq:total_loss} ensures that the learned policy remains a
+structurally faithful approximation of the Stackelberg--IBR equilibrium.
+Training episodes
 randomize initial gap, relative speed, lateral offset and opponent behavior;
 termination occurs at pass completion, being overtaken, collision, off-track
 excursion, communication loss or timeout.  Evaluation uses the deterministic
@@ -1360,9 +1602,12 @@ with calibrated ratio $r_s$ and offset $\delta_{\rm off}$.
 % =====================================================================
 In this paper, a hierarchical game-guided tactical corridor planning and
 control architecture is proposed for wheel-to-wheel autonomous racing in
-high-speed, highly dynamic adversarial scenarios.  The framework restricts
-reinforcement learning to the tactical feasible-set synthesis layer, where a
-map-conditioned Truncated Quantile Critics policy embeds fixed track priors to
+high-speed, highly dynamic adversarial scenarios.  The framework formulates
+tactical interaction as a Stackelberg--IBR game whose robust equilibrium is
+amortized by a theory-guided Truncated Quantile Critics policy: the game
+supplies a structured prior and auxiliary value target, while the TQC
+distributional critic suppresses overestimation of collision-prone corridors.
+A map-conditioned observation embedding encodes fixed track priors to
 generate behavior decisions, overtaking-side selections, and the parameters of
 a time-varying Frenet corridor, while a hysteretic finite-state machine and a
 deterministic carver convert these into auditable spatial constraints.  Within
@@ -1758,6 +2003,14 @@ vol.~5, pp.~411--444, 2022.
 Abu Dhabi Autonomous Racing League (A2RL),
 ``A2RL: Autonomous racing competition,'' Abu Dhabi, UAE, 2024.
 [Online]. Available: \url{https://a2rl.io}
+
+\bibitem{betz2022software}
+J.~Betz, H.~Zheng, A.~Liniger \emph{et al.}, ``Autonomous vehicles on the edge: A survey on autonomous vehicle racing,'' \emph{IEEE Open J.\ Intell.\ Transp.\ Syst.}, vol.~3, pp.~458--488, 2022.
+
+\bibitem{laine2023}
+F.~Laine, D.~Fridovich-Keil, C.-Y.~Chiu, and C.~J.~Tomlin, ``The computation of approximate generalized feedback Nash equilibria,'' \emph{SIAM J.\ Optim.}, vol.~33, no.~1, pp.~294--318, 2023.
+
+
 
 \end{thebibliography}
 
