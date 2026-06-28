@@ -170,7 +170,7 @@ However, the control performance depends heavily on the feasibility and
 smoothness of the planned reference~\cite{betz2022software,betz2023autonomous}:
 if the path ignores curvature regularity, speed feasibility, or tire-friction
 limits, the controller is forced to compensate for dynamically inconsistent
-commands, leading to oscillatory actuation or degraded robustness~\cite{verschueren2014}.
+commands, leading to oscillatory actuation or degraded robustness~\cite{verschueren2014nmpc}.
 Behavior planning, local motion planning, and vehicle control should therefore
 be coordinated within a unified hierarchical framework.
 
@@ -227,7 +227,8 @@ Section~\ref{sec:tactical} presents the game-guided tactical layer.
 Section~\ref{sec:planner} details the SOCP path planner and the FB speed
 profiler.
 Section~\ref{sec:controller} formulates the MPCC controller.
-Section~\ref{sec:experiments} reports two closed-loop overtake simulations.
+Section~\ref{sec:experiments} reports three closed-loop overtake simulations,
+a comparative evaluation, and an ablation study.
 Section~\ref{sec:conclusion} concludes.
 
 % =====================================================================
@@ -2015,6 +2016,8 @@ J.~Betz, H.~Zheng, A.~Liniger \emph{et al.}, ``Autonomous vehicles on the edge: 
 \bibitem{laine2023}
 F.~Laine, D.~Fridovich-Keil, C.-Y.~Chiu, and C.~J.~Tomlin, ``The computation of approximate generalized feedback Nash equilibria,'' \emph{SIAM J.\ Optim.}, vol.~33, no.~1, pp.~294--318, 2023.
 
+\bibitem{trautman2010unfreezing}
+P.~Trautman and A.~Krause, ``Unfreezing the robot: Navigation in dense, interacting crowds,'' in \emph{Proc.\ IEEE/RSJ Int.\ Conf.\ Intell.\ Robots Syst.\ (IROS)}, 2010, pp.~797--803.
 
 
 \end{thebibliography}

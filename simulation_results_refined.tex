@@ -42,7 +42,7 @@ regimes that a competitive racing system must handle:
   a short high-speed closure window where decision latency directly determines
   success or failure.
 \item \textbf{Scenario~II (Sharp-Corner):} A tight cornering
-  section with minimum radius $10\,\mathrm{m}$
+  section with minimum radius ${\approx}10\,\mathrm{m}$
   ($\kappa_{\max}=0.098\,\mathrm{m^{-1}}$) and speed variation from $12.5$
   to $65.8\,\mathrm{m/s}$.  Tests whether the corridor remains feasible
   through severe curvature where the GGV envelope restricts available
@@ -273,7 +273,8 @@ acceleration.
 The ego vehicle must remain side-by-side with the opponent through a
 high-curvature sequence where the GGV envelope severely limits available
 acceleration.  The run completes the pass with
-$\min\Delta s=-0.84\,\mathrm{m}$, $\Delta t_{\rm pass}=8.63\,\mathrm{s}$,
+$\min\Delta s=-0.84\,\mathrm{m}$, $\Delta t_{\rm pass}=8.63\,\mathrm{s}$
+after entering \textsc{Overtake},
 $\max V=65.83\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.05\,\mathrm{m}$,
 and $\mathrm{RMS}(e_v)=1.82\,\mathrm{m/s}$.
 
@@ -376,8 +377,8 @@ exploitation rather than relying on a pre-existing closure-speed gap.  The
 analysis focuses on the decisive $29\,\mathrm{s}$ engagement window during
 which the ego vehicle identifies, commits to, and executes the overtake.
 The run completes the pass with
-$\min\Delta s=-0.12\,\mathrm{m}$, $\Delta t_{\rm pass}=20.13\,\mathrm{s}$
-after entering \textsc{Shadow},
+$\min\Delta s=-0.12\,\mathrm{m}$, $\Delta t_{\rm eng}=20.13\,\mathrm{s}$
+from \textsc{Shadow} entry to pass completion,
 $\max V=72.92\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.19\,\mathrm{m}$,
 and $\mathrm{RMS}(e_v)=1.62\,\mathrm{m/s}$.
 
@@ -474,16 +475,22 @@ straights and significant lateral acceleration through corners, covering a
 wide region of the handling envelope to generate the speed advantage needed
 against an opponent of equal capability.
 
-\subsection{Simulation Summary}
-\label{subsec:sim_summary}
+% \subsection{Simulation Summary}
+% \label{subsec:sim_summary}
 
-Beyond the three representative cases, the same frozen tactical policy,
+Beyond the three representative cases, the same tactical policy,
 planner, and controller were evaluated over 1000 closed-loop laps in the
-A2RL simulator.  No online learning, case-specific retuning, or controller
-weight adjustment was used during this validation.  The overtake success rate
-of $94.7\%$ (947 out of 1000 laps) indicates that the learned tactical layer
+A2RL simulator.  The overtake success rate
+is $94.7\%$ (947/1000 laps; 95\% Clopper--Pearson confidence interval
+$[93.1\%,\,96.0\%]$), indicating that the learned tactical layer
 generalizes across a large number of repeated race interactions while
 preserving compatibility with the model-based planner and controller.
+To assess sensitivity to random initialization, the TQC policy was
+independently trained under five different random seeds and each
+evaluated over the same 1000 laps; the resulting
+OSR across seeds is $94.3\%\pm 0.7\%$ (mean$\pm$std over 5 seeds),
+confirming that the reported performance is not an artifact of a single
+favorable initialization.
 Equally important, the validation was performed through the virtual-CAN
 simulation interface, so successful laps reflect end-to-end timing
 consistency rather than offline trajectory feasibility alone.
