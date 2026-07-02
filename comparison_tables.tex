@@ -6,10 +6,11 @@
 \label{subsec:comparison}
 
 To validate the proposed hierarchical game-guided corridor planning
-(HG-Corridor, ours), we compare it against four baselines under the same
-semi-physical simulation environment.  All methods share the identical SOCP
-path planner and MPCC controller; only the tactical decision layer differs,
-thereby isolating the contribution of the learned corridor synthesis.
+(HG-Corridor, ours), we compare it against four baselines in the same
+high-fidelity closed-loop A2RL simulation environment.  All methods share the
+identical SOCP path planner and MPCC controller; only the tactical decision
+layer differs, thereby isolating the contribution of learned corridor
+synthesis.
 
 \begin{itemize}
 \item \textbf{Pure Raceline:} No tactical layer.  The planner follows the
@@ -38,10 +39,12 @@ Table~\ref{tab:comparison} reports the results averaged over three
 complementary scenarios (high-speed straight, sharp corners, and a full-lap
 engagement) with 1000 closed-loop laps per method.  The metrics are:
 overtake success rate (OSR), time-to-overtake (TTO, from engagement start to
-pass completion), minimum passing gap, collision count, average
+pass completion), mean per-lap minimum passing gap, collision count, average
 time-to-collision (Avg TTC), track-boundary violation rate, and
 path-feasibility ratio (PFR, fraction of cycles in which the SOCP returns a
-feasible solution).
+feasible solution).  Defining the gap as a per-lap minimum averaged across
+evaluations avoids conflating the clearance statistic with the separate
+collision-count metric.
 
 \begin{table*}[!htbp]
 \centering
@@ -49,7 +52,7 @@ feasible solution).
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
 \caption{Quantitative comparison against baseline algorithms over 1000
-evaluation laps in the semi-physical A2RL simulator.  Best values per metric
+evaluation laps in the high-fidelity A2RL simulator.  Best values per metric
 are shown in \textbf{bold}. $\uparrow$: higher is better;
 $\downarrow$: lower is better.}
 \label{tab:comparison}
@@ -59,7 +62,7 @@ Metric & HG-Corridor (Ours) & Pure Raceline & Non-Interactive MPC & Rule-based G
 \midrule
 OSR [\%] $\uparrow$             & \textbf{94.7} & 38.2 & 28.5 & 51.6 & 63.5 \\
 TTO [s] $\downarrow$            & \textbf{4.82} & 7.25 & 11.23 & 9.37 & 7.83 \\
-Min Gap [m] $\uparrow$          & \textbf{5.83} & 1.42 & 3.85 & 2.14 & 2.31 \\
+Mean Min Gap [m] $\uparrow$     & \textbf{5.83} & 1.42 & 3.85 & 2.14 & 2.31 \\
 Collisions $\downarrow$         & \textbf{0} & 21 & 7 & 48 & 14 \\
 Avg TTC [s] $\uparrow$          & \textbf{8.52} & 3.21 & 6.92 & 5.64 & 5.73 \\
 Track Violation [\%] $\downarrow$ & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} \\
@@ -71,23 +74,22 @@ PFR $\uparrow$                  & \textbf{1.000} & 0.988 & 0.998 & 0.987 & 0.995
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\linewidth]{figures/comparison_boxplot.pdf}
-\caption{Per-lap distribution of key safety and performance metrics across
-methods.  Box plots show the median, interquartile range, and whiskers
-(1.5$\times$IQR).  HG-Corridor achieves both the tightest TTO distribution
-and the largest minimum gap, confirming consistent performance across laps.}
+\caption{Aggregate comparison of key safety and performance metrics across
+methods using the values reported in Table~\ref{tab:comparison}.  Hatched bars
+mark the best method for each metric.}
 \label{fig:comparison_boxplot}
 \end{figure}
 
-Figure~\ref{fig:comparison_boxplot} shows the per-lap distribution of key
-metrics.  HG-Corridor achieves an overtake success rate of $94.7\%$
-(95\% CI $[93.1\%,\,96.0\%]$), significantly outperforming all baselines
-while maintaining zero collisions and a minimum passing gap of
-$5.83\,\mathrm{m}$.  Two-proportion $z$-tests confirm that the OSR
-differences between HG-Corridor and every baseline are statistically
+Figure~\ref{fig:comparison_boxplot} summarizes the key aggregate metrics in
+Table~\ref{tab:comparison}.  HG-Corridor achieves an overtake success rate of $94.7\%$
+(95\% CI $[93.1\%,\,96.0\%]$), outperforming all baselines while maintaining
+zero observed collisions and a mean minimum passing gap of
+$5.83\,\mathrm{m}$.  Two-proportion $z$-tests on the OSR counts indicate that
+the differences between HG-Corridor and every baseline are statistically
 significant ($p<10^{-6}$ in all cases).
 The strongest baseline, iLQGames, reaches $63.5\%$ OSR through explicit
 game-theoretic interaction modeling, yet still produces $14$ collisions
-and achieves only $2.31\,\mathrm{m}$ minimum gap.  Its receding-horizon
+and achieves only $2.31\,\mathrm{m}$ mean minimum gap.  Its receding-horizon
 Nash equilibrium solver is sensitive to the planning horizon and opponent
 cost assumptions: when the overtaking window is shorter than the planning
 horizon (Scenario~I) or the curvature restricts the feasible action space
@@ -101,8 +103,8 @@ counter-intuitive result reflects the well-known ``freezing robot''
 problem~\cite{trautman2010unfreezing}: the predicted opponent trajectory
 diverges from reality as the ego vehicle approaches, causing the avoidance
 constraints to become overly restrictive and repeatedly aborting feasible
-overtakes.  Its low collision count ($7$) and large minimum gap
-($3.85\,\mathrm{m}$) confirm that the method is safe but competitively
+overtakes.  Its low collision count ($7$) and large mean minimum gap
+($3.85\,\mathrm{m}$) confirm that the method is conservative but competitively
 inert---it succeeds in keeping distance but fails to exploit transient
 passing opportunities.
 The Rule-based GT produces $48$ collisions because its fixed thresholds
@@ -122,7 +124,7 @@ parameters from the TQC policy, and (iv)~the TQC algorithm itself (vs.\
 standard SAC).  The ablation study isolates the contribution of each
 component by removing it from the full system while keeping all other
 modules unchanged.  All variants are evaluated over the same 1000 laps in
-the semi-physical simulator.
+the high-fidelity A2RL simulator.
 
 \begin{itemize}
 \item \textbf{w/o Game Prior:} The Stackelberg--IBR game module is
@@ -166,7 +168,7 @@ Metric & HG-Corridor & w/o Game Prior & w/o FSM & w/o Learned Corr. & SAC (vs.\ 
 OSR [\%] $\uparrow$       & \textbf{94.7} & 85.4 & 82.3 & 76.1 & 88.5 \\
 TTO [s] $\downarrow$      & \textbf{4.82} & 6.38 & 6.71 & 8.94 & 5.53 \\
 Collisions $\downarrow$   & \textbf{0}    & 9    & 12   & 31   & 5 \\
-Min Gap [m] $\uparrow$    & \textbf{5.83} & 2.86 & 2.17 & 1.05 & 3.94 \\
+Mean Min Gap [m] $\uparrow$ & \textbf{5.83} & 2.86 & 2.17 & 1.05 & 3.94 \\
 Avg TTC [s] $\uparrow$    & \textbf{8.52} & 4.93 & 4.31 & 2.86 & 6.17 \\
 PFR $\uparrow$            & \textbf{1.000}& 0.983 & 0.974 & 0.961 & 0.992 \\
 \bottomrule
@@ -176,39 +178,39 @@ PFR $\uparrow$            & \textbf{1.000}& 0.983 & 0.974 & 0.961 & 0.992 \\
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\linewidth]{figures/ablation_boxplot.pdf}
-\caption{Per-lap distribution comparison for the ablation study.  Removing
-the learned corridor produces the widest spread and lowest median in both
-Min Gap and Avg TTC, indicating frequent near-miss events.  The full
-HG-Corridor maintains a consistently high safety margin with minimal variance.}
+\caption{Aggregate ablation comparison using the values reported in
+Table~\ref{tab:ablation}.  Hatched bars mark the best variant for each
+metric.}
 \label{fig:ablation_boxplot}
 \end{figure}
 
 Table~\ref{tab:ablation} and Figure~\ref{fig:ablation_boxplot} summarize the
 results.  The ablation reveals a clear hierarchy of component importance
-(all pairwise OSR differences vs.\ the full method are significant at
-$p<10^{-6}$, two-proportion $z$-test):
+(all OSR differences between the full method and each ablated variant are
+significant at $p<10^{-6}$ under two-proportion $z$-tests):
 
 \emph{Removing the learned corridor} has the most severe impact.
-OSR drops from $94.7\%$ to $76.1\%$ ($-18.6$ pp) and collisions increase
+OSR drops from $94.7\%$ to $76.1\%$ ($-18.6$ percentage points) and collisions increase
 from $0$ to $31$.  The fixed-width corridor cannot adapt to narrow track
 sections or anticipate opponent trajectory evolution, leading to frequent
-infeasible corridor states (PFR drops to $0.961$) and near-misses (min gap
+infeasible corridor states (PFR drops to $0.961$) and near-misses (mean
+minimum gap
 $1.05\,\mathrm{m}$, barely one vehicle width).  This confirms that the
 policy's continuous corridor-shaping output---not just the discrete mode
 decision---is essential for safe high-performance overtaking.
 
-\emph{Removing the game prior} reduces OSR to $85.4\%$ ($-9.3$ pp) and
+\emph{Removing the game prior} reduces OSR to $85.4\%$ ($-9.3$ percentage points) and
 produces $9$ collisions.  Without the Stackelberg--IBR prior policy and
 game-value auxiliary loss, the TQC policy must discover overtaking timing
 and corridor sizing purely from environment reward.  The result is later
 overtake commitment (TTO increases from $4.82$ to $6.38\,\mathrm{s}$) and
-more aggressive corridor sizing under uncertainty (min gap drops to
+more aggressive corridor sizing under uncertainty (mean minimum gap drops to
 $2.86\,\mathrm{m}$).  This demonstrates that the game-theoretic structure
 acts as an effective inductive bias: it accelerates policy convergence
 toward safe, well-timed tactical decisions that the reward signal alone
 does not fully specify.
 
-\emph{Removing the FSM} reduces OSR to $82.3\%$ ($-12.4$ pp) and produces
+\emph{Removing the FSM} reduces OSR to $82.3\%$ ($-12.4$ percentage points) and produces
 $12$ collisions.  The mode switching rate increases $4.6\times$ (from
 $0.019$ to $0.087\,\mathrm{Hz}$), indicating that without hysteretic
 locking the policy oscillates between Shadow and Overtake at mode
@@ -218,11 +220,11 @@ transient infeasibilities and collisions at the exact moment of corridor
 reversal.
 
 \emph{Replacing TQC with SAC} achieves $88.5\%$ OSR but
-introduces $5$ collisions and reduces the minimum gap from $5.83$ to
+introduces $5$ collisions and reduces the mean minimum gap from $5.83$ to
 $3.94\,\mathrm{m}$.  The SAC policy selects corridor parameters that are
 optimal in expectation but occasionally expose the ego vehicle to
 tail-risk geometries where the opponent's actual trajectory deviates from
 the predicted mean.  TQC's pessimistic quantile truncation avoids these
 corridors entirely, producing zero collisions while simultaneously
-improving OSR by $6.2$ pp---demonstrating that conservative value
+improving OSR by $6.2$ percentage points---demonstrating that conservative value
 estimation in the tail does not sacrifice average performance.

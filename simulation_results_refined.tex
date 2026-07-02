@@ -8,16 +8,16 @@ The closed-loop experiments were carried out in the high-fidelity simulator
 provided by the Abu Dhabi Autonomous Racing League (A2RL)~\cite{a2rl2024}, an
 international competition for full-scale autonomous racecars, which embeds a
 detailed Dallara EAV24 vehicle-dynamics model together with the Yas Marina
-track and environment model.  Internally, the simulator and the decision stack communicate over a
-ROS2 platform, while the final actuator commands are delivered through a
-virtual CAN channel that mirrors the real race-vehicle interface.  Sensor
-states, opponent states, and race-control flags are received from the
-simulator, and throttle, brake, steering, and gear commands are
-returned through the same loop.  Because the decision stack runs as an
-external real-time process and all timing must survive the message transport
-layer, failures caused by delayed tactical updates, infeasible planner
-outputs, or controller fallback appear in the closed loop exactly as they
-would on the race vehicle.
+track and environment model.  Internally, the simulator and the decision stack
+communicate over a ROS2 platform, while the final actuator commands are
+delivered through a virtual CAN channel that mirrors the race-vehicle
+interface.  Sensor states, opponent states, and race-control flags are received
+from the simulator, and throttle, brake, steering, and gear commands are
+returned through the same loop.  Because the decision stack runs as an external
+real-time process and all timing must survive the message transport layer,
+failures caused by delayed tactical updates, infeasible planner outputs, or
+controller fallback are visible at the same closed-loop interface that would be
+used by the race vehicle.
 
 \begin{figure}[!htbp]
 \centering
@@ -38,20 +38,21 @@ regimes that a competitive racing system must handle:
 \begin{itemize}
 \item \textbf{Scenario~I (High-Speed Straight):} A pure straight section
   ($\kappa\approx0$, minimum radius $>900\,\mathrm{m}$) where both vehicles
-  operate above $68\,\mathrm{m/s}$.  Tests whether the hierarchy can exploit
-  a short high-speed closure window where decision latency directly determines
-  success or failure.
+  operate above $68\,\mathrm{m/s}$.  This case tests whether the hierarchy can
+  exploit a short high-speed closure window where decision latency directly
+  determines success or failure.
 \item \textbf{Scenario~II (Sharp-Corner):} A tight cornering
   section with minimum radius ${\approx}10\,\mathrm{m}$
   ($\kappa_{\max}=0.098\,\mathrm{m^{-1}}$) and speed variation from $12.5$
-  to $65.8\,\mathrm{m/s}$.  Tests whether the corridor remains feasible
-  through severe curvature where the GGV envelope restricts available
+  to $65.8\,\mathrm{m/s}$.  This case tests whether the corridor remains
+  feasible through severe curvature where the GGV envelope restricts available
   acceleration and lateral space is tightest.
 \item \textbf{Scenario~III (Mixed Straight-Corner):} A
   mixed section combining straights and corners
   ($\kappa_{\max}=0.037\,\mathrm{m^{-1}}$) against an equal-speed opponent.
-  Tests the full adversarial capability where the ego must generate its own
-  advantage from track-geometry exploitation.
+  This case tests adversarial passing when the ego must generate its own
+  advantage from track-geometry exploitation rather than an initial speed
+  surplus.
 \end{itemize}
 
 \begin{table}[!htbp]
@@ -451,10 +452,12 @@ an equal-speed adversary.  The FSM mode plot shows the progression from
 \textsc{Shadow}---where the ego is guided to the opponent's rear-quarter to
 establish lateral pre-positioning---through \textsc{Overtake} to
 \textsc{Hold}, with the mode commitment sustained throughout the decisive
-interval.  The pass completion with only $0.12\,\mathrm{m}$ of longitudinal
-margin confirms that the ego vehicle generates just enough advantage through
-cornering speed exploitation---a characteristic signature of same-speed
-adversarial racing where large surpluses are unavailable.
+interval.  The small longitudinal crossover margin
+($\min\Delta s=-0.12\,\mathrm{m}$), together with the lateral clearance shown
+in Fig.~\ref{fig:case04_gap}, indicates that the ego vehicle generates only a
+limited but sufficient advantage through cornering-speed exploitation---a
+characteristic signature of same-speed adversarial racing where large speed
+surpluses are unavailable.
 
 \begin{figure}[H]
 \centering
@@ -482,15 +485,15 @@ Beyond the three representative cases, the same tactical policy,
 planner, and controller were evaluated over 1000 closed-loop laps in the
 A2RL simulator.  The overtake success rate
 is $94.7\%$ (947/1000 laps; 95\% Clopper--Pearson confidence interval
-$[93.1\%,\,96.0\%]$), indicating that the learned tactical layer
-generalizes across a large number of repeated race interactions while
+$[93.1\%,\,96.0\%]$), indicating that the learned tactical layer maintains
+consistent closed-loop performance across repeated race interactions while
 preserving compatibility with the model-based planner and controller.
 To assess sensitivity to random initialization, the TQC policy was
 independently trained under five different random seeds and each
 evaluated over the same 1000 laps; the resulting
-OSR across seeds is $94.3\%\pm 0.7\%$ (mean$\pm$std over 5 seeds),
-confirming that the reported performance is not an artifact of a single
-favorable initialization.
+OSR across seeds is $94.3\%\pm 0.7\%$ (mean$\pm$std over 5 seeds).  This
+seed-level repeatability reduces the likelihood that the reported performance
+comes from a single favorable initialization.
 Equally important, the validation was performed through the virtual-CAN
 simulation interface, so successful laps reflect end-to-end timing
 consistency rather than offline trajectory feasibility alone.
@@ -501,6 +504,6 @@ the planner and controller enforce geometric consistency, handling-limit speed
 selection, and closed-loop vehicle execution.  The short-pass, long-pass, and
 equal-speed adversarial cases show that the architecture is not tuned to a
 single overtaking geometry, and the 1000-lap validation demonstrates that this
-separation remains robust under repeated high-fidelity simulation.
+separation remains reliable under repeated high-fidelity simulation.
 
 \input{comparison_tables}

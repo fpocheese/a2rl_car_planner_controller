@@ -14,6 +14,8 @@
 \usepackage{verbatim}
 \usepackage{cite}
 \usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
 \hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
 
 % --- Math shortcuts ---
@@ -40,23 +42,27 @@
 
 \begin{abstract}
 
-Autonomous racecars in high-speed competitive racing must jointly perform overtaking decision 
-making, trajectory reconstruction, and at-limit control within a confined track space. 
-To address the challenges of highly dynamic vehicle motion, stringent track constraints, 
-complex interactive competition, and low overtaking success rates caused by uncertain feasible 
-overtaking opportunities, this paper proposes a hierarchical game-guided tactical corridor 
-planning and control method. First, a game-based competitive situation model is established 
-in the track Frenet frame under racecar performance-limit constraints to characterize the 
-feasible motion space subject to track boundaries, curvature variations, and tire-friction limits. 
-Then, the game-theoretic interaction model is amortized by a Truncated Quantile Critics
-reinforcement learning policy at the tactical layer, which adaptively generates behavior
-decisions, overtaking-side selections, and time-varying Frenet tactical corridors. Within the tactical corridor, a sparse second-order 
-cone program is employed to generate curvature-regularized paths, while forward--backward speed 
-planning and model predictive contouring control are integrated to achieve dynamically feasible 
-trajectory generation and closed-loop tracking. High-fidelity simulation results show 
-that the proposed method can adaptively reconstruct the overtaking feasible region according 
-to opponent position, track geometry, and vehicle performance boundaries, achieving a 94.7% 
-overtaking success rate over 1000 closed-loop laps.
+High-speed autonomous racing requires an ego racecar to decide when and where
+to overtake, reconstruct a feasible local driving region, and execute the
+resulting trajectory near the handling limits within a narrow track corridor.
+These requirements are tightly coupled: a tactically attractive pass can be
+unsafe if the local corridor is not dynamically feasible, whereas a locally
+feasible trajectory can be competitively ineffective if it ignores the
+opponent's response and the upcoming track geometry.  This paper proposes a
+hierarchical game-guided tactical corridor planning and control method for
+wheel-to-wheel autonomous racing.  A Stackelberg--iterative-best-response
+tactical game is formulated in the Frenet frame under track-boundary,
+curvature, and tire-friction constraints, and its repeated solution is
+amortized by a theory-guided Truncated Quantile Critics policy.  The learned
+policy does not command steering or throttle directly; instead, it generates
+behavior decisions, overtaking-side selections, speed caps, and time-varying
+Frenet corridors that are passed to deterministic downstream solvers.  Within
+each tactical corridor, a sparse second-order cone program computes a
+curvature-regularized path, a forward--backward speed profiler enforces the
+GGV handling envelope, and a model predictive contouring controller tracks the
+reference in closed loop.  In the high-fidelity A2RL simulator, the proposed
+method achieves a 94.7\% overtaking success rate over 1000 closed-loop laps
+with no observed collisions or track-boundary violations.
 
 
 
@@ -66,19 +72,20 @@ overtaking success rate over 1000 closed-loop laps.
 % =====================================================================
 \section{Introduction}
 % =====================================================================
-\IEEEPARstart{W}{ith} the rapid development of autonomous driving technologies and 
-artificial intelligence methods, autonomous racing has become an important platform 
-for validating high-speed decision making, trajectory planning, and at-limit control 
-of intelligent vehicles. Enhancing the autonomous competitive capability of racecars 
-in adversarial racing scenarios is therefore of great significance. However, high-speed 
-racing is characterized by highly dynamic vehicle motion, strongly constrained track space, 
-and complex interactive competition among vehicles. Under such conditions, merely relying 
-on fixed raceline tracking or single-vehicle trajectory planning makes it difficult to 
-accurately identify feasible overtaking opportunities and achieve stable overtaking. 
-Therefore, developing a hierarchical planning and control method that integrates 
-game-theoretic decision making, trajectory reconstruction, and vehicle dynamic constraints 
-has become a key issue for improving the strategic performance of autonomous racecars in 
-high-speed competitive racing.
+\IEEEPARstart{A}{utonomous} racing has become a demanding benchmark for
+high-speed decision making, trajectory planning, and at-limit vehicle control.
+Unlike ordinary lane-level driving, wheel-to-wheel racing compresses tactical
+interaction, geometric feasibility, and vehicle dynamics into the same short
+time window: the ego vehicle must infer whether an overtake is strategically
+viable, reserve enough lateral space before the opportunity disappears, and
+still respect tire-friction and actuator limits while executing the maneuver.
+A fixed raceline tracker or a single-vehicle local planner can be fast and
+stable, but it has no explicit mechanism for deciding when the nominal
+raceline should be abandoned, which side should be used, or how much of the
+track should be reserved as a recoverable passing corridor.  The central
+problem is therefore not only to generate a collision-free trajectory, but to
+construct a tactically meaningful feasible set that remains executable by the
+planner and controller.
 
 
 
@@ -178,45 +185,50 @@ be coordinated within a unified hierarchical framework.
 
 
 Taken together, existing studies have advanced behavior planning, local motion
-planning, and vehicle control individually, but these modules remain
-insufficiently coordinated in high-speed competitive racing: behavior planners
-lack an explicit representation of the feasible overtaking space, local planners
-have limited tactical modeling of opponent interaction and overtaking timing,
-and controllers depend on the curvature continuity and tire-friction consistency
-of the planned reference. It is therefore of great significance to develop a
-unified hierarchical method that integrates tactical decision making,
-overtaking feasible-region reconstruction, dynamically feasible trajectory
-generation, and closed-loop execution, enabling the ego racecar to adaptively
-reconstruct the overtaking space according to opponent motion, track geometry,
-and vehicle performance boundaries.
+planning, and vehicle control, but these modules are still weakly coupled in
+high-speed competitive racing.  Behavior planners often choose a maneuver
+without exposing an explicit feasible overtaking region to the local planner;
+local planners can avoid a predicted opponent but usually do not encode
+overtaking timing or side commitment; and controllers can only track what the
+planner provides, so curvature discontinuities or speed profiles outside the
+handling envelope directly degrade closed-loop robustness.  This gap motivates
+a hierarchy in which the tactical layer publishes a time-varying feasible
+corridor, the planner converts that corridor into a dynamically admissible
+path--speed reference, and the controller executes the reference while
+respecting actuator and vehicle-dynamics constraints.
 
 
 
-This paper addresses the autonomous racing demand of high-speed competitive
-autonomous racing, and proposes a hierarchical game-guided tactical corridor
-planning and control method to solve the problems of overtaking-timing
-selection, feasible overtaking-space reconstruction, and weak coordination
-between planning and control under complex interactive racing scenarios. The
-proposed method amortizes game-theoretic equilibrium solutions via a Truncated
-Quantile Critics reinforcement learning policy for tactical decision making,
-constructs an overtaking feasible-region reconstruction mechanism based on
-time-varying Frenet tactical corridors, and integrates sparse second-order cone
-programming, forward--backward speed planning, and model predictive contouring
-control to achieve dynamically feasible trajectory generation and closed-loop
-execution.
-The proposed hierarchical game-guided tactical corridor planning and control
-method has the following advantages:
+This paper proposes a hierarchical game-guided tactical corridor planning and
+control method for competitive autonomous racing.  The method amortizes a
+Stackelberg--IBR tactical game with a Truncated Quantile Critics policy,
+reconstructs the overtaking feasible region as time-varying Frenet corridors,
+and combines sparse second-order cone programming, forward--backward speed
+planning, and model predictive contouring control for dynamically feasible
+closed-loop execution.  The main contributions are:
 
 
 
 
 
 \begin{enumerate}
-    \item A game-guided reinforcement learning method for tactical corridor synthesis, in which a Stackelberg--IBR tactical game provides a structured interaction model and theory prior, while a Truncated Quantile Critics policy amortizes the equilibrium solution to adaptively generate behavior decisions, overtaking-side selections, and time-varying Frenet tactical corridors under track-geometry and vehicle-performance constraints.
+    \item A game-guided reinforcement learning method for tactical corridor
+    synthesis, in which a Stackelberg--IBR tactical game provides a structured
+    interaction model and theoretical prior, while a Truncated Quantile Critics
+    policy amortizes the equilibrium solution to generate behavior decisions,
+    overtaking-side selections, and time-varying Frenet tactical corridors
+    under track-geometry and vehicle-performance constraints.
 
-    \item A curvature-regularized trajectory planning method under tactical-corridor constraints, where a sparse second-order cone program generates feasible paths and a forward--backward speed strategy enforces vehicle performance limits, connecting feasible-region reconstruction with dynamically feasible trajectory generation.
+    \item A curvature-regularized trajectory planning method under
+    tactical-corridor constraints, where a sparse second-order cone program
+    generates feasible paths and a forward--backward speed strategy enforces
+    vehicle performance limits, connecting feasible-region reconstruction with
+    dynamically feasible trajectory generation.
 
-    \item A model predictive contouring control method that jointly regulates contouring error, lag error, inputs, and vehicle dynamic constraints to achieve robust closed-loop tracking of the path--speed reference in complex overtaking scenarios.
+    \item A model predictive contouring control method that jointly regulates
+    contouring error, lag error, inputs, and vehicle dynamic constraints to
+    achieve robust closed-loop tracking of the path--speed reference in complex
+    overtaking scenarios.
 \end{enumerate}
 
 
@@ -633,7 +645,7 @@ simultaneously satisfied.  Formally, the effective safe policy satisfies
 \widehat{\mathcal{A}}_e^{\mathrm{safe}}(\widetilde{\bm{o}}_t)\bigr],
 \label{eq:safe_mask}
 \end{equation}
-which eliminates exploration of corridor parameters that would yield
+which filters sampled corridor parameters that would otherwise trigger
 infeasible or collision-prone FSM transitions.
 
 The overall TQC training objective combines the standard distributional
@@ -646,7 +658,8 @@ J_Q(\varphi)
 +\lambda_g\mathcal{L}_{\mathrm{game}},
 \label{eq:total_loss}
 \end{equation}
-where $J_Q$ and $J_\pi$ are the quantile-Huber critic loss and the entropy-regularized actor loss defined below.
+where $J_Q$ and $J_\pi$ are the quantile-Huber critic loss and the
+entropy-regularized actor loss defined below.
 The learning problem therefore remains structurally anchored to the
 Stackelberg--IBR tactical game: TQC amortizes the equilibrium computation,
 the game supplies the structural prior, and safe masking preserves
@@ -1611,30 +1624,31 @@ with calibrated ratio $r_s$ and offset $\delta_{\rm off}$.
 % =====================================================================
 \section{Conclusion}\label{sec:conclusion}
 % =====================================================================
-In this paper, a hierarchical game-guided tactical corridor planning and
-control architecture is proposed for wheel-to-wheel autonomous racing in
-high-speed, highly dynamic adversarial scenarios.  The framework formulates
-tactical interaction as a Stackelberg--IBR game whose robust equilibrium is
-amortized by a theory-guided Truncated Quantile Critics policy: the game
-supplies a structured prior and auxiliary value target, while the TQC
-distributional critic suppresses overestimation of collision-prone corridors.
-A map-conditioned observation embedding provides curvature and width context,
-enabling the policy to generate behavior decisions, overtaking-side selections,
-and the parameters of a time-varying Frenet corridor, while a hysteretic
-finite-state machine and a deterministic carver convert these into auditable
-spatial constraints.  Within
-the corridor, a sparse second-order cone program produces curvature-regularized
-paths, a forward--backward sweep enforces the GGV handling envelope, and a model
-predictive contouring controller executes the reference at the vehicle handling
-limit.  By separating tactical intent from physical execution, the learned
-policy determines where the vehicle is permitted to drive while the model-based
-layers enforce tire limits, actuator bounds, and closed-loop dynamics
-in the nominal planner and controller---as empirically validated
-in high-fidelity simulation without observed constraint violations---yielding
-an adaptive yet interpretable solution for competitive autonomous racing.  Future work will extend the framework to multi-opponent
-races with multi-agent game equilibria, incorporate probabilistic opponent
-prediction into the corridor constraints, and transfer the approach to
-controlled track tests on the Dallara EAV24 platform.
+This paper presented a hierarchical game-guided tactical corridor planning and
+control architecture for wheel-to-wheel autonomous racing.  The framework
+formulates tactical interaction as a Stackelberg--IBR game and amortizes its
+repeated solution with a theory-guided Truncated Quantile Critics policy.  The
+learned component publishes behavior modes, side commitments, speed caps, and
+Frenet corridor parameters, while the deterministic FSM and corridor carver
+convert these outputs into auditable spatial constraints.  Inside the corridor,
+a sparse SOCP planner generates curvature-regularized paths, a
+forward--backward speed sweep enforces the GGV handling envelope, and an MPCC
+executes the resulting path--speed reference in closed loop.
+
+The A2RL high-fidelity simulation study shows that this division of labor is
+effective for short high-speed passes, prolonged cornering duels, and
+equal-speed adversarial engagements.  Across 1000 closed-loop evaluation laps,
+the full architecture achieved a 94.7\% overtaking success rate with no
+observed collisions or track-boundary violations, and the comparison and
+ablation studies indicate that both the game-guided policy structure and the
+learned corridor parameters are necessary for the reported safety and
+performance.  The results therefore support the main design principle: learning
+should shape the tactical feasible set, while model-based planning and control
+retain responsibility for geometric consistency, handling-limit speed
+selection, and actuator-feasible execution.  Future work will extend the
+framework to multi-opponent races, incorporate probabilistic opponent
+prediction into the corridor constraints, and validate the sim-to-track
+transfer on controlled Dallara EAV24 tests.
 
 % \begin{thebibliography}{38}
 
