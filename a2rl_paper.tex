@@ -242,7 +242,7 @@ Section~\ref{sec:conclusion} concludes.
 % geometric statements about longitudinal progress and lateral free space.  This
 % section fixes the notation used by the remainder of the paper.
 
-\subsection{Dynamic Bicycle Model}
+
 Let the continuous-time controller state and input be
 \begin{equation}
 \bm{x}=\bigl[X,\;Y,\;\psi,\;v_x,\;v_y,\;r,\;\delta,\;s_p\bigr]^\top,\qquad
@@ -251,8 +251,8 @@ Let the continuous-time controller state and input be
 \end{equation}
 where $(X,Y)$ is the inertial position, $\psi$ is yaw angle, $(v_x,v_y)$ are
 body-frame longitudinal and lateral velocities, $r$ is yaw rate, $\delta$ is
-front steering angle, and $s_p$ is an auxiliary progress state used only by
-the MPCC terminal reward.  The input $a$ is the commanded longitudinal
+front steering angle, and $s_p$ is an auxiliary progress state used by
+the simulation framework for lap counting.  The input $a$ is the commanded longitudinal
 acceleration and $\dot\delta$ is the steering-rate command.  The rigid-body
 kinematics are
 \begin{equation}
@@ -302,7 +302,7 @@ Table~\ref{tab:setup_params}.
 \label{fig:vehicle_track_model}
 \end{figure}
 
-\subsection{Track Frenet Coordinates}
+
 Let $\bm{r}_c(s)\in\R^2$ be the track centerline parameterized by arc length
 $s\in[0,L_{\rm trk})$.  Its tangent angle is $\theta(s)$ and its curvature is
 $\kappa(s)=d\theta/ds$.  Define the tangent and normal unit vectors as
@@ -368,7 +368,7 @@ residual of $\bm{f}_s$.  This single linearized Frenet model is the one used
 by the SOCP in Sec.~\ref{sec:planner}; no new lateral or heading variables are
 introduced later.
 
-\subsection{GGV Handling Envelope}
+
 The speed planner and MPCC share the same handling-limit interpretation.  For
 a speed $V$, the identified GGV table returns the available tangential and
 normal acceleration limits $a_T^{\max}(V)$ and $a_N^{\max}(V)$.  Combined slip
@@ -445,13 +445,13 @@ r\bigl(\widetilde{\bm{o}}_t,\bm{a}_t,m_t,\mathcal{C}_t\bigr)
 so reinforcement learning is used to select a tactical feasible set rather
 than low-level steering or throttle.
 
-Before presenting the RL implementation, the next two subsections establish the
+Before presenting the RL implementation, the following establishes the
 game-theoretic model that motivates the policy structure and supplies its
 theory-guided prior.
 
 % ---------------------------------------------------------------------
-\subsection{Stackelberg Tactical Game Formulation}
-\label{subsec:game_formulation}
+\subsection{Game-Guided Tactical Policy}
+\label{subsec:game_formulation}\label{subsec:theory_guided_rl}
 % ---------------------------------------------------------------------
 
 The corridor-synthesis problem is fundamentally interactive: the tactical
@@ -577,10 +577,6 @@ The existence of a well-defined tactical decision follows from the strong
 monotonicity of $G_c$ on the compact convex follower set and the Weierstrass
 theorem on the compact safe action set.
 
-% ---------------------------------------------------------------------
-\subsection{Theory-Guided RL Approximation of the Tactical Equilibrium}
-\label{subsec:theory_guided_rl}
-% ---------------------------------------------------------------------
 
 Exact online evaluation of~\eqref{eq:ego_tactical_decision} is
 computationally expensive because each candidate action requires follower
@@ -1009,7 +1005,7 @@ target
 \begin{equation}
 \mathcal{Z}_{\rm targ}=
 \operatorname{sort}\Bigl(
-\{r_t+\gamma(1-d_t)
+\{r_t+\gamma(1-\mathbb{1}_{\rm done})
 [z_{\bar\varphi_i}^{j}(\widetilde{\bm{o}}',\bm{u}')
 -\alpha\log\pi_\theta(\bm{u}'|\widetilde{\bm{o}}')]\}_{i,j}
 \Bigr)_{1:K}.
@@ -1054,7 +1050,7 @@ mean action with the same FSM and corridor carver.
 
 The tactical output consumed by the planner is
 \begin{equation}
-\mathcal{G}_t=\bigl(m_t,V_{{\rm cap},t},\mathcal{C}_t,\pi_t\bigr),\qquad
+\mathcal{G}_t=\bigl(m_{t+1},V_{{\rm cap},t},\mathcal{C}_t,\pi_t\bigr),\qquad
 \mathcal{C}_t=\{(s_k,n_k^-,n_k^+)\}_{k=0}^{N_{\rm sta}-1},
 \label{eq:guidance_tuple}
 \end{equation}
@@ -1065,7 +1061,7 @@ map
 \mathcal{F}_{c}
 \left(
 \{n_{\rm trk}^-(s_k),n_{\rm trk}^+(s_k)\}_{k=0}^{N_{\rm sta}-1},
-\mathcal{O}_t,m_t,\sigma_t^{\rm lock},\bm{a}_t
+\mathcal{O}_t,m_{t+1},\sigma_t^{\rm lock},\bm{a}_t
 \right).
 \label{eq:carver_map}
 \end{equation}
@@ -1150,7 +1146,7 @@ published corridor is temporally filtered,
 \label{eq:ema}
 \end{equation}
 and the tuple $\mathcal{G}_t$ is sent to the SOCP planner.  Thus the learned
-layer contributes exactly three planning quantities: $m_t$ selects the
+layer contributes exactly three planning quantities: $m_{t+1}$ selects the
 mode-dependent terminal target, $V_{{\rm cap},t}$ clips the GGV speed profile,
 and $\mathcal{C}_t$ supplies the lateral inequalities
 $n_k^-\le n_k\le n_k^+$ in Sec.~\ref{sec:planner}.  If a tactical update is
@@ -1161,7 +1157,7 @@ held for one planning cycle.
 \section{Local Planning}\label{sec:planner}
 % =====================================================================
 The local planner converts the tactical tuple
-$\mathcal{G}_t=(m_t,V_{{\rm cap},t},\mathcal{C}_t,\pi_t)$ into a
+$\mathcal{G}_t=(m_{t+1},V_{{\rm cap},t},\mathcal{C}_t,\pi_t)$ into a
 time-parameterized reference.  Its structure is deliberately split:
 \begin{equation}
 \mathcal{G}_t
@@ -1180,7 +1176,7 @@ The horizon is sampled at
 s_k=s_e+k\Delta s_{\rm sta},\qquad k=0,\ldots,N-1,
 \label{eq:planner_grid}
 \end{equation}
-where the wrapped value of $s_k$ is used when querying track data.  The
+where $N=N_{\rm sta}$ is the number of corridor stations and the wrapped value of $s_k$ is used when querying track data.  The
 tactical corridor is intersected with the physical track boundary,
 \begin{equation}
 \underline n_k=\max\{n_{\rm trk}^-(s_k),n_k^-\},\qquad
@@ -1249,7 +1245,7 @@ $(\bm z_k^{j},\omega_k^{j})$,
 Trapezoidal integration gives the linear equality constraint
 \begin{equation}
 \bm z_{k+1}-\bm z_k
-=\frac{\Delta s_k}{2}
+=\frac{\Delta s_{\rm sta}}{2}
 \left[
 \hat{\bm f}_{s,k}^{j}(\bm z_k,\omega_k)
 +\hat{\bm f}_{s,k+1}^{j}(\bm z_{k+1},\omega_{k+1})
@@ -1303,7 +1299,7 @@ heading are
 \begin{equation}
 \bm p_k^\star=\bm r_c(s_k)+n_k^\star\bm n_c(s_k),\qquad
 \psi_k^\star=\theta(s_k)+\xi_k^\star,\qquad
-\kappa_{p,k}^\star=\omega_k^\star .
+\kappa_{p,k}^\star\approx\omega_k^\star .
 \label{eq:path_cart}
 \end{equation}
 The path arclength used by the speed planner is then recomputed from the
@@ -1352,8 +1348,10 @@ a_{T,k}^{-}(V)
 &=a_T^{-,\max}(V)\chi_k(V)-a_{\rm drag}(V),
 \label{eq:fb_brake_available}
 \end{align}
-where $a_T^{+,\max}$ and $a_T^{-,\max}$ are the calibrated driving and
-braking envelopes.  Under the sign convention of~(\ref{eq:drag}),
+where $a_T^{+,\max}$ and $a_T^{-,\max}$ are the positive (driving) and
+negative (braking) envelopes of the symmetric limit $a_T^{\max}$ in~(\ref{eq:ggv}),
+calibrated separately to account for the asymmetric powertrain and brake
+characteristics.  Under the sign convention of~(\ref{eq:drag}),
 $a_{\rm drag}$ is usually negative at racing speeds; hence it reduces forward
 acceleration and assists braking.
 
@@ -1382,6 +1380,8 @@ V_{N-1}^{b}=
 \end{cases}
 \label{eq:backward_init}
 \end{equation}
+where $V_T$ is a downstream speed constraint (e.g.\ from a sharp corner
+beyond the horizon or from $V_{{\rm cap},t}$).
 and propagates
 \begin{equation}
 V_{k}^{b}
@@ -1418,7 +1418,8 @@ and the planner publishes
 \{(X_k^r,Y_k^r,\psi_k^r,\kappa_{p,k}^r,V_k^r,\tau_k^r)\}_{k=0}^{N_{\rm out}-1},
 \label{eq:reference_tuple}
 \end{equation}
-after resampling the path, speed and time arrays to the controller cadence.
+after resampling the path, speed and time arrays to the controller cadence
+($N_{\rm out}=N_c+1$ points at intervals $T_c$).
 
 % =====================================================================
 \section{Model Predictive Contouring Control}\label{sec:controller}
@@ -1439,6 +1440,8 @@ controller re-initialization.
 At control instant $t$ the current vehicle pose defines the local origin.
 The state is the planar pose
 $\bm{\chi}_k=[x_k,y_k,\theta_k]^\top$
+(with $\theta_k$ denoting yaw relative to the local frame, corresponding
+to $\psi$ in the global model of Sec.~\ref{sec:model})
 and the input is the commanded speed and front-wheel steering angle
 $\bm{\nu}_k=[V_k,\delta_k]^\top$.
 The initial condition is
@@ -1573,7 +1576,11 @@ F_x^{\rm req}=
 +K_i^V I_V}_{F_{\rm fb}},
 \label{eq:force_req}
 \end{equation}
-and the allocation rule is
+where $V=V_{\rm meas}$ is the current measured speed,
+$V_{\rm la}$ is a look-ahead reference speed interpolated $T_{\rm la}$
+seconds ahead on the speed profile, $I_V$ is the integrator state of the
+speed error, and $K_p^V$, $K_i^V$ are PI gains.
+The allocation rule is
 \begin{equation}
 T_{\rm cmd}=
 \begin{cases}

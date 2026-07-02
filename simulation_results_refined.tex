@@ -144,12 +144,12 @@ $\varepsilon_\kappa$ & $10^{-8}$ \\
 $\varepsilon_n^{\rm sl}$ & $0.1\,\mathrm{m}$ &
 $\varepsilon_\xi^{\rm sl}$ & $0.1^\circ$ &
 $N_{\rm iter}^{\rm path}$ & $5$ &
-$q_n$ & $50$ &
+$q_c$ & $50$ &
 $q_\psi$ & $5$ \\
-$q_v$ & $1$ &
-$R_a$ & $0.05$ &
-$R_{\dot\delta}$ & $30$ &
-$q_{\rm prog}$ & $0.5$ &
+$r_V$ & $1$ &
+$r_\delta$ & $0.05$ &
+$q_{\Delta\delta}$ & $30$ &
+$\Delta V_{\max}$ & $5\,\mathrm{m/s}$ &
 $w_\epsilon$ & $1000$ \\
 $N_c$ & $15$ &
 $T_c$ & $0.05\,\mathrm{s}$ &
@@ -168,8 +168,8 @@ and must convert this advantage into a feasible lateral corridor before
 reaching the opponent.  The run completes the pass with
 $\min\Delta s=-0.48\,\mathrm{m}$,
 $\Delta t_{\rm pass}=1.13\,\mathrm{s}$ after entering \textsc{Overtake},
-$\max V=73.10\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.02\,\mathrm{m}$,
-and $\mathrm{RMS}(e_v)=0.26\,\mathrm{m/s}$.
+$\max V=73.10\,\mathrm{m/s}$, $\mathrm{RMS}(e_c)=0.02\,\mathrm{m}$,
+and $\mathrm{RMS}(e_V)=0.26\,\mathrm{m/s}$.
 
 \begin{figure}[H]
 \centering
@@ -238,7 +238,7 @@ Figure~\ref{fig:case02_tactical_grid} shows that the controller tracks the
 planner output with sub-decimeter accuracy despite the very short decision
 window.  The lateral error has an RMS value of only $0.02\,\mathrm{m}$, so the
 vehicle remains effectively on the planned path during the pass.  The speed
-tracking error is also small, with $\mathrm{RMS}(e_v)=0.26\,\mathrm{m/s}$,
+tracking error is also small, with $\mathrm{RMS}(e_V)=0.26\,\mathrm{m/s}$,
 which confirms that the velocity cap and the GGV sweep are consistent with the
 MPCC's achievable acceleration envelope.  The FSM mode plot shows a clean
 transition from \textsc{Shadow}---where the ego positions itself at the
@@ -275,8 +275,8 @@ high-curvature sequence where the GGV envelope severely limits available
 acceleration.  The run completes the pass with
 $\min\Delta s=-0.84\,\mathrm{m}$, $\Delta t_{\rm pass}=8.63\,\mathrm{s}$
 after entering \textsc{Overtake},
-$\max V=65.83\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.05\,\mathrm{m}$,
-and $\mathrm{RMS}(e_v)=1.82\,\mathrm{m/s}$.
+$\max V=65.83\,\mathrm{m/s}$, $\mathrm{RMS}(e_c)=0.05\,\mathrm{m}$,
+and $\mathrm{RMS}(e_V)=1.82\,\mathrm{m/s}$.
 
 \begin{figure}[H]
 \centering
@@ -379,8 +379,8 @@ which the ego vehicle identifies, commits to, and executes the overtake.
 The run completes the pass with
 $\min\Delta s=-0.12\,\mathrm{m}$, $\Delta t_{\rm eng}=20.13\,\mathrm{s}$
 from \textsc{Shadow} entry to pass completion,
-$\max V=72.92\,\mathrm{m/s}$, $\mathrm{RMS}(e_n)=0.19\,\mathrm{m}$,
-and $\mathrm{RMS}(e_v)=1.62\,\mathrm{m/s}$.
+$\max V=72.92\,\mathrm{m/s}$, $\mathrm{RMS}(e_c)=0.19\,\mathrm{m}$,
+and $\mathrm{RMS}(e_V)=1.62\,\mathrm{m/s}$.
 
 \begin{figure}[H]
 \centering

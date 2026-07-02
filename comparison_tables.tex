@@ -36,7 +36,12 @@ thereby isolating the contribution of the learned corridor synthesis.
 
 Table~\ref{tab:comparison} reports the results averaged over three
 complementary scenarios (high-speed straight, sharp corners, and a full-lap
-engagement) with 1000 closed-loop laps per method.
+engagement) with 1000 closed-loop laps per method.  The metrics are:
+overtake success rate (OSR), time-to-overtake (TTO, from engagement start to
+pass completion), minimum passing gap, collision count, average
+time-to-collision (Avg TTC), track-boundary violation rate, and
+path-feasibility ratio (PFR, fraction of cycles in which the SOCP returns a
+feasible solution).
 
 \begin{table*}[!htbp]
 \centering
