@@ -7,16 +7,21 @@
 
 To validate the proposed hierarchical game-guided corridor planning
 (HG-Corridor, ours), we compare it against four baselines in the same
-high-fidelity closed-loop A2RL simulation environment.  All methods share the
-identical SOCP path planner and MPCC controller; only the tactical decision
-layer differs, thereby isolating the contribution of learned corridor
-synthesis.
+high-fidelity closed-loop A2RL simulation environment.  To isolate the effect
+of tactical reasoning, all methods are evaluated with the same vehicle model,
+track model, race-control interface, SOCP path planner, speed profiler, MPCC
+controller, and actuator mapping.  Each baseline is implemented as an
+alternative tactical-guidance module whose output is converted to the same
+corridor, side-commitment, and speed-cap interface before downstream planning;
+for planner-style baselines, the receding-horizon maneuver is projected onto
+this shared interface.  Thus the comparison changes the tactical decision
+logic while keeping the closed-loop execution stack fixed.
 
 \begin{itemize}
 \item \textbf{Pure Raceline:} No tactical layer.  The planner follows the
   time-optimal raceline with no opponent awareness.  Overtakes occur only
   when the ego vehicle's speed surplus naturally creates clearance.
-\item \textbf{Non-Interactive MPC:} A receding-horizon trajectory optimizer
+\item \textbf{Non-Interactive MPC:} A receding-horizon tactical optimizer
   that treats the opponent as a dynamic obstacle whose future trajectory is
   predicted independently of the ego plan~\cite{betz2022software}.  Avoidance
   constraints are imposed along the predicted opponent path, but no
@@ -31,8 +36,10 @@ synthesis.
   solver~\cite{fridovich2020ilqgames} adapted to the racing domain.  Both
   vehicles are modeled as rational agents in a general-sum dynamic game
   solved over a receding horizon via iterative best response on
-  coupled LQ approximations.  This baseline represents the class of
-  non-cooperative game-theoretic planners.
+  coupled LQ approximations.  The resulting maneuver is converted to the
+  shared tactical-guidance interface, representing the class of
+  non-cooperative game-theoretic planners without changing the downstream
+  execution stack.
 \end{itemize}
 
 Table~\ref{tab:comparison} reports the results averaged over three
@@ -87,31 +94,32 @@ zero observed collisions and a mean minimum passing gap of
 $5.83\,\mathrm{m}$.  Two-proportion $z$-tests on the OSR counts indicate that
 the differences between HG-Corridor and every baseline are statistically
 significant ($p<10^{-6}$ in all cases).
-The strongest baseline, iLQGames, reaches $63.5\%$ OSR through explicit
-game-theoretic interaction modeling, yet still produces $14$ collisions
-and achieves only $2.31\,\mathrm{m}$ mean minimum gap.  Its receding-horizon
-Nash equilibrium solver is sensitive to the planning horizon and opponent
-cost assumptions: when the overtaking window is shorter than the planning
-horizon (Scenario~I) or the curvature restricts the feasible action space
-(Scenario~II), the iterative solver frequently converges to conservative
-local equilibria that abandon the overtake.  In contrast, HG-Corridor
-amortizes the game solution through the TQC policy, enabling tactical
-commitments that persist across planning cycles.
+The strongest baseline in OSR, iLQGames, reaches $63.5\%$ through explicit
+game-theoretic interaction modeling, yet still produces $14$ collisions and
+achieves only $2.31\,\mathrm{m}$ mean minimum gap.  This pattern indicates
+that explicit game solving improves overtaking relative to non-interactive
+planning, but does not by itself guarantee stable corridor feasibility under
+short decision windows or curvature-limited action spaces.  HG-Corridor
+retains the interaction structure of the game while amortizing the tactical
+decision through the TQC policy, which yields side commitments that persist
+across planning cycles.
 The Non-Interactive MPC achieves the lowest OSR ($28.5\%$) among all
 methods---even below the opponent-unaware Pure Raceline ($38.2\%$).  This
-counter-intuitive result reflects the well-known ``freezing robot''
+counter-intuitive result is consistent with the well-known ``freezing robot''
 problem~\cite{trautman2010unfreezing}: the predicted opponent trajectory
-diverges from reality as the ego vehicle approaches, causing the avoidance
-constraints to become overly restrictive and repeatedly aborting feasible
-overtakes.  Its low collision count ($7$) and large mean minimum gap
-($3.85\,\mathrm{m}$) confirm that the method is conservative but competitively
-inert---it succeeds in keeping distance but fails to exploit transient
+can diverge from the realized closed-loop interaction as the ego vehicle
+approaches, causing avoidance constraints to become restrictive and aborting
+some feasible overtakes.  Its low collision count ($7$) and large mean
+minimum gap ($3.85\,\mathrm{m}$) show that the method is conservative but
+competitively weak---it succeeds in keeping distance but often fails to exploit transient
 passing opportunities.
-The Rule-based GT produces $48$ collisions because its fixed thresholds
-cannot adapt to the diversity of overtaking geometries across different
-track sections---a limitation that the learned TQC policy overcomes by
-adjusting gap thresholds and corridor width continuously from the
-51-dimensional observation.
+The Rule-based GT records the highest collision count ($48$).  This outcome is
+consistent with the limitation of fixed-threshold logic: a single set of
+gap thresholds cannot adapt to the diversity of overtaking geometries across
+different track sections.  In HG-Corridor, the TQC policy adjusts gap
+thresholds, side preference, safety clearance, and corridor width from the
+51-dimensional observation, which provides the adaptation missing from the
+hand-tuned rule set.
 
 \subsection{Ablation Study}
 \label{subsec:ablation}
@@ -191,11 +199,11 @@ significant at $p<10^{-6}$ under two-proportion $z$-tests):
 
 \emph{Removing the learned corridor} has the most severe impact.
 OSR drops from $94.7\%$ to $76.1\%$ ($-18.6$ percentage points) and collisions increase
-from $0$ to $31$.  The fixed-width corridor cannot adapt to narrow track
-sections or anticipate opponent trajectory evolution, leading to frequent
+from $0$ to $31$.  The fixed-width corridor has no mechanism to adapt to
+narrow track sections or opponent trajectory evolution, leading to frequent
 infeasible corridor states (PFR drops to $0.961$) and near-misses (mean
 minimum gap
-$1.05\,\mathrm{m}$, barely one vehicle width).  This confirms that the
+$1.05\,\mathrm{m}$, barely one vehicle width).  This supports the conclusion that the
 policy's continuous corridor-shaping output---not just the discrete mode
 decision---is essential for safe high-performance overtaking.
 
@@ -205,7 +213,7 @@ game-value auxiliary loss, the TQC policy must discover overtaking timing
 and corridor sizing purely from environment reward.  The result is later
 overtake commitment (TTO increases from $4.82$ to $6.38\,\mathrm{s}$) and
 more aggressive corridor sizing under uncertainty (mean minimum gap drops to
-$2.86\,\mathrm{m}$).  This demonstrates that the game-theoretic structure
+$2.86\,\mathrm{m}$).  These results indicate that the game-theoretic structure
 acts as an effective inductive bias: it accelerates policy convergence
 toward safe, well-timed tactical decisions that the reward signal alone
 does not fully specify.
@@ -214,17 +222,17 @@ does not fully specify.
 $12$ collisions.  The mode switching rate increases $4.6\times$ (from
 $0.019$ to $0.087\,\mathrm{Hz}$), indicating that without hysteretic
 locking the policy oscillates between Shadow and Overtake at mode
-boundaries.  Each oscillation causes the corridor to flip side, which the
-SOCP planner cannot track in a single planning cycle, producing
-transient infeasibilities and collisions at the exact moment of corridor
-reversal.
+boundaries.  These side changes force abrupt corridor revisions that are
+hard for the SOCP planner to absorb within one planning cycle, producing
+transient infeasibilities and collisions near corridor reversals.
 
 \emph{Replacing TQC with SAC} achieves $88.5\%$ OSR but
 introduces $5$ collisions and reduces the mean minimum gap from $5.83$ to
 $3.94\,\mathrm{m}$.  The SAC policy selects corridor parameters that are
 optimal in expectation but occasionally expose the ego vehicle to
 tail-risk geometries where the opponent's actual trajectory deviates from
-the predicted mean.  TQC's pessimistic quantile truncation avoids these
-corridors entirely, producing zero collisions while simultaneously
-improving OSR by $6.2$ percentage points---demonstrating that conservative value
-estimation in the tail does not sacrifice average performance.
+the predicted mean.  TQC's pessimistic quantile truncation reduces exposure to
+these corridors, producing zero collisions while simultaneously
+improving OSR by $6.2$ percentage points.  In this setting, conservative
+tail-value estimation improves safety without sacrificing average overtaking
+performance.

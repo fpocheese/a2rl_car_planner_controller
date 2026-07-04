@@ -53,7 +53,7 @@ hierarchical game-guided tactical corridor planning and control method for
 wheel-to-wheel autonomous racing.  A Stackelberg--iterative-best-response
 tactical game is formulated in the Frenet frame under track-boundary,
 curvature, and tire-friction constraints, and its repeated solution is
-amortized by a theory-guided Truncated Quantile Critics policy.  The learned
+amortized by a game-guided Truncated Quantile Critics policy.  The learned
 policy does not command steering or throttle directly; instead, it generates
 behavior decisions, overtaking-side selections, speed caps, and time-varying
 Frenet corridors that are passed to deterministic downstream solvers.  Within
@@ -62,7 +62,9 @@ curvature-regularized path, a forward--backward speed profiler enforces the
 GGV handling envelope, and a model predictive contouring controller tracks the
 reference in closed loop.  In the high-fidelity A2RL simulator, the proposed
 method achieves a 94.7\% overtaking success rate over 1000 closed-loop laps
-with no observed collisions or track-boundary violations.
+with no observed collisions or track-boundary violations, outperforming
+rule-based, non-interactive MPC, and game-theoretic baselines under the same
+closed-loop execution stack.
 
 
 
@@ -214,7 +216,7 @@ closed-loop execution.  The main contributions are:
 \begin{enumerate}
     \item A game-guided reinforcement learning method for tactical corridor
     synthesis, in which a Stackelberg--IBR tactical game provides a structured
-    interaction model and theoretical prior, while a Truncated Quantile Critics
+    interaction model and structural prior, while a Truncated Quantile Critics
     policy amortizes the equilibrium solution to generate behavior decisions,
     overtaking-side selections, and time-varying Frenet tactical corridors
     under track-geometry and vehicle-performance constraints.
@@ -309,7 +311,7 @@ Table~\ref{tab:setup_params}.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\linewidth]{image/model.png}
+\includegraphics[width=\linewidth]{image/model_shuoming.pdf}
 \caption{Vehicle and track model in the Frenet frame.}
 \label{fig:vehicle_track_model}
 \end{figure}
@@ -415,7 +417,7 @@ The tactical layer is a game-guided learned decision module with a
 deterministic optimization interface.  Its design is motivated by a
 Stackelberg--IBR tactical game
 (Sec.~\ref{subsec:game_formulation}) whose repeated online solution is
-amortized by a theory-guided TQC policy
+amortized by a game-guided TQC policy
 (Sec.~\ref{subsec:theory_guided_rl}).  The policy outputs a
 low-dimensional parameter vector encoding the behavior mode, overtaking side,
 and corridor-shaping parameters, from which a deterministic carver constructs
@@ -459,7 +461,7 @@ than low-level steering or throttle.
 
 Before presenting the RL implementation, the following establishes the
 game-theoretic model that motivates the policy structure and supplies its
-theory-guided prior.
+structural prior.
 
 % ---------------------------------------------------------------------
 \subsection{Game-Guided Tactical Policy}
@@ -585,9 +587,10 @@ a_e^{k,\star}\in
 \underline{\mathcal{V}}_e(d,c_e).
 \label{eq:ego_tactical_decision}
 \end{equation}
-The existence of a well-defined tactical decision follows from the strong
-monotonicity of $G_c$ on the compact convex follower set and the Weierstrass
-theorem on the compact safe action set.
+Under the standard regularity condition that the follower pseudo-gradient is
+strongly monotone on a compact convex response set, the follower response is
+single-valued; with a compact safe action set and continuous tactical value,
+the upper-level maximizer in~\eqref{eq:ego_tactical_decision} is well defined.
 
 
 Exact online evaluation of~\eqref{eq:ego_tactical_decision} is
@@ -602,7 +605,7 @@ structural priors to the learning problem:
 The RL reward mirrors the utility decomposition~\eqref{eq:utility_decomposition}
 so that its gradient landscape remains consistent with the upper-layer game.
 
-\paragraph{Theory-guided prior policy.}
+\paragraph{Game-guided prior policy.}
 The game induces a structured prior over the continuous tactical parameter
 space.  Denote the IBR-consistent tactical parameters by
 $\bm{a}_{\mathrm{th}}^\star(\widetilde{\bm{o}}_t)$.  This prior regularizes
@@ -627,7 +630,7 @@ approximate the robust tactical value:
 -\underline{\mathcal{V}}_e(\bm{a}_t\mid\widetilde{\bm{o}}_t)\bigr)^2.
 \label{eq:game_value_loss}
 \end{equation}
-This head improves credit assignment and keeps the learned Q-value anchored
+This head provides an auxiliary credit-assignment signal and keeps the learned Q-value anchored
 to the interaction-aware tactical game, rather than drifting toward an
 experience-biased value estimate.
 
@@ -1004,12 +1007,12 @@ consistency between the game-derived prior and the learning signal.
 \label{subsec:tqc_optimization}
 
 The policy is optimized with Truncated Quantile Critics (TQC), a
-distributional off-policy algorithm chosen specifically because its
-pessimistic value estimate reduces the risk of committing to corridors
-that appear advantageous in expectation but carry high collision
-probability in the tail---a property validated by the ablation study in
-Sec.~\ref{sec:experiments} where replacing TQC with standard SAC increases
-collisions from zero to five.  Two critics parameterized by $\varphi_i$
+distributional off-policy algorithm chosen because its pessimistic value
+estimate reduces the risk of committing to corridors that appear advantageous
+in expectation but carry high collision probability in the tail.  The ablation
+study in Sec.~\ref{sec:experiments} supports this choice: replacing TQC with
+standard SAC increases collisions from zero to five.  Two critics
+parameterized by $\varphi_i$
 approximate the return distribution with $N_q$ quantile atoms
 $\{z_{\varphi_i}^{j}(\widetilde{\bm{o}},\bm{u})\}_{j=1}^{N_q}$.  Given
 a replay transition, draw
@@ -1627,7 +1630,7 @@ with calibrated ratio $r_s$ and offset $\delta_{\rm off}$.
 This paper presented a hierarchical game-guided tactical corridor planning and
 control architecture for wheel-to-wheel autonomous racing.  The framework
 formulates tactical interaction as a Stackelberg--IBR game and amortizes its
-repeated solution with a theory-guided Truncated Quantile Critics policy.  The
+repeated solution with a game-guided Truncated Quantile Critics policy.  The
 learned component publishes behavior modes, side commitments, speed caps, and
 Frenet corridor parameters, while the deterministic FSM and corridor carver
 convert these outputs into auditable spatial constraints.  Inside the corridor,
