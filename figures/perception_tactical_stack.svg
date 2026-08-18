@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="720" viewBox="0 0 1800 720">
+  <defs>
+    <style>
+      .layer{fill:#f8fafb;stroke:#78909c;stroke-width:2;rx:16;ry:16}
+      .box{stroke:#263238;stroke-width:2.4;rx:12;ry:12}
+      .sense{fill:#e8f1f8}.belief{fill:#e8f5ee}.game{fill:#f3edf8}
+      .policy{fill:#fff2df}.gate{fill:#fcebea}.exec{fill:#e9f3f4}
+      .title{font:700 29px "Times New Roman",serif;fill:#17202a}
+      .head{font:700 25px "Times New Roman",serif;fill:#17202a}
+      .body{font:21px "Times New Roman",serif;fill:#263238}
+      .small{font:19px "Times New Roman",serif;fill:#455a64}
+      .math{font:italic 22px "Times New Roman",serif;fill:#17202a}
+      .arrow{fill:none;stroke:#263238;stroke-width:3;marker-end:url(#arrow)}
+      .beliefArrow{fill:none;stroke:#2e7d6e;stroke-width:3;stroke-dasharray:10 7;marker-end:url(#beliefArrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#263238"/>
+    </marker>
+    <marker id="beliefArrow" markerWidth="12" markerHeight="12" refX="10" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#2e7d6e"/>
+    </marker>
+  </defs>
+
+  <rect width="1800" height="720" fill="#ffffff"/>
+
+  <rect class="layer" x="35" y="25" width="1730" height="190"/>
+  <text class="title" x="65" y="65">1  Opponent sensing belief</text>
+  <rect class="box sense" x="235" y="88" width="300" height="95"/>
+  <text class="head" x="385" y="123" text-anchor="middle">LiDAR detection</text>
+  <text class="math" x="385" y="158" text-anchor="middle">y<tspan baseline-shift="sub" font-size="16">k</tspan>, R<tspan baseline-shift="sub" font-size="16">k</tspan>, τ<tspan baseline-shift="sub" font-size="16">k</tspan></text>
+
+  <rect class="box belief" x="690" y="88" width="390" height="95"/>
+  <text class="head" x="885" y="123" text-anchor="middle">Delay-compensated state</text>
+  <text class="math" x="885" y="158" text-anchor="middle">x̂<tspan baseline-shift="sub" font-size="16">o,k</tspan>, P<tspan baseline-shift="sub" font-size="16">o,k</tspan></text>
+
+  <rect class="box belief" x="1235" y="88" width="350" height="95"/>
+  <text class="head" x="1410" y="123" text-anchor="middle">Frenet belief</text>
+  <text class="math" x="1410" y="158" text-anchor="middle">B<tspan baseline-shift="sub" font-size="16">k</tspan> = (η̂<tspan baseline-shift="sub" font-size="16">k</tspan>, Σ<tspan baseline-shift="sub" font-size="16">η,k</tspan>)</text>
+
+  <path class="arrow" d="M535 136 L690 136"/>
+  <text class="small" x="612" y="119" text-anchor="middle">propagate over τ<tspan baseline-shift="sub" font-size="14">k</tspan></text>
+  <path class="arrow" d="M1080 136 L1235 136"/>
+
+  <rect class="layer" x="35" y="245" width="1730" height="210"/>
+  <text class="title" x="65" y="285">2  Interactive tactical decision</text>
+  <rect class="box game" x="175" y="315" width="340" height="105"/>
+  <text class="head" x="345" y="350" text-anchor="middle">Belief-space game</text>
+  <text class="body" x="345" y="385" text-anchor="middle">response distributions and utility</text>
+
+  <rect class="box policy" x="625" y="315" width="300" height="105"/>
+  <text class="head" x="775" y="350" text-anchor="middle">TQC policy</text>
+  <text class="body" x="775" y="385" text-anchor="middle">game-guided proposal</text>
+
+  <rect class="box gate" x="1035" y="315" width="300" height="105"/>
+  <text class="head" x="1185" y="350" text-anchor="middle">Risk gate</text>
+  <text class="math" x="1185" y="385" text-anchor="middle">Pr(collision) ≤ ε<tspan baseline-shift="sub" font-size="16">j</tspan></text>
+
+  <rect class="box game" x="1445" y="315" width="260" height="105"/>
+  <text class="head" x="1575" y="350" text-anchor="middle">Mode and side</text>
+  <text class="body" x="1575" y="385" text-anchor="middle">accept or Hold</text>
+
+  <path class="beliefArrow" d="M1410 183 C1410 245 345 245 345 315"/>
+  <text class="small" x="850" y="260" text-anchor="middle">sensing uncertainty changes response prediction, maneuver value, and feasibility</text>
+  <path class="arrow" d="M515 368 L625 368"/>
+  <path class="arrow" d="M925 368 L1035 368"/>
+  <path class="arrow" d="M1335 368 L1445 368"/>
+
+  <rect class="layer" x="35" y="485" width="1730" height="200"/>
+  <text class="title" x="65" y="525">3  Deterministic execution</text>
+  <rect class="box exec" x="280" y="555" width="360" height="95"/>
+  <text class="head" x="460" y="590" text-anchor="middle">Tactical corridor</text>
+  <text class="body" x="460" y="625" text-anchor="middle">same belief and risk allocation</text>
+
+  <rect class="box exec" x="785" y="555" width="390" height="95"/>
+  <text class="head" x="980" y="590" text-anchor="middle">Path and speed planning</text>
+  <text class="body" x="980" y="625" text-anchor="middle">corridor constraints and GGV</text>
+
+  <rect class="box exec" x="1320" y="555" width="250" height="95"/>
+  <text class="head" x="1445" y="590" text-anchor="middle">MPCC</text>
+  <text class="body" x="1445" y="625" text-anchor="middle">first command</text>
+
+  <path class="arrow" d="M1575 420 C1575 500 460 485 460 555"/>
+  <text class="small" x="1140" y="505" text-anchor="middle">the game determines the released corridor</text>
+  <path class="beliefArrow" d="M1410 183 C1715 220 1730 510 640 603"/>
+  <text class="small" x="1640" y="500" text-anchor="middle">same B<tspan baseline-shift="sub" font-size="14">k</tspan>, ε<tspan baseline-shift="sub" font-size="14">j</tspan></text>
+  <path class="arrow" d="M640 603 L785 603"/>
+  <path class="arrow" d="M1175 603 L1320 603"/>
+</svg>
