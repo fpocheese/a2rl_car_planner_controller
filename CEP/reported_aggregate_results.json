@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0",
+  "provenance": {
+    "status": "author_attested_manuscript_aggregate",
+    "statement": "The authors confirm that all aggregate values reported in the manuscript are the true results of the described HIL campaigns.",
+    "raw_record_status": "Per-lap source records are retained on a remote experimental server that is temporarily inaccessible and are not reconstructed in this package.",
+    "created_from": [
+      "a2rl_paper.tex",
+      "simulation_results_refined.tex",
+      "comparison_tables.tex"
+    ]
+  },
+  "design": {
+    "independent_evaluation_unit": "closed-loop HIL lap",
+    "laps_per_method_or_variant": 1000,
+    "matched_scenario_schedule": true,
+    "principal_endpoint": "overtaking_success_rate",
+    "success_definition": "ego changes longitudinal order while retaining lateral clearance within the evaluation horizon"
+  },
+  "headline": {
+    "successes": 947,
+    "laps": 1000,
+    "overtaking_success_rate_percent": 94.7,
+    "clopper_pearson_95_percent": [93.1, 96.0],
+    "collisions": 0,
+    "track_violation_percent": 0.0
+  },
+  "seed_summary": {
+    "independently_trained_policies": 5,
+    "overtaking_success_rate_percent_mean": 94.3,
+    "overtaking_success_rate_percent_standard_deviation": 0.7,
+    "note": "Only the author-attested seed-level summary is available in the current package; individual seed rates are not inferred from it."
+  },
+  "comparison": [
+    {
+      "method": "Proposed",
+      "successes": 947,
+      "laps": 1000,
+      "osr_percent": 94.7,
+      "tto_seconds": 4.82,
+      "mean_minimum_gap_metres": 5.83,
+      "collisions": 0,
+      "mean_ttc_seconds": 8.52,
+      "track_violation_percent": 0.0,
+      "path_feasibility_ratio": 1.000
+    },
+    {
+      "method": "Pure Raceline",
+      "successes": 382,
+      "laps": 1000,
+      "osr_percent": 38.2,
+      "tto_seconds": 7.25,
+      "mean_minimum_gap_metres": 1.42,
+      "collisions": 21,
+      "mean_ttc_seconds": 3.21,
+      "track_violation_percent": 0.0,
+      "path_feasibility_ratio": 0.988
+    },
+    {
+      "method": "Non-Interactive MPC",
+      "successes": 285,
+      "laps": 1000,
+      "osr_percent": 28.5,
+      "tto_seconds": 11.23,
+      "mean_minimum_gap_metres": 3.85,
+      "collisions": 7,
+      "mean_ttc_seconds": 6.92,
+      "track_violation_percent": 0.0,
+      "path_feasibility_ratio": 0.998
+    },
+    {
+      "method": "Rule-based GT",
+      "successes": 516,
+      "laps": 1000,
+      "osr_percent": 51.6,
+      "tto_seconds": 9.37,
+      "mean_minimum_gap_metres": 2.14,
+      "collisions": 48,
+      "mean_ttc_seconds": 5.64,
+      "track_violation_percent": 0.0,
+      "path_feasibility_ratio": 0.987
+    },
+    {
+      "method": "iLQGames",
+      "successes": 635,
+      "laps": 1000,
+      "osr_percent": 63.5,
+      "tto_seconds": 7.83,
+      "mean_minimum_gap_metres": 2.31,
+      "collisions": 14,
+      "mean_ttc_seconds": 5.73,
+      "track_violation_percent": 0.0,
+      "path_feasibility_ratio": 0.995
+    }
+  ],
+  "ablation": [
+    {
+      "variant": "Full method",
+      "successes": 947,
+      "laps": 1000,
+      "osr_percent": 94.7,
+      "tto_seconds": 4.82,
+      "collisions": 0,
+      "mean_minimum_gap_metres": 5.83,
+      "mean_ttc_seconds": 8.52,
+      "path_feasibility_ratio": 1.000
+    },
+    {
+      "variant": "Without game guidance",
+      "successes": 854,
+      "laps": 1000,
+      "osr_percent": 85.4,
+      "tto_seconds": 6.38,
+      "collisions": 9,
+      "mean_minimum_gap_metres": 2.86,
+      "mean_ttc_seconds": 4.93,
+      "path_feasibility_ratio": 0.983
+    },
+    {
+      "variant": "Without FSM",
+      "successes": 823,
+      "laps": 1000,
+      "osr_percent": 82.3,
+      "tto_seconds": 6.71,
+      "collisions": 12,
+      "mean_minimum_gap_metres": 2.17,
+      "mean_ttc_seconds": 4.31,
+      "path_feasibility_ratio": 0.974
+    },
+    {
+      "variant": "Fixed corridor",
+      "successes": 761,
+      "laps": 1000,
+      "osr_percent": 76.1,
+      "tto_seconds": 8.94,
+      "collisions": 31,
+      "mean_minimum_gap_metres": 1.05,
+      "mean_ttc_seconds": 2.86,
+      "path_feasibility_ratio": 0.961
+    },
+    {
+      "variant": "SAC",
+      "successes": 885,
+      "laps": 1000,
+      "osr_percent": 88.5,
+      "tto_seconds": 5.53,
+      "collisions": 5,
+      "mean_minimum_gap_metres": 3.94,
+      "mean_ttc_seconds": 6.17,
+      "path_feasibility_ratio": 0.992
+    }
+  ],
+  "inference": {
+    "principal_interval": "two-sided 95% Clopper-Pearson exact binomial interval",
+    "pairwise_osr_test": "two-sided pooled two-proportion z test",
+    "multiple_comparison_adjustment": "Holm, applied separately to the four baseline comparisons and four ablation comparisons",
+    "interpretation_boundary": "Count-level tests are descriptive and do not model scenario or training-seed clustering."
+  }
+}

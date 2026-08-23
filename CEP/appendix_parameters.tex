@@ -1,0 +1,64 @@
+\appendix
+\section{Algorithm and Evaluation Parameters}
+\label{app:parameters}
+\setcounter{table}{0}
+
+This appendix collects the numerical settings referenced by the vehicle model,
+tactical policy, corridor generator, path planner, and controller.  The main
+text retains only the dimensions and values needed to explain the algorithmic
+logic and experimental outcomes.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Principal algorithm and closed-loop evaluation settings.}
+\label{tab:setup_params}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lll@{}}
+\toprule
+Component & Parameter & Value \\
+\midrule
+Vehicle model & $m$; $l_f,l_r$; $T_s$ & $742$ kg; $1.75,1.35$ m; $0.05$ s \\
+Tire curves & $F_{z,0}$; $(C_x,C_y)$; $(E_x,E_y)$ & $2079.72$ N; $(1.6144,1.5998)$; $(0,0)$ \\
+Tire curves & $(\mu_x,\mu_y)$; load slopes; peak slips & $(2.2345,1.9745)$; $(-0.2555,-0.4787)$; $(0.1296,0.140)$ \\
+Tire-force envelope & $p$; $v_{x,\max}$ & $0.75$; $90$ m s$^{-1}$ \\
+Policy & input/output dimensions & $51/10$ \\
+TQC & critics; $N_q$; retained atoms $K$; $\gamma$ & $2$; $25$; $46$; $0.99$ \\
+TQC feasibility & actor/target action support & $\max_k\widehat\rho_{t,k}\le1$ \\
+Corridor & preview; stations; spacing & $300$ m; $150$; $2$ m \\
+Safeguards & $L_{\min}^{\rm corr}$; filter $\beta$ & $3$ m; $0.2$ \\
+Path solver & maximum linearization iterations & $5$ \\
+MPCC & steps; sample time; horizon & $15$; $0.05$ s; $0.75$ s \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Tactical-policy bounds, reward weights, and training settings.
+Symbols follow Eqs.~\eqref{eq:action_vec} and~\eqref{eq:reward_sum}.}
+\label{tab:tactical_settings}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}p{0.29\linewidth}p{0.65\linewidth}@{}}
+\toprule
+Group & Setting \\
+\midrule
+Corridor and speed & $L_t^{\rm cap},R_t^{\rm cap}\in[1.5,6.0]$ m;
+$d_{\rm safe}\in[0.2,0.8]$ m; $V_{\rm cap}\in[15,90]$ m s$^{-1}$ \\
+Gap thresholds & $g_{\rm chase}\in[18,24]$ m;
+$g_{\rm ot}\in[16,24]$ m; $g_{\rm abort}\in[28,45]$ m \\
+Bias, recovery, side & $b_{\rm lat}\in[-1.5,1.5]$ m;
+$w_{\rm safe}\in[1,5]$ m; $q_{\rm side}\in[-1,1]$ \\
+Reward weights & $(w_{\rm ot},w_{\rm ovb},w_{\rm col},w_{\rm lat},
+w_{\rm crush},w_{\rm app},w_{\rm sm},w_{\rm gs},w_{\rm sbs},w_{\rm wide})
+=(30,-20,-100,-2,-5,3,-0.1,-0.5,0.5,0.25)$ \\
+Optimization & learning rate $3\times10^{-4}$; replay capacity $10^5$;
+batch size $256$; target update $5\times10^{-3}$ \\
+Networks & feature encoder $51\!\to\!256\!\to\!256$; actor and critic
+hidden layers $[256,256]$ \\
+Software & Python \texttt{3.10.0}; SB3 \texttt{2.8.0}; PyTorch
+\texttt{2.4.0+cu124}; Gymnasium \texttt{1.2.3} \\
+\bottomrule
+\end{tabular}
+\end{table}

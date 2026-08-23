@@ -1,0 +1,6 @@
+Highlights
+
+- A TQC policy amortizes a Stackelberg--IBR tactical game into corridors.
+- Learning shapes the feasible set rather than commanding the actuators.
+- Target hardware communicates with the EAV24 plant through dual CAN.
+- The method achieved 94.7% overtaking success over 1000 HIL laps.
