@@ -220,7 +220,51 @@ the lock is retained throughout the duel.  The complete online conversion is
 summarized in Algorithm~\ref{alg:tactical_corridor}.
 
 At station $s_k$, the carver first intersects the action-capped track interval
-with the mode-dependent opponent exclusion.  If the raw interval
+with the mode-dependent opponent exclusion.
+{\color{blue}
+\begin{equation}
+\begin{aligned}
+\rho_{n,j,k}
+&=\frac{1}{2}\left(
+L_j|\sin\xi_{j,k}|+W_j|\cos\xi_{j,k}|
+\right),\quad j\in\{e,o\},\\
+\rho_{{\rm exc},k}
+&=\rho_{n,e,k}+\rho_{n,o,k}+d_{\rm safe},\\
+\widehat n_{t,k}^{-}
+&=\begin{cases}
+\max\!\left\{n_{{\rm cap},k}^{-},
+n_{o,k}+\eta_k\rho_{{\rm exc},k}\right\},
+&\sigma_t^{\rm lock}=+1,\\
+n_{{\rm cap},k}^{-},&\sigma_t^{\rm lock}=-1,
+\end{cases}\\
+\widehat n_{t,k}^{+}
+&=\begin{cases}
+n_{{\rm cap},k}^{+},&\sigma_t^{\rm lock}=+1,\\
+\min\!\left\{n_{{\rm cap},k}^{+},
+n_{o,k}-\eta_k\rho_{{\rm exc},k}\right\},
+&\sigma_t^{\rm lock}=-1.
+\end{cases}
+\end{aligned}
+\label{eq:core_overtake_carver}
+\end{equation}
+}
+\textcolor{blue}{Here
+$[n_{{\rm cap},k}^{-},n_{{\rm cap},k}^{+}]$ denotes the track interval after
+applying $L_t^{\rm cap}$ and $R_t^{\rm cap}$, and
+$(L_j,W_j,\xi_{j,k})$ are the dimensions and heading error of vehicle $j$.
+Accordingly, $\rho_{n,e,k}$ and $\rho_{n,o,k}$ are the projected lateral
+half-widths, while $d_{\rm safe}$ is the policy-specified additional clearance.
+The factor $\eta_k\in[0,1]$ combines the existing longitudinal fade and ramp,
+vanishing outside the opponent influence interval and approaching one as the
+ego vehicle approaches.  Because positive $n$ follows the left normal in
+Eq.~\eqref{eq:frenet_frame}, $\sigma_t^{\rm lock}=+1$ raises the lower bound
+for a left-side pass, while $\sigma_t^{\rm lock}=-1$ lowers the upper bound for
+a right-side pass.  Equation~\eqref{eq:core_overtake_carver} describes only the
+core \textsc{Overtake} contraction; \textsc{Shadow}, \textsc{Hold}, and
+\textsc{Defend} retain the biases in Algorithm~\ref{alg:tactical_corridor}.
+The existing minimum-width check and exponential moving-average filter are
+applied afterward, and this carver relation is not a formal safety guarantee.}
+If the raw interval
 $[\widehat n_{t,k}^-,\widehat n_{t,k}^+]$ satisfies the minimum-width gate, its
 bounds are filtered as
 \begin{equation}
@@ -346,8 +390,12 @@ V_k^{(r+1)}&=\min\!\left\{v_{x,\max},
 \sqrt{\frac{a_N^{\max}(V_k^{(r)})}{|\kappa_{p,k}|}}\right\},
 \quad V_k^{(0)}=v_{x,\max},\\
 V_{{\rm lim},k}&=\min\{\overline V_{{\rm lim},k},V_{{\rm cap},t}\},\\
+\textcolor{blue}{V_0^f}
+&\textcolor{blue}{=\operatorname{clip}_{[V_{\min},V_{{\rm lim},0}]}(V_e),}\\
 V_{k+1}^{f}&=\operatorname{clip}_{[V_{\min},V_{{\rm lim},k+1}]}
 \sqrt{(V_k^f)^2+2\Delta\ell_k a_{T,k}^{+}(V_k^f)},\\
+\textcolor{blue}{V_{N-1}^b}
+&\textcolor{blue}{=\min\{V_{N-1}^f,V_{{\rm lim},N-1}\},}\\
 V_{k}^{b}&=\operatorname{clip}_{[V_{\min},V_{{\rm lim},k}]}
 \sqrt{(V_{k+1}^b)^2+2\Delta\ell_k b_{T,k+1}^{-}(V_{k+1}^b)},\\
 V_k^\star&=\min\{V_k^f,V_k^b,V_{{\rm lim},k}\}.
@@ -357,9 +405,23 @@ V_k^\star&=\min\{V_k^f,V_k^b,V_{{\rm lim},k}\}.
 The curvature ceiling is evaluated by fixed-point iteration; the subsequent
 passes enforce reachable acceleration and braking on the optimized path. The resulting
 path--speed sequence is resampled at the controller period $T_c$.
+\textcolor{blue}{The forward pass is anchored at the measured ego speed after
+applying the local admissible bounds, whereas the backward pass starts from
+the reachable terminal speed delivered by the forward pass.}
 
-For the MPCC, define $\bm\chi_k=[x_k,y_k,\theta_k]^\top$ and
-$\bm\nu_k=[V_k,\delta_k]^\top$. Its identified local prediction model and the
+\textcolor{red}{For the MPCC, define
+$\bm\chi_k=[x_k,y_k,\theta_k]^\top$ and
+$\bm\nu_k=[V_k,\delta_k]^\top$.}
+\textcolor{blue}{The fixed executor employs a reference-conditioned
+contouring-error model predictive controller, referred to as MPCC hereafter
+for consistency. Unlike progress-maximizing MPCC formulations that introduce
+an additional virtual path-progress state, the deployed controller tracks the
+time-resampled path--speed reference on a fixed prediction grid through
+contouring-error, heading-error, speed-reference, and steering-reference
+penalties. Its state and input are
+$\bm\chi_k=[x_k,y_k,\theta_k]^\top$ and
+$\bm\nu_k=[V_k,\delta_k]^\top$, respectively.}
+Its identified local prediction model and the
 principal tracking errors are
 \begin{equation}
 \begin{aligned}
@@ -404,7 +466,10 @@ position, and gear.
 Eq.~\eqref{eq:execution_speed_sweep} under $V_{\rm cap}$
 \STATE resample the path--speed reference and solve
 MPCC~\eqref{eq:execution_mpcc}; invoke fallback on a failed health gate
-\STATE map the first acceleration/steering command to throttle, brake,
+\STATE map the first
+\textcolor{red}{acceleration/steering}
+\textcolor{blue}{speed/steering}
+command to throttle, brake,
 steering actuator, and gear; transmit through CAN
 \RETURN actuator command and feasibility/health status
 \end{algorithmic}
