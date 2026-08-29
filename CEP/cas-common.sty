@@ -424,6 +424,8 @@
 
 \NewDocumentCommand \printorcid { }
 {
+  \seq_if_empty:NF \g_stm_orcid_seq
+  {
   \group_begin:
     \tex_let:D \thefootnote \relax \footnotetext
     {
@@ -432,6 +434,7 @@
       \seq_use:Nn \g_stm_orcid_seq { ;~ }
     }
   \group_end:
+  }
 }
 
 %
@@ -1518,7 +1521,7 @@
     \dim_gadd:Nn \l_tmpa_dim { \box_dp:N \g_stm_key_box }
     \leftskip .35\textwidth
     \hspace*{-.35 \textwidth }
-    \noindent\hbox_to_wd:nn {  \z@ } { \box \g_stm_key_box } 
+    \noindent\hbox_to_wd:nn {  \z@ } { \box \g_stm_key_box \hss } 
     \skip_vertical:n { - \l_tmpa_dim } 
   }
   \noindent \abstractname \par
@@ -2638,4 +2641,3 @@
 %  {}
 
 \endinput
-

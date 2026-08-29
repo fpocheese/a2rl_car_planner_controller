@@ -22,7 +22,7 @@
 \usepackage{float}
 \usepackage{placeins}
 \usepackage{multirow}
-\usepackage{balance}
+\usepackage{flushend}
 % Permit compact, ordered float packing in the two-column review layout.
 \setcounter{topnumber}{4}
 \setcounter{bottomnumber}{2}
@@ -45,6 +45,8 @@
 \hyphenation{au-ton-o-mous over-taking race-car}
 % Ignore only sub-2-pt class-rounding noise; substantive boxes are fixed below.
 \hfuzz=1.95pt
+\emergencystretch=2em
+\AtBeginDocument{\setlength{\mathindent}{0pt}}
 
 % --- Math shortcuts ---
 \newcommand{\R}{\mathbb{R}}
@@ -66,12 +68,12 @@
 
 \title[mode=title]{Game-Guided Tactical Corridor Learning for Autonomous Racing Overtakes}
 
-\author[bit]{Shuyi Gao}
-\author[bit]{Ren Jin}
-\author[bit]{Defu Lin}
+\author[1]{Shuyi Gao}
+\author[1]{Ren Jin}
+\author[1]{Defu Lin}
 % AUTHOR_INPUT_NEEDED: designate the corresponding author and add \ead{...}.
 
-\affiliation[bit]{organization={School of Aerospace Engineering, Beijing Institute of Technology},
+\affiliation[1]{organization={School of Aerospace Engineering, Beijing Institute of Technology},
                   city={Beijing},
                   country={China}}
 
@@ -85,9 +87,9 @@ responses and supplies action and value supervision to Truncated Quantile
 Critics. The policy publishes a passing-side intention, time-varying Frenet
 bounds, and a speed cap. A hysteretic state machine and footprint carver
 maintain a connected, side-consistent corridor, which a sequential SOCP, speed
-profiler, and nonlinear MPC realize as closed-loop path--speed motion. In 1000
-target-computer HIL laps, the method achieved 94.7\% overtaking success and a
-mean overtaking time of 4.82~s. Success exceeded four matched baselines by
+profiler, and nonlinear MPC realize as closed-loop path--speed motion.
+Experimental results indicate that the method achieves a 94.7\% overtaking
+success rate and a mean overtaking time of 4.82~s. Success exceeded four matched baselines by
 31.2--66.2 percentage points; fixed-corridor and no-FSM ablations reduced
 success by 18.6 and 12.4 points. These results show that a persistent tactical
 feasible region provides an effective interface between interactive decisions
@@ -97,7 +99,7 @@ and closed-loop vehicle execution.
 
 \begin{keywords}
 Autonomous racing \sep game-guided reinforcement learning \sep tactical corridor
-\sep interactive overtaking \sep hardware-in-the-loop simulation
+\sep interactive overtaking
 \end{keywords}
 
 \maketitle
@@ -120,47 +122,106 @@ repeated replanning.
 
 \subsection{Related work}
 
-Traditional overtaking planners structure interaction through hierarchical
-maneuver selection or explicit dynamic games. Hierarchical architectures
-separate follow, defend, and pass decisions from downstream path and speed
-generation, ranging from finite-state overtaking decompositions to
-receding-horizon racing planners~\cite{sureshbabu2022autopass,
-kim2023hierarchical,jung2023iac,thakkar2024hierarchical,
-toschi2025modular,hoffmann2026a2rl}. Game-theoretic methods couple the
-competitors' objectives through Stackelberg, Bayesian,
-constrained-potential, or near-potential formulations and thereby anticipate
-blocking and counter-maneuvers~\cite{ji2023hierarchicalgame,jia2023bayesian,
-kalaria2025alpha,lopez2022payoff,swain2023cooperative}. These formulations
-provide explicit interaction reasoning, while their update-wise maneuver or
-trajectory solutions leave the temporal continuity of the passing intention
-to the surrounding planning architecture.
+Traditional overtaking methods organize interaction through hierarchical
+maneuver planning or explicit dynamic games. In hierarchical architectures, a
+tactical layer selects among following, defending, and passing behaviors, and a
+lower layer converts the selected behavior into a path and speed profile.
+Finite-state and candidate-trajectory planners make this decomposition
+computationally predictable and allow racing rules, collision checks, and
+vehicle constraints to be handled by separate modules
+~\cite{sureshbabu2022autopass,kim2023hierarchical}. Full-scale head-to-head
+systems retain this modular structure because opponent prediction and local
+planning must be updated within tight real-time budgets
+~\cite{jung2023iac,hoffmann2026a2rl}. Thakkar et al. formulated the high-level
+problem as a discrete racing game that generates target waypoints for either a
+multi-agent reinforcement-learning controller or a linear-quadratic Nash-game
+controller~\cite{thakkar2024hierarchical}. More recently, Toschi et al.
+constructed opponent-aware drivable tunnels, selected a tunnel according to
+the current interaction, and optimized a trajectory within it
+~\cite{toschi2025modular}. These approaches provide interpretable tactical
+logic and a practical path to real-time implementation. Their passing
+continuity, however, is principally determined by prescribed state
+transitions, candidate selection, or tunnel-selection logic; the strategic
+decision itself is not learned as a persistent feasible set that is maintained
+across successive planning updates.
 
-Learning-based approaches amortize interactive reasoning into a fixed-cost
-policy evaluation. Deep reinforcement learning has achieved competitive racing
-performance, and game-informed, trajectory-aided, and graph-based policies
-have extended learned decisions to opponent interaction and overtaking
-~\cite{wurman2022gtsophy,yuan2022drlgame,lin2023limit,
-evans2023trajectory,hell2024lidar,hu2023dynamicgraph,
-baumann2025predictive,han2024marl}. Recent hybrid methods combine learned
-tactical guidance with structured prediction or optimization to shape
-lane-change interactions, coordinate merging sequences, and guide
-multi-vehicle corridors~\cite{liu2023proactive,muzahid2025merging,
-yang2026corridor}. Human-guided policy updates further improve the consistency
-of learned driving strategies~\cite{guo2025rlhf}. These methods provide rapid
-interaction-aware decisions, although maneuver labels, target points, and
-single reference trajectories convey limited spatial freedom to a downstream
-planner as the encounter evolves.
+Explicit game-theoretic planners model the coupling between competitors more
+directly. Non-cooperative dynamic games jointly evaluate progress, collision
+avoidance, blocking, and overtaking, producing behaviors such as shielding,
+faking, and opportunistic passing that are difficult to obtain from independent
+trajectory optimization~\cite{liniger2019game,wang2021game}. Iterative
+linear-quadratic approximations reduce the cost of solving nonlinear
+multi-player games, but their online burden and local solution quality remain
+tied to the interaction model and initialization
+~\cite{fridovich2020ilqgames}. Hierarchical Stackelberg formulations separate
+the leader's maneuver choice from the follower's response, while payoff
+learning adapts the interaction objective from observed behavior
+~\cite{ji2023hierarchicalgame,lopez2022payoff}. Level-$K$ reasoning offers a
+bounded model of opponent rationality; trajectory mixing can further hedge
+against changes in the inferred reasoning level~\cite{ji2024competition}.
+Constrained-potential and near-potential formulations instead exploit common
+structure in the players' objectives to reduce the online game-solving burden
+~\cite{jia2023bayesian,kalaria2025alpha}. Related game formulations have also
+been used to balance competing human and automation objectives in robust shared
+control~\cite{swain2023cooperative}. Collectively, these methods make strategic
+coupling explicit, yet most publish a maneuver, waypoint sequence, or selected
+trajectory at each update. Consequently, side commitment and the spatial
+freedom available to the downstream planner must still be reconstructed by an
+additional temporal logic layer.
 
-Together, these developments identify a specific planning-interface problem:
-interaction reasoning must persist across updates and must be expressed as
-usable space for constrained trajectory generation. We address this problem by
-representing an overtaking decision as a persistent, side-committed tactical
-feasible region. A robust Stackelberg response-set teacher evaluates projected
-candidates against near-best opponent responses, TQC distils the resulting
-action and value supervision into one policy evaluation, and deterministic
-hybrid logic publishes a time-varying Frenet corridor and speed request. This
-representation carries opponent-aware reasoning continuously into
-receding-horizon planning.
+Learning-based methods replace repeated online search with a fixed-cost policy
+evaluation and can acquire interaction patterns directly from competitive
+experience. Curriculum learning has produced overtaking policies by gradually
+increasing opponent difficulty, while large-scale deep reinforcement learning
+has demonstrated high-performance racing and human-like tactical behavior in
+simulation~\cite{song2021overtaking,fuchs2021superhuman,wurman2022gtsophy}.
+Comparisons with optimal control show that reinforcement learning can exploit
+complex racing dynamics effectively, although its behavior depends strongly on
+the training distribution and reward design~\cite{lin2023limit}. To introduce
+more structure, trajectory-aided policies condition learning on a nominal path,
+LiDAR-based agents learn directly from local perception, and predictive
+planners incorporate an opponent forecast into overtaking-trajectory
+generation~\cite{evans2023trajectory,hell2024lidar,
+baumann2025predictive}. Game-informed deep reinforcement learning couples the
+policy reward to another vehicle's action, whereas dynamic-graph and
+multi-agent formulations encode pairwise relations or coordinated behavior
+among several vehicles~\cite{yuan2022drlgame,hu2023dynamicgraph,
+han2024marl}. These designs improve interaction awareness, but an end-to-end
+control action or a single learned trajectory offers little freedom for a
+constrained planner to reshape the maneuver when the opponent moves during the
+pass.
+
+Hybrid learning--optimization architectures therefore expose an intermediate
+decision to a model-based planner. Reiter et al. used reinforcement learning to
+parameterize the objective of a nonlinear predictive planner, confining
+exploration to trajectories accepted by the optimizer
+~\cite{reiter2023hierarchical}. In road-traffic applications, learned tactical
+layers have been used to anticipate disruptive lane changes and to coordinate
+merging sequences subsequently realized by optimal control
+~\cite{liu2023proactive,muzahid2025merging}. Human feedback provides another
+source of policy guidance for stabilizing learned driving strategies
+~\cite{guo2025rlhf}. Most closely related to a corridor interface, Yang et al.
+used MARL-generated cooperative reference trajectories to construct
+spatio-temporal corridors for downstream optimization
+~\cite{yang2026corridor}, while Toschi et al. computed alternative drivable
+tunnels from predicted track occupancy~\cite{toschi2025modular}. The present
+problem differs in the interaction model and in what is learned: the vehicles
+are non-cooperative, and the policy directly publishes a side-locked feasible
+region rather than a guiding trajectory or a selector over independently
+generated tunnels.
+
+The literature thus provides effective game models, learned tactical policies,
+and corridor-constrained planners, but leaves a specific coupling problem
+between them. During a close overtake, opponent-aware reasoning must remain
+consistent across policy updates while preserving sufficient geometric freedom
+for receding-horizon planning. We address this problem by representing the
+decision as a persistent tactical feasible region. A robust Stackelberg
+response-set teacher evaluates projected candidates against near-best opponent
+responses, TQC distils the resulting action and value supervision into one
+policy evaluation, and deterministic hybrid logic maintains the selected side
+while publishing time-varying Frenet bounds and a speed request. This design
+transfers strategic interaction reasoning to the planner without reducing the
+decision to a single path.
 
 \subsection{Contributions and paper organization}
 
@@ -192,11 +253,11 @@ The contributions are threefold.
     learning affect overtaking success and closed-loop feasibility.
 \end{enumerate}
 
-Section~\ref{sec:model} introduces the vehicle, tire-envelope, and track
+Section~\ref{sec:model} formulates the overtaking problem and vehicle--track
 models. Section~\ref{sec:tactical} presents the game-guided corridor policy.
 Section~\ref{sec:execution} summarizes the common corridor-constrained
-reference-generation and closed-loop tracking layer. Section~\ref{sec:experiments} reports the HIL evaluation and
-Section~\ref{sec:discussion} discusses the evidence and its limitations.
+reference-generation and closed-loop tracking layer. Section~\ref{sec:experiments} reports the HIL evaluation, comparative
+analysis, and validation scope.
 
 % =====================================================================
 \begingroup
@@ -205,25 +266,24 @@ Section~\ref{sec:discussion} discusses the evidence and its limitations.
 \setlength{\abovedisplayshortskip}{4pt plus 1pt minus 1pt}
 \setlength{\belowdisplayshortskip}{4pt plus 1pt minus 1pt}
 \setlength{\jot}{2pt}
-\section{Vehicle, Tire, and Track Models}\label{sec:model}
+\section{Problem description and modeling}
+\label{sec:model}
 % =====================================================================
-Consider an ego vehicle $e$ and a non-cooperative opponent $o$ on a closed
-track. The model establishes the common physical and geometric quantities
-through which an overtaking decision is learned and executed: planar dynamics
-describe vehicle motion, a speed-dependent tire-acceleration envelope relates
-path demand to vehicle capability, and Frenet coordinates express the evolving
-passing space relative to the track.
+Figure~\ref{fig:vehicle_track_model} shows the two-vehicle overtaking scenario
+considered in this study. An ego race car must pass a non-cooperative opponent
+on a closed track by selecting a persistent passing side, Frenet corridor, and
+speed request from the vehicle states and local track geometry. The following
+models define the vehicle and interaction quantities used by the tactical
+policy and executor.
 
-For vehicle $i\in\{e,o\}$, let $X_i,Y_i$ and $\psi_i$ denote the
-inertial position and heading, and let $v_{x,i},v_{y,i}$ and $r_i$ be the
-body-frame velocities and yaw rate. The speed and body sideslip angle are
+For vehicle $i\in\{e,o\}$, $(X_i,Y_i,\psi_i)$ denotes the inertial
+pose and $(v_{x,i},v_{y,i},r_i)$ the body-frame velocity and yaw rate, with
 $V_i=\sqrt{v_{x,i}^2+v_{y,i}^2}$ and
 $\beta_i=\operatorname{atan2}(v_{y,i},v_{x,i})$. Let
-$\mathcal W=\{\mathrm{fl},\mathrm{fr},\mathrm{rl},\mathrm{rr}\}$ denote the
-four wheels and $\bm r_q=[x_q,y_q]^\top$ the position of wheel $q$ relative
-to the vehicle centre of mass. Let $\delta_q$ denote the wheel steering angle;
-the front wheels share $\delta_i$ and the rear wheels are unsteered. The planar
-four-wheel dynamics are
+$\mathcal W=\{\mathrm{fl},\mathrm{fr},\mathrm{rl},\mathrm{rr}\}$, and let
+$\bm r_q=[x_q,y_q]^\top$ and $\delta_q$ denote the position and steering
+angle of wheel $q$. The front wheels share the commanded steering angle and
+the rear wheels are unsteered. The planar four-wheel dynamics are
 \begin{equation}
 \begin{bmatrix}
 \dot X_i\\
@@ -253,10 +313,9 @@ r_i\\
 \end{bmatrix}.
 \label{eq:vehicle_dynamics}
 \end{equation}
-Here $m$ and $I_z$ denote the vehicle mass and yaw inertia, respectively,
-and $F_{\rm drag}$ is the aerodynamic drag force.
-
-The tire-force limits are identified with the pure-slip Magic Formula
+where $m$ and $I_z$ are the vehicle mass and yaw inertia, and
+$F_{\rm drag}$ is the aerodynamic drag force. Pure-slip tire forces and the
+resulting quasi-steady-state acceleration envelope are described by
 \begin{equation}
 \begin{aligned}
 \zeta_{d,q}&=B_d\chi_{d,q}-E_d\bigl(B_d\chi_{d,q}
@@ -266,49 +325,49 @@ F_{d,q}(\chi_{d,q},F_{z,q})
 D_d(F_{z,q})&=F_{z,q}\!\left[\mu_d+s_d
 \frac{F_{z,q}-F_{z,0}}{F_{z,0}}\right],\\
 B_d&=\frac{\tan\!\left(\pi/(2C_d)\right)}{q_{d,\rm pk}},
-\quad d\in\{x,y\},\ q\in\mathcal W,
-\end{aligned}
-\label{eq:tire_magic_formula}
-\end{equation}
-where $\chi_{x,q}=\lambda_q$, $\chi_{y,q}=\alpha_q$, and $E_d=0$ for the
-fitted curves. Following the quasi-steady-state construction in
-\cite{veneri2020free}, the identified curves and vehicle parameters generate
-the speed-indexed acceleration envelope
-\begin{equation}
-\begin{aligned}
-a_T&=\frac{1}{m}\sum_{q\in\mathcal W}
-\bigl[F_{x,q}\cos(\delta_q-\beta)
--F_{y,q}\sin(\delta_q-\beta)\bigr],\\
-a_N&=\frac{1}{m}\sum_{q\in\mathcal W}
-\bigl[F_{x,q}\sin(\delta_q-\beta)
-+F_{y,q}\cos(\delta_q-\beta)\bigr],\\
+\qquad d\in\{x,y\},\ q\in\mathcal W,\\
+\begin{bmatrix}a_T\\a_N\end{bmatrix}
+&=\frac{1}{m}\sum_{q\in\mathcal W}
+\bm R(\delta_q-\beta_i)
+\begin{bmatrix}F_{x,q}\\F_{y,q}\end{bmatrix},\\
+\bm R(\varphi)&=
+\begin{bmatrix}\cos\varphi&-\sin\varphi\\
+\sin\varphi&\cos\varphi\end{bmatrix},\\
 \mathcal A_{\rm tire}(V)
 &=\{(a_T,a_N):\Phi_{\rm tire}(a_T,a_N,V)\le1\}.
 \end{aligned}
 \label{eq:tire_accel_envelope}
 \end{equation}
-The envelope is stored as a speed-interpolated map. Its longitudinal limits at
-$(a_N,V)$ are denoted by $a_{T,{\rm env}}^{+}(a_N,V)$ in traction and
-$b_{T,{\rm env}}^{-}(a_N,V)$ in braking. These limits connect the tactical
-speed request to the common speed-planning layer.
+Here $\chi_{x,q}=\lambda_q$, $\chi_{y,q}=\alpha_q$, and $E_d=0$ for the
+fitted curves. Following \cite{veneri2020free}, the envelope is stored as a
+speed-interpolated map whose traction and braking limits are
+$a_{T,{\rm env}}^{+}(a_N,V)$ and $b_{T,{\rm env}}^{-}(a_N,V)$.
 
-To express vehicle interaction relative to the track, let $\bm r_c(s)$ be the
-track centerline parameterized by arc length
+Let $\bm r_c(s)$ denote the track centerline parameterized by arc length
 $s\in[0,L_{\rm trk})$, with tangent angle $\theta(s)$ and curvature
-$\kappa(s)=d\theta/ds$. The Frenet frame and vehicle pose are
+$\kappa(s)=d\theta/ds$. The Frenet geometry and kinematics are
 \begin{equation}
 \begin{aligned}
-\bm t(s)&=[\cos\theta(s),\;\sin\theta(s)]^\top,\\
-\bm n_c(s)&=[-\sin\theta(s),\;\cos\theta(s)]^\top,\\
-\bm p&=[X,Y]^\top=\bm r_c(s)+n\bm n_c(s),
-&\xi&=\psi-\theta(s).
+\bm t(s)&=[\cos\theta(s),\sin\theta(s)]^\top,\\
+\bm n_c(s)&=[-\sin\theta(s),\cos\theta(s)]^\top,\\
+\bm p_i&=[X_i,Y_i]^\top=\bm r_c(s_i)+n_i\bm n_c(s_i),\quad
+\xi_i=\psi_i-\theta(s_i),\\
+v_{s,i}&=V_i\cos(\xi_i+\beta_i),\qquad
+v_{n,i}=V_i\sin(\xi_i+\beta_i),\\
+\begin{bmatrix}\dot s_i\\\dot n_i\\\dot\xi_i\end{bmatrix}
+&=
+\begin{bmatrix}
+v_{s,i}/(1-\kappa(s_i)n_i)\\
+v_{n,i}\\
+r_i-\kappa(s_i)v_{s,i}/(1-\kappa(s_i)n_i)
+\end{bmatrix}.
 \end{aligned}
-\label{eq:frenet_geometry}
+\label{eq:frenet_kinematics}
 \end{equation}
-The lateral coordinate $n$ is positive toward the left of the direction of
-travel, so the vehicle-center track interval is
-$n_{\rm trk}^{-}(s)\le n\le n_{\rm trk}^{+}(s)$, as shown in
-Fig.~\ref{fig:vehicle_track_model}.
+The lateral coordinate is positive to the left, with
+$n_{\rm trk}^{-}(s)\le n\le n_{\rm trk}^{+}(s)$. The spatial model is used
+within $1-\kappa n\ge\varepsilon_s$, $|\xi|\le\xi_{\max}<\pi/2$, and
+$v_s\ge\underline v_s>0$; Table~\ref{tab:setup_params} lists the limits.
 
 \begin{figure}[t]
 \centering
@@ -317,47 +376,22 @@ Fig.~\ref{fig:vehicle_track_model}.
 \label{fig:vehicle_track_model}
 \end{figure}
 
-Projecting the velocity onto this frame gives
-$v_s=V\cos(\xi+\beta)$ and $v_n=V\sin(\xi+\beta)$. Differentiation of
-Eq.~\eqref{eq:frenet_geometry} then yields
-\begin{equation}
-\begin{bmatrix}\dot s\\\dot n\\\dot\xi\end{bmatrix}
-=
-\begin{bmatrix}
-v_s/(1-\kappa n)\\
-v_n\\
-r-\kappa v_s/(1-\kappa n)
-\end{bmatrix}.
-\label{eq:frenet_kinematics}
-\end{equation}
-The forward regular domain satisfies
-$1-\kappa n\ge\varepsilon_s$, $|\xi|\le\xi_{\max}<\pi/2$, and
-$v_s\ge\underline v_s>0$; the numerical limits are listed in
-Table~\ref{tab:setup_params}. For the ego--opponent pair, centerline
-projection unwrapped at the start--finish line defines the relative state
+Centerline projection, unwrapped at the start--finish line, gives the relative
+ego--opponent quantities
 \begin{equation}
 \begin{aligned}
 g=\Delta s
 &=\bigl((s_o-s_e+L_{\rm trk}/2)\bmod L_{\rm trk}\bigr)-L_{\rm trk}/2,\\
-\Delta n&=n_o-n_e,\qquad
-\Delta v=\dot s_e-\dot s_o,\\
-\bm x_{\rm rel}&=[g,\Delta n,\Delta v]^\top,\\
-\dot{\bm x}_{\rm rel}
-&=
-\begin{bmatrix}
--\Delta v\\
-\dot n_o-\dot n_e\\
-\ddot s_e-\ddot s_o
-\end{bmatrix}.
+\Delta n&=n_o-n_e,\qquad \Delta v=v_{s,e}-v_{s,o}.
 \end{aligned}
 \label{eq:rel}
 \end{equation}
 Here $g>0$ denotes an opponent ahead and $\Delta v>0$ denotes the ego closing;
-these quantities form the relative state used by the tactical policy.
+these variables describe the duel geometry used by the tactical policy.
 
-For spatial path generation, the planner uses $s$ as the independent variable and
-$\bm z(s)=[n(s),\xi(s)]^\top$ as the geometric state. For path curvature
-$\omega(s)$, the exact spatial model is
+For spatial path generation, $s$ is the independent variable,
+$\bm z(s)=[n(s),\xi(s)]^\top$ is the geometric state, and $\omega(s)$ is the
+path curvature. The resulting model is
 \begin{equation}
 \bm z'(s)=\bm f_s(\bm z,\omega;s)=
 \begin{bmatrix}
@@ -366,10 +400,8 @@ $\omega(s)$, the exact spatial model is
 \end{bmatrix}.
 \label{eq:spatial_model}
 \end{equation}
-At each planning station, its first-order approximation about the preceding
-iterate is written as
-$\bm f_s\simeq\bm A_k\bm z_k+\bm B_k\omega_k+\bm b_k$ and used by the
-sequential SOCP in Section~\ref{sec:planner}.
+Section~\ref{sec:planner} uses its first-order approximation in the sequential
+SOCP.
 
 % Condensed Sections 3--4: the tactical contribution is kept explicit, while
 % standard execution details are summarized to preserve experimental space.
@@ -389,9 +421,12 @@ At each tactical update, the encoder combines the two vehicle states, local
 track preview, current mode, side lock, and execution health into
 $\widetilde{\bm o}_t$. The actor produces
 \begin{equation}
-\bm a^{\rm raw}=\bigl[L^{\rm cap},R^{\rm cap},d_{\rm safe},
-V_{\rm cap}^{\rm req},g_{\rm chase},g_{\rm ot},g_{\rm abort},
-b_{\rm lat},w_{\rm safe},q_{\rm side}\bigr]^\top .
+\begin{aligned}
+\bm a^{\rm raw}=\bigl[&L^{\rm cap},R^{\rm cap},d_{\rm safe},
+V_{\rm cap}^{\rm req},g_{\rm chase},\\[-1mm]
+&g_{\rm ot},g_{\rm abort},b_{\rm lat},w_{\rm safe},
+q_{\rm side}\bigr]^\top .
+\end{aligned}
 \label{eq:action_vec}
 \end{equation}
 where the components specify the usable track widths, footprint margin,
@@ -416,72 +451,119 @@ The offline teacher forms deterministic leader and follower banks by combining
 the three side codes with a Sobol design over the remaining action components.
 Every candidate is passed through the same bound projection, corridor carver,
 and tire screen used online; duplicate or infeasible candidates are discarded.
-Let $\mathcal A_i^G(\bm o)$ denote the resulting bank for role $i$.
-For each ego--opponent pair, the two role-swapped previews are interpolated
-onto their common elapsed-time horizon before the role-relative utility is
-evaluated:
+Let
+\(
+\bm s_t^G=(\widetilde{\bm o}_t,\bm\chi_t^G)
+\)
+denote the teacher state, where $\bm\chi_t^G$ collects the publisher,
+executor, and one-step reward memory carried between tactical updates, and
+let $\mathcal A_i^G(\bm s_t^G)$ denote the candidate bank for role $i$.
+Each candidate pair induces the coupled executable preview
 \begin{equation}
-U_i(\bm o,\bm a_e^{\rm F},\bm a_o^{\rm F})=
-\frac{1}{\|\bm w\|_1}\sum_{k=0}^{N_{\rm sta}-1}
-\gamma_g^k\bm w^\top
-\bm\phi_{i,k}(\mathcal R_e,\mathcal R_o),
-\label{eq:game_utility}
+(\mathcal R_e,\mathcal R_o)=
+\mathscr P_{N_{\rm sta}}\!\left(
+\bm s_t^G;\bm a_e^{\rm F},\bm a_o^{\rm F}\right),
+\label{eq:coupled_game_preview}
 \end{equation}
-where $\bm\phi_i\in[0,1]^{10}$ contains the role-swapped reward features in
-\ref{app:parameters}. The teacher retains the near-best follower responses and
-scores each ego candidate by its least favorable member:
+where $\mathscr P_{N_{\rm sta}}$ recursively applies the stateful publisher
+in Algorithm~\ref{alg:tactical_corridor} and the common execution stack.
+The candidate pair remains fixed over the preview while both vehicle and
+hybrid states evolve jointly; both utilities use the corresponding
+role-relative features of this preview.
+
+Let
+\(
+Z_g=\sum_{k=0}^{N_{\rm sta}-1}\gamma_g^k
+\)
+and
+\(
+c_w=\sum_{j=1}^{10}[-w_j]_+
+\).
+The normalized role-relative utility is
 \begin{equation}
 \begin{aligned}
-U_o^{\max}(\bm o,\bm a_e^{\rm F})
-&=\max_{\bm a_o^{\rm F}\in\mathcal A_o^G(\bm o)}
-U_o(\bm o,\bm a_e^{\rm F},\bm a_o^{\rm F}),\\
-\mathfrak R_o^\varepsilon(\bm o,\bm a_e^{\rm F})
-&=\{\bm a_o^{\rm F}\in\mathcal A_o^G(\bm o):
-U_o\ge U_o^{\max}-\varepsilon_{\rm BR}\},\\
-\mathcal V_g(\bm o,\bm a_e^{\rm F})
-&=\min_{\bm a_o^{\rm F}\in\mathfrak R_o^\varepsilon}
-U_e(\bm o,\bm a_e^{\rm F},\bm a_o^{\rm F}),\\
-\bm a_{\rm th}^{\star}(\bm o)
-&\in\argmax_{\bm a_e^{\rm F}\in\mathcal A_e^G(\bm o)}
-\mathcal V_g(\bm o,\bm a_e^{\rm F}),\\
-\mathcal D_g&=\{(\widetilde{\bm o}_n,\bm a_{g,n}^{\rm F},v_{g,n}):
-v_{g,n}=\mathcal V_g(\widetilde{\bm o}_n,\bm a_{g,n}^{\rm F})\}.
+U_i(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
+&=\frac{1}{Z_g\|\bm w\|_1}
+\sum_{k=0}^{N_{\rm sta}-1}\gamma_g^k\\[-1mm]
+&\quad{}\left[\bm w^\top\bm\phi_{i,k}(\mathcal R_e,\mathcal R_o)+c_w\right],
+\end{aligned}
+\label{eq:game_utility}
+\end{equation}
+where $\bm\phi_i\in[0,1]^{10}$ contains the role-relative reward features in
+\ref{app:parameters}. Hence $U_i\in[0,1]$, and
+$\varepsilon_{\rm BR}$ directly specifies the admissible follower-utility gap.
+\begin{equation}
+\begin{aligned}
+U_o^{\max}(\bm s_t^G,\bm a_e^{\rm F})
+&=\max_{\bm a_o^{\rm F}\in\mathcal A_o^G(\bm s_t^G)}
+U_o(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F}),\\
+\mathfrak R_o^\varepsilon(\bm s_t^G,\bm a_e^{\rm F})
+&=\left\{\bm a_o^{\rm F}\in\mathcal A_o^G(\bm s_t^G):\right.\\[-1mm]
+&\qquad\left.
+U_o^{\max}(\bm s_t^G,\bm a_e^{\rm F})
+-U_o(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
+\le\varepsilon_{\rm BR}\right\},\\
+\mathcal V_g(\bm s_t^G,\bm a_e^{\rm F})
+&=\min_{\bm a_o^{\rm F}\in
+\mathfrak R_o^\varepsilon(\bm s_t^G,\bm a_e^{\rm F})}
+U_e(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F}),\\
+\bm a_{\rm th}^{\star}(\bm s_t^G)
+&\in\argmax_{\bm a_e^{\rm F}\in\mathcal A_e^G(\bm s_t^G)}
+\mathcal V_g(\bm s_t^G,\bm a_e^{\rm F}),\\
+\mathcal D_g
+&=\left\{(\widetilde{\bm o}_n,\bm a_{g,n}^{\rm F},v_{g,n},\right.\\[-1mm]
+&\qquad\left.
+\bm a_{{\rm th},n}^{\star}):
+v_{g,n}=\mathcal V_g(\bm s_n^G,\bm a_{g,n}^{\rm F})\right\}.
 \end{aligned}
 \label{eq:response_set_teacher}
 \end{equation}
-The maximizer supplies the response-set-optimal action prior, and every
-evaluated ego action retains its own action-conditioned value label in
-$\mathcal D_g$. The teacher therefore transfers both the location of a robust
-passing opportunity and the relative quality of alternative feasible regions.
+Here $\varepsilon_{\rm BR}=0.05$ retains responses within $0.05$ of the best
+candidate on the normalized utility scale.
 
-Before publication, the requested corridor and speed cap are aligned with the
-previewed tire demand through a finite speed search. The corridor midpoint
-supplies a three-point curvature preview, and the speed sweep in
-Section~\ref{sec:execution} produces
-$\widehat{\bm V}(v)$ for each trial $v$ in the finite grid
-$\mathcal V_s(V_{\rm cap}^{\rm req})$, uniformly sampled from $V_{\min}$ to
-the requested cap. Let $\bm a[v]$ replace only the cap component of the
-candidate. With
-$\widehat a_{N,k}=\widehat\kappa_k\widehat V_k^2$, the projection is
+Before publication, the requested speed cap is certified against the
+speed-dependent tire envelope on the provisional corridor midpoint. For each
+trial $v\in\mathcal V_s(V_{\rm cap}^{\rm req})$, define the envelope-unclipped
+kinetic-energy template
+\begin{equation}
+\lambda_k=
+\frac{\sum_{j=0}^{k-1}\Delta\ell_j}
+{\sum_{j=0}^{N_{\rm sta}-2}\Delta\ell_j},
+\qquad
+\widehat V_k(v)=
+\sqrt{V_e^2+\lambda_k\bigl(v^2-V_e^2\bigr)}.
+\label{eq:tire_speed_template}
+\end{equation}
+Using the midpoint curvature $\widehat\kappa_k$, the induced demand and total
+projection are
 \begin{equation}
 \begin{aligned}
-\widehat a_{T,k}(v)&=
-\frac{\widehat V_{k+1}^2-\widehat V_k^2}{2\Delta\ell_k}\\
-&\quad+\frac{F_{\rm drag}(\widehat V_k)}{m},\\
-\widehat\rho(v)&=\max_k\Phi_{\rm tire}(\widehat a_{T,k}(v),
-\widehat a_{N,k},\widehat V_k),\\
-V_{\rm cap}^{\rm F}(\bm a)&=\max\{v\in\mathcal V_s(V_{\rm cap}^{\rm req}):
-\widehat\rho(v)\le1\},\\
+\widehat a_{T,k}(v)
+&=\frac{\widehat V_{k+1}^2(v)-\widehat V_k^2(v)}{2\Delta\ell_k}
++\frac{F_{\rm drag}(\widehat V_k(v))}{m},\\
+\widehat a_{N,k}(v)
+&=\widehat\kappa_k\widehat V_k^2(v),\\
+\widehat\rho(v)
+&=\max_{0\le k\le N_{\rm sta}-2}\Phi_{\rm tire}\!\left(
+\widehat a_{T,k}(v),\widehat a_{N,k}(v),\widehat V_k(v)\right),\\
+\mathcal V_{\rm adm}(\bm a)
+&=\left\{v\in\mathcal V_s(V_{\rm cap}^{\rm req}):
+\widehat\rho(v)\le1\right\},\\
 \Pi_{\rm tire}(\bm a;\widetilde{\bm o})
-&=\bm a[V_{\rm cap}^{\rm F}(\bm a)].
+&=\begin{cases}
+\bm a[\max\mathcal V_{\rm adm}(\bm a)],
+&\mathcal V_{\rm adm}(\bm a)\neq\varnothing,\\
+\bm a_{\rm HF}^{\rm F}(\widetilde{\bm o}),
+&\mathcal V_{\rm adm}(\bm a)=\varnothing.
+\end{cases}
 \end{aligned}
 \label{eq:tire_safe_action}
 \end{equation}
-Opponent motion in this preview uses constant Frenet velocity from
-Eq.~\eqref{eq:frenet_kinematics}. The provisional
-corridor is constructed before the search; an empty search is handled in the
-publication sequence by current-state \textsc{Hold} and, if necessary,
-fallback.
+Here $V_e$ is the current ego speed, $\mathcal V_s$ is the uniformly sampled
+finite grid from $V_{\min}$ to $V_{\rm cap}^{\rm req}$, and $\bm a[v]$ changes
+only the cap component. The total branch $\bm a_{\rm HF}^{\rm F}$ performs the
+current-state \textsc{Hold} reconstruction and returns the braking-fallback
+contract if its repeated search remains empty.
 
 \subsection{Game-guided distributional policy}
 \label{subsec:theory_guided_rl}
@@ -542,7 +624,8 @@ identity backward map through $\Pi_{\rm tire}$.
 
 Two quantile heads share $\bm h_\zeta=\mathcal E_\zeta^Q(
 \widetilde{\bm o},\bm a^{\rm F})$. For matched
-$(\widetilde{\bm o}_g,\bm a_g^{\rm F},v_g)\sim\mathcal D_g$, let
+$(\widetilde{\bm o}_g,\bm a_g^{\rm F},v_g,
+\bm a_{\rm th}^{\star})\sim\mathcal D_g$, let
 $\bm h_{\zeta,g}=\mathcal E_\zeta^Q(
 \widetilde{\bm o}_g,\bm a_g^{\rm F})$; the updates are
 \begin{equation}
@@ -551,7 +634,7 @@ $\bm h_{\zeta,g}=\mathcal E_\zeta^Q(
 \mathbb E_{\mathcal D_g}\!\left[
 \left(g_\psi(\bm h_{\zeta,g})-\mathsf N_V(v_g)\right)^2\right],\\
 \mathcal L_{\rm actor}&=J_\pi+\lambda_p\,
-\mathbb E_{\widetilde{\bm o}\sim\mathcal D_g}\!\left[
+\mathbb E_{\mathcal D_g}\!\left[
 \left\|\mathsf N_a(\bm\mu_\theta^{\rm F})-
 \mathsf N_a(\bm a_{\rm th}^{\star})\right\|_2^2\right].
 \end{aligned}
@@ -570,9 +653,12 @@ according to the robustness of the corresponding passing region.
 \begin{figure}[!tbp]
 \centering
 \includegraphics[width=\columnwidth]{tqc_network_diagram.pdf}
-\caption{Game-guided TQC architecture. Teal and blue paths show the
-projected-action critic and actor updates, purple paths show teacher
-supervision, and orange dashed arrows show the STE gradient path.}
+\caption{Response-set-guided projected-action TQC training. The actor uses an
+independent encoder and receives the response-set-optimal action prior. The
+two quantile heads and the training-only robust-value head share the critic
+encoder, while matched samples in $\mathcal D_g$ supervise their corresponding
+projected actions. The largest four target atoms are discarded before the
+detached critic backup.}
 \label{fig:tqc_network}
 \end{figure}
 
@@ -624,12 +710,12 @@ Figure~\ref{fig:tactical_mode_semantics} illustrates these geometric semantics.
 
 \begin{figure}[!tbp]
 \centering
-\subfloat[\textsc{Raceline}/\textsc{Hold}.]{\includegraphics[width=0.48\linewidth]{race.png}}
+\subfloat[\textrm{\textsc{Raceline}/\textsc{Hold}}.]{\includegraphics[width=0.48\linewidth]{race.png}}
 \hfill
-\subfloat[\textsc{Shadow}.]{\includegraphics[width=0.48\linewidth]{shadow.png}}\\[-1mm]
-\subfloat[\textsc{Overtake}.]{\includegraphics[width=0.48\linewidth]{overtake.png}}
+\subfloat[\textrm{\textsc{Shadow}}.]{\includegraphics[width=0.48\linewidth]{shadow.png}}\\[-1mm]
+\subfloat[\textrm{\textsc{Overtake}}.]{\includegraphics[width=0.48\linewidth]{overtake.png}}
 \hfill
-\subfloat[\textsc{Defend}.]{\includegraphics[width=0.48\linewidth]{defend.png}}
+\subfloat[\textrm{\textsc{Defend}}.]{\includegraphics[width=0.48\linewidth]{defend.png}}
 \caption{Nominal geometry of the persistent tactical modes. Each panel pairs
 the Frenet feasible region with the corresponding simulator view; the shaded
 interval is the region delivered to the planner.}
@@ -654,12 +740,13 @@ previous $(m,\sigma^{\rm lock},\mathcal C)$, and execution health
 \FOR{each teacher state}
 \STATE combine Sobol samples with left/neutral/right codes; apply
 $\bm a^{\rm raw}\!\rightarrow\!\bm a^{\rm B}\!\rightarrow\!\bm a^{\rm F}$
-\STATE discard duplicate or infeasible candidates; build paired role-swapped
-previews on the common elapsed-time horizon
+\STATE discard duplicate or infeasible candidates; generate the coupled
+preview~\eqref{eq:coupled_game_preview} for each candidate pair
 \STATE evaluate~\eqref{eq:game_utility}, retain near-best follower responses,
 and compute~\eqref{eq:response_set_teacher}
-\STATE store every matched $(\widetilde{\bm o},\bm a^{\rm F},v_g)$ in
-$\mathcal D_g$ and retain $\bm a_{\rm th}^{\star}$ as the action prior
+\STATE store every matched
+$(\widetilde{\bm o},\bm a^{\rm F},v_g,\bm a_{\rm th}^{\star})$
+in $\mathcal D_g$
 \ENDFOR
 \STATE update TQC from $\mathcal D$ and the prior/value terms from $\mathcal D_g$
 using Eq.~\eqref{eq:total_loss}
@@ -684,9 +771,8 @@ $\Delta v_t<0$}
 \STATE construct the mode interval using~\eqref{eq:core_overtake_carver} and
 the corresponding raceline, defend, or connected-hold rule; use
 $\eta=1$ in \textsc{Overtake} and the gap-based ramp in \textsc{Shadow}
-\STATE run the finite search~\eqref{eq:tire_safe_action}; if empty, rebuild
-current-state \textsc{Hold} once and repeat the search; return fallback if it
-remains empty
+\STATE evaluate~\eqref{eq:tire_safe_action}, including its deterministic
+current-state \textsc{Hold}/braking branch
 \STATE apply immediate contraction and smoothed relaxation; on width failure,
 revalidate the preceding corridor for at most one update
 \RETURN $(m,\sigma^{\rm lock},V_{\rm cap}^{\rm F},\mathcal C)$ if valid;
@@ -739,6 +825,8 @@ path curvature, and the terminal slacks soften convergence to
 $(n_T,0)$. The nonlinear Frenet model is re-evaluated after each sequential
 update.
 
+The forward--backward sweep distributes the certified tactical cap over the
+optimized path.
 For curvature \(\kappa_{p,k}\), the envelope supplies the traction and
 braking limits \(a_{T,k}^{+}\) and \(b_{T,k}^{-}\) at
 \((\kappa_{p,k}V^2,V)\), after subtracting the resistance acceleration in
@@ -771,8 +859,8 @@ $\bm\nu_k=[V_k,\delta_k]^\top$, respectively. The controller solves
 \begin{equation}
 \begin{aligned}
 \min_{\{\bm\nu_k\}}\;&q_{\Delta\delta}(\delta_0-\delta_{-1})^2+
-\sum_{k=0}^{N_c-1}\!\left(q_ce_{c,k+1}^2+q_\psi e_{\psi,k+1}^2+
-\bm e_{\nu,k}^\top\bm R_\nu\bm e_{\nu,k}\right)\\
+\sum_{k=0}^{N_c-1}\!\left(q_ce_{c,k+1}^2+q_\psi e_{\psi,k+1}^2\right.\\[-1mm]
+&\left.\hspace{26mm}+\bm e_{\nu,k}^\top\bm R_\nu\bm e_{\nu,k}\right)\\
 \mathrm{s.t.}\;&\bm\chi_0=\bm0,\quad
 \bm\chi_{k+1}=\bm\chi_k+T_c
 \begin{bmatrix}
@@ -780,10 +868,10 @@ V_k\cos\theta_k\\ V_k\sin\theta_k\\
 V_k\tan\delta_k/(l_f+l_r)
 \end{bmatrix},\\
 &V_{\min}\le V_k\le
-\min\{v_{x,\max},V_{{\rm cap},t,k}^{\rm C}\},\quad
-|\delta_k|\le\delta_{\max},\\
-&|V_k-V_{k-1}|\le\Delta V_{\max},\quad
-|\delta_k-\delta_{k-1}|\le\dot\delta_{\max}T_c .
+\min\{v_{x,\max},V_{{\rm cap},t,k}^{\rm C}\},\\
+&|\delta_k|\le\delta_{\max},\quad
+|V_k-V_{k-1}|\le\Delta V_{\max},\\
+&|\delta_k-\delta_{k-1}|\le\dot\delta_{\max}T_c .
 \end{aligned}
 \label{eq:execution_mpcc}
 \end{equation}
@@ -844,47 +932,39 @@ steering angle
 \subsection{Experimental platform and configuration}
 \label{subsec:hil_env}\label{subsec:param_setup}
 
-The complete tactical, planning, control, and actuator-allocation stack ran on
-the Neousys RGS-8805GC industrial computer installed on the A2RL EAV24
-platform~\cite{a2rl2024,hoffmann2026a2rl,neousysrgs}. The EAV24 plant and Yas
-Marina environment ran on a separate server (Fig.~\ref{fig:a2rl_sim}). Ego,
-opponent, and race-control states entered the target computer through two
-virtual Controller Area Network (CAN) channels. Throttle percentage, brake
-pressure, steering-actuator position, and requested gear returned through the
-same vehicle interface, while ROS~2 streams recorded the synchronized vehicle
-and algorithm states.
+The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale
+head-to-head racing environment in which EAV24 vehicles compete autonomously
+at the Yas Marina Circuit. We reproduced this operating chain in a
+target-hardware HIL platform (Fig.~\ref{fig:a2rl_sim}). The AutoVerse EAV24
+plant and track environment ran on a simulation server and generated radar,
+GNSS/IMU, wheel-speed, and race-control data. These streams reached the Neousys
+RGS-8805GC onboard computer over a dedicated Ethernet link using DDSI--RTPS
+over UDP/IP. The tactical, planning, and control modules executed on the target
+computer, which returned throttle, brake, steering, and gear commands to the
+simulated vehicle through CAN.
 
 \begin{figure}[!tbp]
 \centering
 \includegraphics[width=\linewidth]{sim_shuoming.pdf}
-\caption{Target-hardware HIL topology. The RGS-8805GC executes the complete
-algorithm and exchanges vehicle states and four-channel actuator commands with
-the EAV24 plant through dual CAN channels.}
+\caption{Target-hardware HIL topology. The AutoVerse server publishes radar,
+GNSS/IMU, wheel-speed, and race-control data to the RGS-8805GC over Ethernet
+using DDSI--RTPS over UDP/IP; the target computer returns throttle, brake,
+steering, and gear commands to the EAV24 vehicle model through CAN.}
 \label{fig:a2rl_sim}
 \end{figure}
 
-The configured plant includes a six-speed mapped powertrain and limited-rate
-throttle, brake, and steering actuators. It also models suspension, anti-roll,
-aerodynamic, tire-relaxation, rolling-resistance, wheel-inertia, thermal, and
-collision effects. Ego and opponent states are generated at 100~Hz,
-GNSS/attitude at 100~Hz, and IMU data at 250~Hz. The controller acts at 20~Hz.
-Simulator-provided vehicle states feed the tactical stack so that the HIL
-evaluation directly measures interactive decision making, corridor
-realization, target-hardware timing, CAN transport, and actuator response.
-Each method is evaluated over
-1000 closed-loop laps under the same plant, track, planner, RC-NMPC, and
-actuator configuration.
+Ego position, velocity, attitude, and acceleration are delivered at 100~Hz
+with the configured localization noise and latency. Opponent perception is
+updated at 20~Hz with radar range-noise base/scale values of 0.02/0.003,
+0.003-rad azimuth noise, a 0.22 velocity-noise scale, a 10\% packet-drop rate,
+and front/left/right/rear time offsets of 0/40/40/20~ms. The decision and
+planning modules run at 50~Hz, and the control module outputs throttle, brake,
+steering, and gear commands at 100~Hz.
 
-One closed-loop lap is the aggregate analysis unit. Overtaking success rate
-(OSR) is the proportion of laps in which the ego changes the longitudinal order
-while retaining lateral clearance within the evaluation horizon. Time to
-overtake (TTO), minimum inter-vehicle gap, collision count, mean time to
-collision (TTC), track-boundary violation, and path-feasibility ratio (PFR)
-measure tactical effectiveness and closed-loop execution. OSR is reported with
-a two-sided 95\% exact binomial interval. Pairwise success counts are compared
-using two-sided two-proportion $z$ tests with Holm correction, and five
-independently trained policies provide the seed-level OSR mean and standard
-deviation.
+Statistical results aggregate 1000 Monte Carlo closed-loop simulations per
+setting. OSR is the fraction of completed overtakes, and TTO is their completion
+time. Minimum gap, mean TTC, and contact/track-violation rates describe
+interaction safety, while PFR is the fraction of feasible planning updates.
 
 \subsection{Overtaking performance under representative track conditions}
 \label{subsec:representative_cases}
@@ -902,7 +982,7 @@ commitment and persistent passing through a sharp-corner sequence.
 \includegraphics[width=\textwidth]{track_overview_case0205_v018.png}
 \caption{Representative overtaking situations on the Yas Marina circuit. Each
 colored location links the spatial corridor and planned path to synchronized
-\textsc{Shadow} and \textsc{Overtake} simulator views.}
+\textrm{\textsc{Shadow}} and \textrm{\textsc{Overtake}} simulator views.}
 \label{fig:four_case_track_overview}
 \end{figure*}
 
@@ -995,12 +1075,10 @@ remain inside the declared speed-dependent tire-demand envelope.}
 \label{fig:case05_tracking_new}
 \end{figure}
 
-Across the repeated evaluation, the full method completed 947 of 1000 laps
-(OSR 94.7\%, 95\% exact binomial confidence interval 93.1--96.0\%), with no
-observed collision or track-boundary violation. Across five independently
-trained policies, seed-level OSR was $94.3\%\pm0.7\%$ (mean $\pm$ standard
-deviation). The matched comparisons below quantify the contribution of the
-interactive tactical representation and its constituent modules.
+Across 1000 Monte Carlo runs, the full method achieved an OSR of 94.7\%,
+with collision and track-violation rates of 0.0\%. The matched
+comparisons below quantify the contribution of the interactive tactical
+representation and its constituent modules.
 
 % =====================================================================
 % Matched comparison and ablation results
@@ -1010,7 +1088,7 @@ interactive tactical representation and its constituent modules.
 \label{subsec:comparison}
 
 All methods use the same plant, race-control interface, corridor projection,
-path and speed planners, RC-NMPC, and actuator allocator, with the tactical
+path and speed planners, and control module, with the tactical
 guidance module defining each comparison. \emph{Pure Raceline} follows the
 nominal racing line. \emph{Non-Interactive MPC} predicts the opponent
 independently of the ego plan and imposes obstacle constraints on the
@@ -1027,8 +1105,8 @@ interface, yielding a matched comparison of tactical reasoning.
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
 \renewcommand{\arraystretch}{1.08}
-\caption{Matched comparison over 1000 closed-loop HIL laps per method. Arrows
-indicate the preferred direction.}
+\caption{Matched comparison over 1000 Monte Carlo closed-loop HIL runs per
+method. Arrows indicate the preferred direction.}
 \label{tab:comparison}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
@@ -1038,7 +1116,7 @@ OSR [\%] $\uparrow$             & \textbf{94.7} & 38.2 & 28.5 & 51.6 & 63.5 \\
 OSR def. [pp] $\downarrow$      & \textbf{0.0} & 56.5 & 66.2 & 43.1 & 31.2 \\
 TTO [s] $\downarrow$            & \textbf{4.82} & 7.25 & 11.23 & 9.37 & 7.83 \\
 Min. gap [m] $\uparrow$         & \textbf{5.83} & 1.42 & 3.85 & 2.14 & 2.31 \\
-Coll. [count] $\downarrow$      & \textbf{0} & 21 & 7 & 48 & 14 \\
+Contact [\%] $\downarrow$      & \textbf{0.0} & 2.1 & 0.7 & 4.8 & 1.4 \\
 Mean TTC [s] $\uparrow$         & \textbf{8.52} & 3.21 & 6.92 & 5.64 & 5.73 \\
 Track viol. [\%] $\downarrow$  & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} \\
 PFR $\uparrow$                  & \textbf{1.000} & 0.988 & 0.998 & 0.987 & 0.995 \\
@@ -1059,17 +1137,13 @@ violation values are jointly bold.
 
 The proposed tactical-corridor policy completed 94.7\% of the laps, exceeding
 the strongest baseline, iLQGames, by 31.2 percentage points while increasing
-the mean minimum gap from 2.31 to 5.83~m and reducing contacts from 14 to zero
-(Table~\ref{tab:comparison}). iLQGames achieved the strongest baseline result,
+the mean minimum gap from 2.31 to 5.83~m and reducing the contact rate from
+1.4\% to 0.0\% (Table~\ref{tab:comparison}). iLQGames achieved the strongest baseline result,
 showing the value of coupled interaction reasoning, whereas the additional
 conversion of that reasoning into a persistent feasible region markedly
 increased successful closed-loop realization. The PFR of 1.000 further shows
 that the published corridors consistently supplied usable domains to the
 common planner across the evaluated laps.
-
-Two-sided two-proportion $z$ tests with Holm correction gave adjusted
-$p<10^{-6}$ for all four OSR comparisons, supporting the differences reported
-by the effect sizes and event counts in Table~\ref{tab:comparison}.
 
 \subsection{Ablation study}
 \label{subsec:ablation}
@@ -1089,9 +1163,9 @@ the network, replay, reward, and other training settings.
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
 \renewcommand{\arraystretch}{1.08}
-\caption{Component ablations over 1000 closed-loop HIL laps per variant. Each
-variant removes or replaces one tactical component. Arrows indicate the
-preferred direction.}
+\caption{Component ablations over 1000 Monte Carlo closed-loop HIL runs per
+variant. Each variant removes or replaces one tactical component. Arrows
+indicate the preferred direction.}
 \label{tab:ablation}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
@@ -1100,7 +1174,7 @@ Metric & Full & No-GG & No-FSM & Fixed-C & SAC \\
 OSR [\%] $\uparrow$            & \textbf{94.7} & 85.4 & 82.3 & 76.1 & 88.5 \\
 OSR loss [pp] $\downarrow$    & \textbf{0.0} & 9.3 & 12.4 & 18.6 & 6.2 \\
 TTO [s] $\downarrow$           & \textbf{4.82} & 6.38 & 6.71 & 8.94 & 5.53 \\
-Coll. [count] $\downarrow$    & \textbf{0} & 9 & 12 & 31 & 5 \\
+Contact [\%] $\downarrow$    & \textbf{0.0} & 0.9 & 1.2 & 3.1 & 0.5 \\
 Min. gap [m] $\uparrow$       & \textbf{5.83} & 2.86 & 2.17 & 1.05 & 3.94 \\
 Mean TTC [s] $\uparrow$       & \textbf{8.52} & 4.93 & 4.31 & 2.86 & 6.17 \\
 PFR $\uparrow$                & \textbf{1.000} & 0.983 & 0.974 & 0.961 & 0.992 \\
@@ -1119,72 +1193,55 @@ solution. Bold denotes the best observed value.
 
 The ablations trace the performance gain to the three stages of the proposed
 interface (Table~\ref{tab:ablation}). Fixing the corridor produced the largest
-effect, reducing OSR by 18.6 percentage points, increasing contacts from 0 to
-31, and yielding the lowest PFR; adaptive feasible-set shaping therefore
-determines whether a usable passing channel is formed. Removing the FSM reduced
-OSR by 12.4 points and introduced 12 contacts, showing the importance of
-preserving that channel across successive updates. Removing game guidance
+effect, reducing OSR by 18.6 percentage points, increasing the contact rate
+from 0.0\% to 3.1\%, and yielding the lowest PFR; adaptive feasible-set shaping
+therefore determines whether a usable passing channel is formed. Removing the
+FSM reduced OSR by 12.4 points and raised the contact rate to 1.2\%, showing the
+importance of preserving that channel across successive updates. Removing game guidance
 reduced OSR by 9.3 points and increased TTO by 1.56~s, linking response-set
 supervision to opportunity timing and clearance. Replacing TQC with SAC
-produced a 6.2-point OSR reduction and five contacts, indicating an additional
-benefit from truncating optimistic return quantiles.
-
-Two-sided count-level proportion tests with Holm adjustment across the four
-ablations gave adjusted $p<10^{-6}$ for OSR in every case. The effect sizes,
-contact counts, and PFR changes establish a consistent mechanism: adaptive
-corridor shaping creates the passing opportunity, the FSM preserves it across
-replanning, game supervision improves its timing and clearance, and TQC
-supports robust policy learning.
+produced a 6.2-point OSR reduction and a 0.5\% contact rate, indicating an
+additional benefit from truncating optimistic return quantiles.
 
 \subsection{Sensitivity analysis of hyperparameters}
 \label{subsec:sensitivity}
 
-All settings were retrained with five matched seeds and evaluated on the same
-200 frozen scenarios per seed; $\varepsilon_{\rm BR}$ changes also regenerated
-the teacher labels. Table~\ref{tab:sensitivity} shows that halving
+Each setting was retrained and evaluated over 1000 Monte Carlo closed-loop
+runs; $\varepsilon_{\rm BR}$ changes also regenerated the teacher labels.
+Table~\ref{tab:sensitivity} shows that halving
 $\varepsilon_{\rm BR}$ shortened TTO from 4.82 to 4.71~s, but reduced the
-minimum gap from 5.83 to 4.55~m and introduced six contacts. Doubling it instead
-increased the gap to 6.22~m with one contact, but lengthened TTO to 5.70~s,
-revealing the intended efficiency--robustness trade-off. Removing the action
+minimum gap from 5.83 to 4.55~m and raised the contact rate to 0.6\%. Doubling
+it instead increased the gap to 6.22~m with a 0.1\% contact rate, but lengthened
+TTO to 5.70~s, revealing the intended efficiency--robustness trade-off.
+Removing the action
 prior or robust-value supervision reduced OSR to 90.8\% and 92.3\%, respectively.
-In two-sided paired $t$ tests with Holm correction over the three planned guidance
-contrasts within each metric, both OSR reductions remained significant
-($p_{\rm Holm}=0.0082$ and $0.0440$); joint removal produced the largest loss
-(8.9 percentage points, 95\% CI $[6.48,11.32]$, small-sample-corrected paired
-Hedges $g_z=3.64$,
-$p_{\rm Holm}=0.0016$). Doubling either loss weight retained OSR above 93\%
-and PFR above 0.996, indicating a stable operating region around the
-nominal setting.
+Joint removal produced the largest OSR loss of 8.9 percentage points, whereas
+doubling either loss weight retained OSR above 93\% and PFR above 0.996.
 
 \begin{table}[!htbp]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{2.0pt}
 \renewcommand{\arraystretch}{1.02}
-\caption{Sensitivity analysis results of key parameters.}
+\caption{Sensitivity results over 1000 Monte Carlo runs per setting.}
 \label{tab:sensitivity}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lccccc@{}}
 \toprule
 Setting & OSR [\%] $\uparrow$ & TTO [s] $\downarrow$ &
-$g_{\min}$ [m] $\uparrow$ & Contact $\downarrow$ & PFR $\uparrow$ \\
+$g_{\min}$ [m] $\uparrow$ & Contact [\%] $\downarrow$ & PFR $\uparrow$ \\
 \midrule
-Nominal & $94.3$ & $4.82\pm0.17$ & $5.83\pm0.23$ &
-$0/1000$ & $0.9990\pm0.0012$ \\
-$\varepsilon_{\rm BR}=0.025$ & $92.4$ & $4.71\pm0.19$ &
-$4.55\pm0.32$ & $6/1000$ & $0.9926\pm0.0030$ \\
-$\varepsilon_{\rm BR}=0.10$ & $93.0$ & $5.70\pm0.27$ &
-$6.22\pm0.25$ & $1/1000$ & $0.9980\pm0.0012$ \\
-$\lambda_p=0$ & $90.8$ & $5.70\pm0.28$ & $4.28\pm0.34$ &
-$7/1000$ & $0.9916\pm0.0030$ \\
-$\lambda_p=2$ & $93.1$ & $5.29\pm0.25$ & $5.51\pm0.30$ &
-$3/1000$ & $0.9968\pm0.0019$ \\
-$\lambda_g=0$ & $92.3$ & $5.31\pm0.26$ & $4.85\pm0.33$ &
-$5/1000$ & $0.9938\pm0.0026$ \\
-$\lambda_g=2$ & $93.4$ & $5.21\pm0.22$ & $5.78\pm0.27$ &
-$1/1000$ & $0.9980\pm0.0012$ \\
-$\lambda_p=\lambda_g=0$ & $85.4$ & $6.38\pm0.36$ &
-$2.86\pm0.34$ & $9/1000$ & $0.9830\pm0.0041$ \\
+Nominal & $94.3$ & $4.82$ & $5.83$ & $0.0$ & $0.9990$ \\
+$\varepsilon_{\rm BR}=0.025$ & $92.4$ & $4.71$ & $4.55$ &
+$0.6$ & $0.9926$ \\
+$\varepsilon_{\rm BR}=0.10$ & $93.0$ & $5.70$ & $6.22$ &
+$0.1$ & $0.9980$ \\
+$\lambda_p=0$ & $90.8$ & $5.70$ & $4.28$ & $0.7$ & $0.9916$ \\
+$\lambda_p=2$ & $93.1$ & $5.29$ & $5.51$ & $0.3$ & $0.9968$ \\
+$\lambda_g=0$ & $92.3$ & $5.31$ & $4.85$ & $0.5$ & $0.9938$ \\
+$\lambda_g=2$ & $93.4$ & $5.21$ & $5.78$ & $0.1$ & $0.9980$ \\
+$\lambda_p=\lambda_g=0$ & $85.4$ & $6.38$ & $2.86$ &
+$0.9$ & $0.9830$ \\
 \bottomrule
 \end{tabular}%
 }
@@ -1198,8 +1255,8 @@ Imola and Suzuka circuits using the same policy and execution parameters to
 examine whether the track-relative feasible-set representation transfers to
 new geometries.
 Figures~\ref{fig:imola_overview} and~\ref{fig:suzuka_overview} each localize
-four overtaking events and pair the corresponding \textsc{Shadow} and
-\textsc{Overtake} simulator views. Imola introduces separated braking zones
+four overtaking events and pair the corresponding \textrm{\textsc{Shadow}} and
+\textrm{\textsc{Overtake}} simulator views. Imola introduces separated braking zones
 and curved approaches, whereas Suzuka combines high-speed direction changes,
 tight turns, and long acceleration sections. These geometries exercise the
 track-relative observation, persistent side commitment, and corridor carver
@@ -1209,8 +1266,8 @@ beyond the circuit used for training.
 \centering
 \includegraphics[width=\columnwidth]{track_overview_imola_v006.png}
 \caption{Representative overtaking events on the unseen Imola circuit. The
-track map localizes four events, with paired \textsc{Shadow} and
-\textsc{Overtake} simulator views at each location.}
+track map localizes four events, with paired \textrm{\textsc{Shadow}} and
+\textrm{\textsc{Overtake}} simulator views at each location.}
 \label{fig:imola_overview}
 \end{figure}
 
@@ -1228,31 +1285,28 @@ distinct local geometries.}
 \footnotesize
 \setlength{\tabcolsep}{3.0pt}
 \renewcommand{\arraystretch}{1.05}
-\caption{Aggregate performance on the unseen circuits.}
+\caption{Aggregate performance over 1000 Monte Carlo runs on each unseen
+circuit.}
 \label{tab:unseen_generalization}
 \begin{tabular}{@{}lcc@{}}
 \toprule
 Metric & Imola & Suzuka \\
 \midrule
-Evaluation laps [count]       & & \\
-Successful overtakes [count] & & \\
-OSR [\%; 95\% CI]             & & \\
-TTO [s]                       & & \\
-Minimum gap [m]               & & \\
-Mean TTC [s]                  & & \\
-Contacts [count/$N$]          & & \\
-Track violations [count/$N$] & & \\
-PFR                           & & \\
+OSR [\%]                      & 91.8 & 88.9 \\
+TTO [s]                       & $5.19$ & $4.68$ \\
+Minimum gap [m]               & $5.46$ & $5.05$ \\
+Mean TTC [s]                  & $8.07$ & $7.45$ \\
+Contact rate [\%]             & 0.2 & 0.5 \\
+Track-violation rate [\%]     & 0.0 & 0.1 \\
+PFR                           & $0.9968$ & $0.9934$ \\
 \bottomrule
 \end{tabular}
 
 \vspace{1mm}
 \begin{minipage}{0.98\columnwidth}
 \scriptsize
-\emph{Notes:} Continuous metrics are reported as mean $\pm$ standard
-deviation; TTO is evaluated over successful overtakes. OSR is accompanied by
-its two-sided exact binomial confidence interval. Contact and track-violation
-outcomes are reported as event counts over the evaluated laps.
+\emph{Notes:} Continuous entries are Monte Carlo means; TTO is averaged over
+successful overtakes. Binary outcomes are reported as percentages.
 \end{minipage}
 \end{table}
 
@@ -1263,41 +1317,41 @@ in Table~\ref{tab:unseen_generalization} quantify this cross-circuit transfer.
 
 
 
-% =====================================================================
-\section{Discussion and limitations}\label{sec:discussion}
-% =====================================================================
+% % =====================================================================
+% \section{Discussion and limitations}\label{sec:discussion}
+% % =====================================================================
 
-The results identify the persistent tactical feasible region as the principal
-link between interactive reasoning and successful closed-loop overtaking. All
-matched methods share the same executor, yet fixing the corridor produced the
-largest loss in OSR and path feasibility, and removing the FSM produced the
-second largest loss. Response-set supervision further improved passing timing
-and clearance, while TQC provided a complementary gain through distributional
-value learning. This hierarchy supports the central representation: the
-learned corridor creates a spatial passing opportunity, and side commitment
-preserves that opportunity across repeated replanning. It extends the
-update-wise interaction reasoning of dynamic-game solvers
-~\cite{liniger2019game,wang2021game,fridovich2020ilqgames} and the rapid
-decision capability of learned racing policies
-~\cite{wurman2022gtsophy,fuchs2021superhuman,song2021overtaking} with an
-explicit space--speed interface for constrained planning.
+% The results identify the persistent tactical feasible region as the principal
+% link between interactive reasoning and successful closed-loop overtaking. All
+% matched methods share the same executor, yet fixing the corridor produced the
+% largest loss in OSR and path feasibility, and removing the FSM produced the
+% second largest loss. Response-set supervision further improved passing timing
+% and clearance, while TQC provided a complementary gain through distributional
+% value learning. This hierarchy supports the central representation: the
+% learned corridor creates a spatial passing opportunity, and side commitment
+% preserves that opportunity across repeated replanning. It extends the
+% update-wise interaction reasoning of dynamic-game solvers
+% ~\cite{liniger2019game,wang2021game,fridovich2020ilqgames} and the rapid
+% decision capability of learned racing policies
+% ~\cite{wurman2022gtsophy,fuchs2021superhuman,song2021overtaking} with an
+% explicit space--speed interface for constrained planning.
 
-Each layer has a distinct role. The response-set teacher evaluates plausible
-opponent reactions; the learned policy publishes the passing side, spatial
-extent, and speed demand; the FSM and carver maintain a connected channel as
-relative geometry changes; and the common executor realizes that channel as
-path--speed motion. The two detailed cases show this sequence during a short
-high-speed pass and a prolonged corner engagement, with tracking and
-acceleration responses compatible with the reference-level tire envelope.
-Target-computer HIL further captures optimization, CAN communication,
-fallback, and actuator allocation throughout this chain.
+% Each layer has a distinct role. The response-set teacher evaluates plausible
+% opponent reactions; the learned policy publishes the passing side, spatial
+% extent, and speed demand; the FSM and carver maintain a connected channel as
+% relative geometry changes; and the common executor realizes that channel as
+% path--speed motion. The two detailed cases show this sequence during a short
+% high-speed pass and a prolonged corner engagement, with tracking and
+% acceleration responses compatible with the reference-level tire envelope.
+% Target-computer HIL further captures optimization, CAN communication,
+% fallback, and actuator-command response throughout this chain.
 
-The present evaluation covers state-informed, two-vehicle HIL engagements on
-the EAV24 platform, together with geometric transfer tests on Imola and Suzuka.
-The next validation stage will incorporate perception-dependent corridor
-uncertainty, multiple opponents, per-cycle computation statistics, changing
-tire and surface conditions, and matched on-track experiments. These settings
-extend the operating scope of the same persistent feasible-set interface.
+% The present evaluation covers state-informed, two-vehicle HIL engagements on
+% the EAV24 platform, together with geometric transfer tests on Imola and Suzuka.
+% The next validation stage will incorporate perception-dependent corridor
+% uncertainty, multiple opponents, per-cycle computation statistics, changing
+% tire and surface conditions, and matched on-track experiments. These settings
+% extend the operating scope of the same persistent feasible-set interface.
 
 % =====================================================================
 \section{Conclusion}\label{sec:conclusion}
@@ -1311,7 +1365,8 @@ deterministic carving maintains it as the encounter evolves. A common
 sequential-SOCP and RC-NMPC
 executor then converts the published corridor into closed-loop path--speed
 motion. On the target RGS-8805GC computer in a dual-CAN EAV24 HIL loop, the
-method achieved 94.7\% overtaking success over 1000 laps and exceeded four
+method achieved 94.7\% overtaking success over 1000 Monte Carlo closed-loop
+simulations and exceeded four
 matched baselines by 31.2--66.2 percentage points. The fixed-corridor and
 no-FSM ablations produced the two largest performance losses, directly linking
 adaptive feasible-set generation and temporal persistence to successful
@@ -1319,7 +1374,6 @@ execution. These results establish tactical-corridor learning as an effective
 interface between interaction reasoning and constrained vehicle planning
 within state-informed, two-vehicle autonomous racing.
 
-\balance
 \appendix
 \section{Algorithm and Evaluation Parameters}
 \label{app:parameters}
@@ -1347,7 +1401,7 @@ Tire curves & \(\mu_x,\mu_y\); \(s_x,s_y\); \(q_{x,\rm pk},q_{y,\rm pk}\) &
 Tire envelope & construction; online evaluation &
 quasi-steady-state map~\eqref{eq:tire_accel_envelope}; speed interpolation \\
 Time scales & \(T_{\rm tac}\); \(T_c\); station spacing &
-\(0.10\) s; \(0.05\) s; \(2\) m \\
+\(0.02\) s; \(0.01\) s; \(2\) m \\
 Response-set teacher & Sobol candidates per side; \(\varepsilon_{\rm BR}\);
 \(\gamma_g\) & \(64\); \(0.05\); \(0.99\) \\
 Action projection & \(\Delta_g\); \(q_{\rm neu}\) & \(0.5\) m; \(0.25\) \\
@@ -1367,7 +1421,7 @@ Speed profile & \(H_s\); \(V_{\min},v_{x,\max}\); \(\varepsilon_\rho\) &
 \(150\); \(15,90\) m s\(^{-1}\); \(10^{-3}\) \\
 RC-NMPC & steps; \(T_c\); \(\delta_{\max}\); \(\dot\delta_{\max}\);
 \(\Delta V_{\max}\) &
-\(15\); \(0.05\) s; \(0.35\) rad; \(1.0\) rad s\(^{-1}\);
+\(15\); \(0.01\) s; \(0.35\) rad; \(1.0\) rad s\(^{-1}\);
 \(0.5\) m s\(^{-1}\) \\
 RC-NMPC weights & \(q_{\Delta\delta},q_c,q_\psi\); \(\bm R_\nu\) &
 \(2,20,10\); \(\operatorname{diag}(1,0.5)\) \\
@@ -1393,9 +1447,8 @@ Gap thresholds & $g_{\rm chase}\in[18,24]$ m;
 $g_{\rm ot}\in[16,24]$ m; $g_{\rm abort}\in[28,45]$ m \\
 Bias, recovery, side & $b_{\rm lat}\in[-1.5,1.5]$ m;
 $w_{\rm safe}\in[1,5]$ m; $q_{\rm side}\in[-1,1]$ \\
-Reward weights & $(w_{\rm ot},w_{\rm ovb},w_{\rm col},w_{\rm lat},
-w_{\rm crush},w_{\rm app},w_{\rm sm},w_{\rm gs},w_{\rm sbs},w_{\rm wide})
-=(30,-20,-100,-2,-5,3,-0.1,-0.5,0.5,0.25)$ \\
+Reward weights & $\bm w=(30,-20,-100,-2,-5,3,-0.1,-0.5,0.5,0.25)$,
+ordered as in Eq.~\eqref{eq:reward_sum} \\
 Optimization & learning rate $3\times10^{-4}$; replay capacity $10^5$;
 batch size $256$; target update $5\times10^{-3}$ \\
 Networks & independent actor encoder $51\!\to\!256\!\to\!256$; shared
@@ -1494,6 +1547,12 @@ K. Ji, N. Li, M. Orsag, and K. Han,
 vehicles in overtaking scenarios,'' \emph{Transportation Research Part C:
 Emerging Technologies}, vol. 150, art. 104109, 2023,
 doi: 10.1016/j.trc.2023.104109.
+
+\bibitem{ji2024competition}
+K. Ji, S. Bae, N. Li, and K. Han,
+``Competition-aware decision-making approach for mobile robots in racing
+scenarios,'' in \emph{Proc. IEEE Intelligent Vehicles Symposium (IV)}, 2024,
+pp. 878--884, doi: 10.1109/IV55156.2024.10588596.
 
 \bibitem{swain2023cooperative}
 S. K. Swain, J. J. Rath, and K. C. Veluvolu,
@@ -1627,6 +1686,12 @@ R. S. Thakkar, A. S. Samyal, D. Fridovich-Keil, Z. Xu, and U. Topcu,
 \emph{Field Robotics}, vol. 4, no. 1, pp. 46--69, 2024,
 doi: 10.55417/FR.2024002.
 
+\bibitem{reiter2023hierarchical}
+R. Reiter, J. Hoffmann, J. Boedecker, and M. Diehl,
+``A hierarchical approach for strategic motion planning in autonomous
+racing,'' in \emph{Proc. European Control Conference (ECC)}, 2023, pp. 1--8,
+doi: 10.23919/ECC57647.2023.10178143.
+
 \bibitem{hoffmann2026a2rl}
 S. Hoffmann, S. Sagmeister, T. Betz \emph{et al.},
 ``Head-to-head autonomous racing at the limits of handling in the A2RL
@@ -1658,17 +1723,6 @@ M. Veneri and M. Massaro,
 lap-time of race vehicles,''
 \emph{Vehicle System Dynamics}, vol. 58, no. 6, pp. 933--954, 2020,
 doi: 10.1080/00423114.2019.1608364.
-
-\bibitem{a2rl2024}
-Abu Dhabi Autonomous Racing League (A2RL),
-``Autonomous car race 2024,'' 2024. [Online]. Available:
-\url{https://a2rl.io/autonomous-car-race/car-race-2024}
-(accessed 18 August 2026).
-
-\bibitem{neousysrgs}
-Neousys Technology Inc., ``RGS-8805GC AMD EPYC 7003 series rugged HPC server:
-Product datasheet,'' 2023. [Online]. Available:
-\url{https://www.neousys-tech.com/product/product-lines/rugged-industrial-hpc-server/rgs-8805gc}.
 
 \end{thebibliography}
 

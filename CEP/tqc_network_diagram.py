@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Render a publication-ready single-column game-guided TQC schematic."""
+"""Draw the single-column response-set-guided TQC training architecture."""
 
 from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
 
 OUT = Path(__file__).resolve().parent / "tqc_network_diagram"
@@ -13,269 +13,237 @@ OUT = Path(__file__).resolve().parent / "tqc_network_diagram"
 mpl.rcParams.update({
     "font.family": "sans-serif",
     "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans", "sans-serif"],
-    "font.size": 7.2,
+    "font.size": 7.0,
+    "mathtext.fontset": "stixsans",
     "pdf.fonttype": 42,
     "ps.fonttype": 42,
     "svg.fonttype": "none",
 })
 
-INK = "#28333C"
-GREY = "#68747E"
-EDGE = "#D2D9DF"
-BLUE = "#285F9E"
-TEAL = "#28776D"
-PURPLE = "#76538D"
-ORANGE = "#B86A18"
-RED = "#C54B45"
-BLUE_BG = "#EEF4FA"
-TEAL_BG = "#EEF7F4"
-PURPLE_BG = "#F6F1F8"
+INK = "#26343D"
+MUTED = "#63727C"
+RULE = "#CAD3D9"
+NAVY = "#295D8F"
+TEAL = "#27796F"
+PURPLE = "#76518D"
+GOLD = "#B36A1D"
+RED = "#C64A43"
+
+PANEL = "#F8FAFB"
+BLUE_FILL = "#EEF4F9"
+TEAL_FILL = "#EDF7F4"
+PURPLE_FILL = "#F5F0F7"
+GOLD_FILL = "#FFF5E3"
 
 
-def panel(ax, y, h, title, color, face):
-    ax.add_patch(FancyBboxPatch(
-        (1.1, y), 97.8, h,
-        boxstyle="round,pad=0.012,rounding_size=0.75",
-        facecolor=face, edgecolor=EDGE, linewidth=0.75, zorder=0,
+def rounded(ax, x, y, w, h, *, face="white", edge=RULE, lw=0.85,
+            radius=0.75, linestyle="-", zorder=2):
+    patch = FancyBboxPatch(
+        (x, y), w, h,
+        boxstyle=f"round,pad=0.015,rounding_size={radius}",
+        facecolor=face, edgecolor=edge, linewidth=lw,
+        linestyle=linestyle, zorder=zorder,
+    )
+    ax.add_patch(patch)
+    return patch
+
+
+def text_box(ax, x, y, w, h, lines, *, face="white", edge=RULE,
+             lw=0.85, linestyle="-", radius=0.75):
+    rounded(ax, x, y, w, h, face=face, edge=edge, lw=lw,
+            radius=radius, linestyle=linestyle, zorder=3)
+    if isinstance(lines, str):
+        lines = [(lines, 6.6, "normal", INK)]
+    step = h / (len(lines) + 1)
+    for i, (txt, size, weight, color) in enumerate(lines, start=1):
+        ax.text(x + w / 2, y + h - i * step, txt,
+                fontsize=size, fontweight=weight, color=color,
+                ha="center", va="center", linespacing=1.0, zorder=5)
+
+
+def arrow(ax, start, end, *, color=INK, lw=0.9, style="-", curve="arc3",
+          zorder=4):
+    ax.add_patch(FancyArrowPatch(
+        start, end, arrowstyle="-|>", mutation_scale=6.6,
+        linewidth=lw, linestyle=style, color=color,
+        connectionstyle=curve, shrinkA=1.2, shrinkB=1.2, zorder=zorder,
     ))
-    ax.text(3.2, y + h - 3.6, title, fontsize=7.1, fontweight="bold",
+
+
+def route(ax, points, *, color=INK, lw=0.85, style="-", zorder=2):
+    xs, ys = zip(*points)
+    ax.plot(xs[:-1], ys[:-1], color=color, linewidth=lw,
+            linestyle=style, solid_capstyle="round", zorder=zorder)
+    arrow(ax, points[-2], points[-1], color=color, lw=lw, style=style,
+          zorder=zorder + 1)
+
+
+def lane(ax, y, h, title, color):
+    rounded(ax, 1.2, y, 97.6, h, face=PANEL, edge=RULE, lw=0.65,
+            radius=0.9, zorder=0)
+    ax.text(4.0, y + h - 3.4, title, fontsize=6.4, fontweight="bold",
             color=color, ha="left", va="center", zorder=6)
 
 
-def box(ax, x, y, w, h, text, *, edge=GREY, face="white", fontsize=7.2,
-        linestyle="-", linewidth=0.9, fontweight="normal", color=INK):
-    if "$" in text:
-        fontsize = max(fontsize, 7.2)
-    ax.add_patch(FancyBboxPatch(
-        (x, y), w, h,
-        boxstyle="round,pad=0.014,rounding_size=0.58",
-        facecolor=face, edgecolor=edge, linewidth=linewidth,
-        linestyle=linestyle, zorder=3,
-    ))
-    ax.text(x + w / 2, y + h / 2, text, fontsize=fontsize,
-            fontweight=fontweight, color=color, ha="center", va="center",
-            linespacing=1.05, zorder=5)
-
-
-def line_box(ax, x, y, w, h, lines, *, edge=GREY, face="white",
-             linestyle="-", linewidth=0.9):
-    """Draw a box whose plain-text and math lines can use different sizes."""
-    ax.add_patch(FancyBboxPatch(
-        (x, y), w, h,
-        boxstyle="round,pad=0.014,rounding_size=0.58",
-        facecolor=face, edgecolor=edge, linewidth=linewidth,
-        linestyle=linestyle, zorder=3,
-    ))
-    step = h / (len(lines) + 1)
-    for i, (text, fontsize, weight, color) in enumerate(lines, start=1):
-        ax.text(x + w / 2, y + h - i * step, text, fontsize=fontsize,
-                fontweight=weight, color=color, ha="center", va="center",
-                zorder=5)
-
-
-def network_box(ax, x, y, w, h, title, subtitle, color):
-    ax.add_patch(FancyBboxPatch(
-        (x, y), w, h,
-        boxstyle="round,pad=0.014,rounding_size=0.58",
-        facecolor="white", edgecolor=color, linewidth=1.0, zorder=3,
-    ))
-    for col, count in [(x + 2.2, 3), (x + 4.3, 4), (x + 6.4, 3)]:
-        for j in range(count):
-            cy = y + 2.0 + j * (h - 4.0) / (count - 1)
-            ax.add_patch(Circle((col, cy), 0.42, facecolor="white",
-                                edgecolor=color, linewidth=0.6, zorder=4))
-    ax.text(x + 7.9, y + h * 0.61, title, fontsize=7.1, fontweight="bold",
-            color=INK, ha="left", va="center", zorder=5)
-    subtitle_size = 7.2 if "$" in subtitle else 6.1
-    ax.text(x + 7.9, y + h * 0.34, subtitle, fontsize=subtitle_size, color=GREY,
-            ha="left", va="center", zorder=5)
-
-
-def arrow(ax, start, end, *, color=INK, lw=0.9, linestyle="-",
-          curve="arc3", zorder=2):
-    ax.add_patch(FancyArrowPatch(
-        start, end, arrowstyle="-|>", mutation_scale=6.8,
-        linewidth=lw, linestyle=linestyle, color=color,
-        connectionstyle=curve, shrinkA=1.0, shrinkB=1.0, zorder=zorder,
-    ))
-
-
-def routed_arrow(ax, points, *, color=INK, lw=0.9, linestyle="-", zorder=1):
-    """Draw an orthogonal connector with an arrowhead on the last segment."""
-    xs, ys = zip(*points)
-    ax.plot(xs[:-1], ys[:-1], color=color, linewidth=lw,
-            linestyle=linestyle, solid_capstyle="round", zorder=zorder)
-    arrow(ax, points[-2], points[-1], color=color, lw=lw,
-          linestyle=linestyle, zorder=zorder + 0.1)
-
-
-def atom_strip(ax, x, y, n=18):
-    """Symbolic sorted atoms; the final pair represents discarded upper atoms."""
-    width, gap, discarded = 1.20, 0.32, 2
+def atom_strip(ax, x, y):
+    """Compact symbolic rendering of sorted TQC atoms."""
+    n, keep = 16, 14
+    width, gap, height = 1.55, 0.28, 3.2
     for i in range(n):
-        is_discarded = i >= n - discarded
-        edge = RED if is_discarded else BLUE
-        face = "#F8DEDB" if is_discarded else "#DCEAF5"
         x0 = x + i * (width + gap)
-        ax.add_patch(Rectangle((x0, y), width, 3.0, facecolor=face,
-                               edgecolor=edge, linewidth=0.55, zorder=4))
-        if is_discarded:
-            ax.plot([x0 + 0.16, x0 + width - 0.16], [y + 0.22, y + 2.78],
-                    color=RED, linewidth=0.55, zorder=5)
-            ax.plot([x0 + 0.16, x0 + width - 0.16], [y + 2.78, y + 0.22],
-                    color=RED, linewidth=0.55, zorder=5)
+        discarded = i >= keep
+        edge = RED if discarded else NAVY
+        face = "#F8DFDC" if discarded else "#DCEAF5"
+        ax.add_patch(Rectangle(
+            (x0, y), width, height, facecolor=face, edgecolor=edge,
+            linewidth=0.55, zorder=5,
+        ))
+        if discarded:
+            ax.plot([x0 + 0.18, x0 + width - 0.18],
+                    [y + 0.25, y + height - 0.25], color=RED,
+                    linewidth=0.55, zorder=6)
+            ax.plot([x0 + 0.18, x0 + width - 0.18],
+                    [y + height - 0.25, y + 0.25], color=RED,
+                    linewidth=0.55, zorder=6)
 
 
 def main():
-    # 88.4 mm wide and approximately 106 mm high at final print size.
-    fig, ax = plt.subplots(figsize=(3.48, 4.18))
+    # Elsevier single-column width (88.4 mm), compact portrait layout.
+    fig, ax = plt.subplots(figsize=(3.48, 4.02))
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
     ax.set_xlim(0, 100)
-    ax.set_ylim(0, 120)
+    ax.set_ylim(0, 116)
     ax.axis("off")
 
-    panel(ax, 93.0, 25.0, "Online tactical publication", BLUE, BLUE_BG)
-    panel(ax, 64.0, 25.0, "Offline response-set supervision", PURPLE, PURPLE_BG)
-    panel(ax, 2.0, 58.0, "Projected-action TQC", TEAL, TEAL_BG)
+    lane(ax, 92.0, 22.5, "RESPONSE-SET SUPERVISION", PURPLE)
+    lane(ax, 62.0, 27.0, "ACTOR UPDATE  |  INDEPENDENT ENCODER", NAVY)
+    lane(ax, 25.0, 34.0, "CRITIC UPDATE  |  SHARED ENCODER", TEAL)
+    lane(ax, 1.5, 20.5, "TRUNCATED DISTRIBUTIONAL TARGET", NAVY)
 
-    # Online path: actor -> ordered projection -> deterministic publisher.
-    box(ax, 3.5, 100.0, 9.0, 10.0, "State\n$\\widetilde{\\mathbf{o}}$",
-        edge=GREY)
-    network_box(ax, 15.5, 98.0, 17.0, 14.0,
-                "Actor", "$\\pi_\\theta$", BLUE)
-    box(ax, 35.5, 98.0, 21.0, 14.0,
-        "$\\mathbf{a}^{\\rm raw}$\n$\\Pi_{\\mathcal{A}}$\n"
-        "$\\mathbf{a}^{\\rm B}$",
-        edge=ORANGE, face="#FFF5DF", fontsize=7.2)
-    ax.text(46.0, 96.3, "bound + order", fontsize=5.9, color=ORANGE,
-            ha="center", va="center")
-    line_box(ax, 59.5, 96.0, 20.5, 18.0, [
-        ("Publisher", 6.0, "normal", INK),
-        ("$\\mathcal{F}_h$", 7.2, "normal", INK),
-        ("FSM $\\cdot$ carver", 5.8, "normal", INK),
-        ("$\\Pi_{\\rm tire}$", 7.2, "normal", INK),
-        ("fallback", 5.8, "normal", INK),
-    ], edge=TEAL, face="#EDF6EC")
-    box(ax, 83.0, 105.0, 13.5, 7.5, "$\\mathbf{a}^{\\rm F}$",
-        edge=TEAL, fontsize=7.8)
-    box(ax, 83.0, 96.0, 13.5, 7.0, "$\\mathcal{G}_t$",
-        edge=TEAL, fontsize=7.8)
-    arrow(ax, (12.5, 105.0), (15.5, 105.0), color=BLUE, lw=1.0)
-    arrow(ax, (32.5, 105.0), (35.5, 105.0), color=BLUE, lw=1.0)
-    arrow(ax, (56.5, 105.0), (59.5, 105.0), color=TEAL, lw=1.0)
-    arrow(ax, (80.0, 108.7), (83.0, 108.7), color=TEAL, lw=1.0)
-    arrow(ax, (80.0, 99.5), (83.0, 99.5), color=TEAL, lw=1.0)
-    ax.text(89.8, 94.3, "to executor", fontsize=6.0, color=GREY,
-            ha="center", va="center")
+    # Offline teacher: the two outputs have deliberately different roles.
+    text_box(ax, 4.0, 96.0, 24.0, 11.5, [
+        ("Robust Stackelberg", 5.3, "bold", INK),
+        ("response-set", 5.3, "bold", INK),
+        ("teacher", 5.3, "bold", INK),
+    ], face=PURPLE_FILL, edge=PURPLE, lw=0.95)
+    text_box(ax, 34.0, 100.5, 26.0, 7.5, [
+        ("Response-set-optimal prior", 5.3, "normal", INK),
+        (r"$\mathbf{a}_{\rm th}^{\star}$", 8.0, "normal", INK),
+    ], edge=PURPLE)
+    text_box(ax, 64.0, 95.5, 32.0, 9.0, [
+        ("Matched teacher set", 5.6, "normal", INK),
+        (r"$\mathcal{D}_g:(\widetilde{\mathbf{o}}_g,\mathbf{a}_g^{\rm F},v_g)$",
+         7.0, "normal", INK),
+    ], edge=PURPLE)
+    arrow(ax, (28.0, 103.7), (34.0, 104.2), color=PURPLE)
+    arrow(ax, (28.0, 99.3), (64.0, 99.8), color=PURPLE)
 
-    # Teacher outputs: an optimal projected prior and matched value labels.
-    box(ax, 3.5, 70.0, 20.0, 10.5, "Response-set\nteacher",
-        edge=PURPLE, face="#EDE3F2", fontsize=5.8, fontweight="bold")
-    box(ax, 26.5, 73.0, 19.0, 9.0,
-        "Action prior\n$\\mathbf{a}_{\\rm th}^{\\star}$",
-        edge=PURPLE, fontsize=6.4)
-    box(ax, 26.5, 64.8, 32.5, 7.2,
-        "Matched $\\mathcal{D}_g\\ne\\mathcal{D}$\n"
-        "$(\\widetilde{\\mathbf{o}}_g,\\mathbf{a}_g^{\\rm F},v_g)$",
-        edge=PURPLE, fontsize=6.2)
-    line_box(ax, 65.0, 69.0, 31.0, 15.5, [
-        ("Actor update", 6.2, "normal", INK),
-        ("$J_\\pi+\\lambda_p\\mathcal{L}_p$", 7.2, "normal", INK),
-        ("$Q:\\;\\mathbf{a}^{\\rm F,ST}$", 7.2, "normal", INK),
-        ("$\\mathrm{entropy}:\\;\\mathbf{a}^{\\rm raw}$", 7.2, "normal", INK),
-    ], edge=ORANGE, face="#FFF4DD")
-    arrow(ax, (23.5, 76.5), (26.5, 77.5), color=PURPLE, lw=0.9)
-    arrow(ax, (23.5, 72.0), (26.5, 68.4), color=PURPLE, lw=0.9)
-    arrow(ax, (45.5, 77.5), (65.0, 77.5), color=PURPLE, lw=0.9)
+    # Actor branch. The critic supplies the projected-action Q gradient.
+    text_box(ax, 4.0, 69.0, 12.0, 11.0, [
+        (r"$\widetilde{\mathbf{o}}$", 8.0, "normal", INK),
+        ("51-D", 5.7, "normal", MUTED),
+    ], face=BLUE_FILL, edge=NAVY)
+    text_box(ax, 21.0, 67.0, 23.0, 15.0, [
+        ("Actor encoder", 6.0, "bold", INK),
+        (r"$\mathcal{E}^{\pi}_{\theta}$", 8.0, "normal", INK),
+        ("independent", 5.6, "normal", MUTED),
+    ], face="white", edge=NAVY, lw=0.95)
+    text_box(ax, 49.0, 67.0, 20.0, 15.0, [
+        ("Projected mean", 5.7, "normal", INK),
+        (r"$\mu^{\rm raw}\!\rightarrow\!"
+         r"\mu^{\rm B}\!\rightarrow\!"
+         r"\mu^{\rm F,ST}$", 6.8, "normal", INK),
+        (r"$\Pi_{\mathcal{A}}$ exact; $\Pi_{\rm tire}$ STE", 5.7, "normal", MUTED),
+    ], face=GOLD_FILL, edge=GOLD)
+    text_box(ax, 76.0, 67.0, 20.0, 15.0, [
+        ("Actor objective", 5.1, "bold", INK),
+        (r"$\mathcal{L}_{\rm actor}$", 7.7, "normal", INK),
+        (r"$=J_\pi+\lambda_p\mathcal{L}_p$", 6.8, "normal", INK),
+    ], face="white", edge=NAVY, lw=0.95)
+    arrow(ax, (16.0, 74.5), (21.0, 74.5), color=NAVY)
+    arrow(ax, (44.0, 74.5), (49.0, 74.5), color=NAVY)
+    arrow(ax, (69.0, 74.5), (76.0, 74.5), color=NAVY)
+    route(ax, [(47.0, 100.5), (47.0, 91.0), (72.0, 91.0),
+               (72.0, 84.0), (86.0, 84.0), (86.0, 82.0)],
+          color=PURPLE, lw=0.85)
+    ax.text(78.0, 83.3, "action prior", fontsize=5.4, color=PURPLE,
+            ha="center", va="top")
+    ax.text(59.0, 64.8, r"$Q$: $\mathbf{a}^{\rm F,ST}$   |   entropy: $\mathbf{a}^{\rm raw}$",
+            fontsize=5.8, color=MUTED, ha="center", va="center")
 
-    # Straight-through surrogate only for actor/prior gradients.
-    routed_arrow(ax,
-                 [(89.8, 105.0), (98.0, 105.0), (98.0, 91.0),
-                  (89.0, 91.0), (89.0, 84.5)],
-                 color=ORANGE, lw=0.85, linestyle=(0, (4, 2)), zorder=2)
-    ax.text(93.6, 92.1, "STE", fontsize=6.2, color=ORANGE,
-            ha="center", va="center")
-
-    # Main critic path.
-    line_box(ax, 4.0, 34.5, 16.0, 14.0, [
-        ("$\\mathrm{Replay}\\;\\mathcal{D}$", 7.2, "normal", INK),
-        ("stores", 5.8, "normal", INK),
-        ("exact", 5.8, "normal", INK),
-        ("$\\mathbf{a}^{\\rm F}$", 7.2, "bold", INK),
-    ], edge=BLUE, face="#E8F0F8")
-    network_box(ax, 24.0, 34.0, 23.0, 15.5,
-                "Shared", "encoder", TEAL)
-    line_box(ax, 51.0, 42.0, 15.0, 7.5, [
-        ("Head 1", 6.0, "normal", INK),
-        ("$N_q=25$", 7.2, "normal", INK),
+    # Critic branch: environment replay and matched teacher labels share only
+    # the critic-side representation.
+    text_box(ax, 4.0, 36.0, 16.0, 13.5, [
+        (r"Replay $\mathcal{D}$", 6.1, "bold", INK),
+        ("stores exact", 5.3, "normal", MUTED),
+        (r"$\mathbf{a}^{\rm F}$", 7.8, "normal", INK),
+    ], face=BLUE_FILL, edge=NAVY)
+    text_box(ax, 25.0, 34.0, 25.0, 17.0, [
+        ("Shared critic encoder", 5.2, "bold", INK),
+        (r"$\mathcal{E}^Q_{\zeta}$", 7.3, "normal", INK),
+        (r"$(\widetilde{\mathbf{o}},\mathbf{a}^{\rm F})$", 7.3, "normal", INK),
+    ], face=TEAL_FILL, edge=TEAL, lw=0.95)
+    text_box(ax, 55.0, 44.0, 14.5, 7.5, [
+        (r"$Q_1$: 25 atoms", 5.2, "normal", INK),
     ], edge=TEAL)
-    line_box(ax, 51.0, 33.5, 15.0, 7.0, [
-        ("Head 2", 6.0, "normal", INK),
-        ("$N_q=25$", 7.2, "normal", INK),
+    text_box(ax, 55.0, 35.0, 14.5, 7.5, [
+        (r"$Q_2$: 25 atoms", 5.2, "normal", INK),
     ], edge=TEAL)
-    line_box(ax, 51.0, 22.5, 15.0, 9.5, [
-        ("Value head", 5.8, "normal", INK),
-        ("$g_\\psi$", 7.2, "normal", INK),
-        ("training only", 5.8, "normal", INK),
-    ], edge=PURPLE, face="#F2EAF5", linestyle=(0, (4, 2)))
-    line_box(ax, 78.0, 33.5, 18.0, 16.0, [
-        ("Critic", 6.0, "bold", INK),
-        ("update", 6.0, "bold", INK),
-        ("$J_Q+\\lambda_g\\mathcal{L}_g$", 7.2, "normal", INK),
-    ], edge=TEAL)
-    arrow(ax, (20.0, 42.0), (24.0, 42.0), color=TEAL, lw=1.0)
-    arrow(ax, (47.0, 45.0), (51.0, 45.8), color=TEAL, lw=0.9)
-    arrow(ax, (47.0, 39.0), (51.0, 37.0), color=TEAL, lw=0.9)
-    arrow(ax, (47.0, 35.5), (51.0, 27.3), color=PURPLE, lw=0.9)
-    arrow(ax, (66.0, 45.8), (78.0, 44.5), color=TEAL, lw=0.9)
-    arrow(ax, (66.0, 37.0), (78.0, 39.5), color=TEAL, lw=0.9)
-    arrow(ax, (66.0, 27.3), (84.0, 33.5), color=PURPLE, lw=0.9)
+    text_box(ax, 55.0, 26.5, 13.0, 7.0, [
+        (r"$g_\psi$: value", 6.1, "normal", INK),
+        ("training only", 5.1, "normal", PURPLE),
+    ], face=PURPLE_FILL, edge=PURPLE, linestyle=(0, (3, 2)))
+    text_box(ax, 76.0, 34.0, 20.0, 17.0, [
+        ("Critic objective", 5.1, "bold", INK),
+        (r"$\mathcal{L}_{\rm critic}$", 7.5, "normal", INK),
+        (r"$=J_Q+\lambda_g\mathcal{L}_g$", 6.6, "normal", INK),
+    ], face="white", edge=TEAL, lw=0.95)
+    arrow(ax, (20.0, 42.5), (25.0, 42.5), color=TEAL)
+    arrow(ax, (50.0, 46.0), (55.0, 47.7), color=TEAL)
+    arrow(ax, (50.0, 41.5), (55.0, 38.7), color=TEAL)
+    arrow(ax, (50.0, 37.0), (55.0, 30.0), color=PURPLE)
+    arrow(ax, (69.5, 47.7), (76.0, 46.0), color=TEAL)
+    arrow(ax, (69.5, 38.7), (76.0, 40.0), color=TEAL)
+    arrow(ax, (68.0, 30.0), (79.0, 34.0), color=PURPLE)
 
-    # Matched teacher tuples use the same critic encoder but not replay D.
-    routed_arrow(ax,
-                 [(42.5, 64.8), (49.0, 62.0), (49.0, 43.0), (47.0, 43.0)],
-                 color=PURPLE, lw=0.9, zorder=2)
-    ax.text(50.3, 57.0, "$\\mathcal{D}_g$", fontsize=7.2, color=PURPLE,
-            ha="left", va="center")
+    # D_g actions enter the same critic encoder; their matched values supervise
+    # the scalar head through the auxiliary objective.
+    route(ax, [(96.0, 100.0), (97.5, 93.0), (97.5, 53.0),
+               (50.5, 53.0), (50.5, 46.0)],
+          color=PURPLE, lw=0.85)
+    ax.text(69.0, 53.7, "matched action--value pairs", fontsize=5.4,
+            color=PURPLE, ha="center", va="bottom")
 
-    # The projected-action critic supplies J_pi to the actor update.
-    routed_arrow(ax,
-                 [(66.0, 47.0), (71.0, 47.0), (71.0, 62.0),
-                  (80.5, 62.0), (80.5, 69.0)],
-                 color=BLUE, lw=0.9, zorder=1)
-    ax.text(76.0, 62.0, "$J_\\pi$", fontsize=7.2, color=BLUE,
-            ha="center", va="bottom")
+    # Quantile critics provide the actor's projected-action Q gradient.
+    route(ax, [(69.5, 48.8), (72.0, 48.8), (72.0, 61.0),
+               (91.5, 61.0), (91.5, 67.0)], color=NAVY, lw=0.85)
+    ax.text(80.5, 61.8, r"projected-action $J_\pi$", fontsize=5.4,
+            color=NAVY, ha="center", va="bottom")
 
-    # Exact a^F is the only action stored in environment replay.
-    routed_arrow(ax,
-                 [(96.5, 108.7), (98.5, 108.7), (98.5, 62.0),
-                  (2.5, 62.0), (2.5, 51.0), (12.0, 51.0), (12.0, 48.5)],
-                 color=TEAL, lw=0.95, zorder=1)
-
-    # Target-critic branch and TQC truncation.
-    line_box(ax, 4.0, 7.0, 16.0, 11.5, [
-        ("Target", 5.8, "normal", INK),
-        ("critics", 5.8, "normal", INK),
-        ("$2N_q=50$", 7.2, "normal", INK),
-    ], edge=BLUE, face="#E8F0F8")
-    routed_arrow(ax, [(12.0, 34.5), (12.0, 18.5)], color=INK, lw=0.8)
-    atom_strip(ax, 25.0, 11.2, n=18)
-    arrow(ax, (20.0, 12.7), (25.0, 12.7), color=INK, lw=0.85)
-    ax.text(38.5, 16.8, "pool and sort", fontsize=6.0, color=GREY,
+    # Standard TQC target: pool, sort, and remove the largest four atoms.
+    text_box(ax, 4.0, 6.0, 17.0, 9.5, [
+        ("Target", 5.5, "bold", INK),
+        ("critics", 5.5, "bold", INK),
+        (r"$2N_q=50$", 7.1, "normal", INK),
+    ], face=BLUE_FILL, edge=NAVY)
+    atom_strip(ax, 27.0, 9.2)
+    ax.text(41.0, 16.7, "sort 50 atoms", fontsize=5.2, color=MUTED,
             ha="center", va="center")
-    ax.text(38.5, 7.5, "retain $K=46$", fontsize=7.2, color=BLUE,
+    ax.text(40.0, 6.2, r"retain $K=46$", fontsize=6.2, color=NAVY,
             ha="center", va="center")
-    ax.text(62.5, 16.8, "discard 4", fontsize=6.0, color=RED,
+    ax.text(56.5, 16.7, "drop largest 4", fontsize=5.2, color=RED,
             ha="center", va="center")
-    line_box(ax, 77.0, 7.0, 19.0, 11.5, [
-        ("Detached", 5.8, "normal", INK),
-        ("target", 5.8, "normal", INK),
-        ("$\\mathcal{Y}_t=\\operatorname{sg}[\\,\\cdot\\,]$", 7.2, "normal", INK),
-    ], edge=BLUE)
-    arrow(ax, (53.0, 12.7), (77.0, 12.7), color=INK, lw=0.85)
-    routed_arrow(ax,
-                 [(86.5, 18.5), (86.5, 25.0), (90.0, 25.0), (90.0, 33.5)],
-                 color=INK, lw=0.85, zorder=1)
+    text_box(ax, 76.0, 6.0, 20.0, 9.5, [
+        ("Detached", 5.5, "bold", INK),
+        ("target", 5.5, "bold", INK),
+        (r"$\mathcal{Y}_t=\operatorname{sg}[\,\cdot\,]$", 6.6, "normal", INK),
+    ], edge=NAVY)
+    arrow(ax, (21.0, 10.7), (27.0, 10.7), color=INK, lw=0.8)
+    arrow(ax, (57.0, 10.7), (76.0, 10.7), color=INK, lw=0.8)
+    route(ax, [(86.0, 15.5), (86.0, 25.0), (90.0, 25.0), (90.0, 34.0)],
+          color=INK, lw=0.8)
+    route(ax, [(12.5, 36.0), (12.5, 22.5), (12.5, 15.5)],
+          color=INK, lw=0.8)
 
     fig.savefig(OUT.with_suffix(".svg"), bbox_inches="tight", pad_inches=0.02)
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.02)

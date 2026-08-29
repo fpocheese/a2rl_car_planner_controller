@@ -7,9 +7,9 @@ responses and supplies action and value supervision to Truncated Quantile
 Critics. The policy publishes a passing-side intention, time-varying Frenet
 bounds, and a speed cap. A hysteretic state machine and footprint carver
 maintain a connected, side-consistent corridor, which a sequential SOCP, speed
-profiler, and nonlinear MPC realize as closed-loop path--speed motion. In 1000
-target-computer HIL laps, the method achieved 94.7\% overtaking success and a
-mean overtaking time of 4.82~s. Success exceeded four matched baselines by
+profiler, and nonlinear MPC realize as closed-loop path--speed motion.
+Experimental results indicate that the method achieves a 94.7\% overtaking
+success rate and a mean overtaking time of 4.82~s. Success exceeded four matched baselines by
 31.2--66.2 percentage points; fixed-corridor and no-FSM ablations reduced
 success by 18.6 and 12.4 points. These results show that a persistent tactical
 feasible region provides an effective interface between interactive decisions
