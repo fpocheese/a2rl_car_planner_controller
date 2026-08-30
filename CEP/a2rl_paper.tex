@@ -246,7 +246,10 @@ Figure~\ref{fig:vehicle_track_model} shows the two-vehicle overtaking problem
 considered in this study, in which the ego race car must overtake a
 non-cooperative opponent on a closed track. The following
 models define the vehicle and interaction quantities used by the tactical
-policy and executor.
+policy and executor. Both vehicles are represented by identical rectangular
+footprints centered at their state reference points, with length $L_j=5.2$~m
+and width $W_j=1.9$~m,
+$j\in\{e,o\}$.
 
 \begin{figure}[t]
 \centering
@@ -958,30 +961,25 @@ Frenet trajectories, and speed response. In panel~(b), $s-s_0$ denotes
 trackwise progress relative to the initial ego position, and $n$ denotes the
 lateral position relative to the track centerline. The published feasible
 corridor remains within the physical track boundaries, and the actual ego
-trajectory stays inside this corridor from approach to pass completion.
-The change from $\Delta s_{\rm E}>0$ at Encounter to
-$\Delta s_{\rm P}<0$ at Pass records the longitudinal order reversal, while
-$|\Delta n_{\rm E}|$ and $|\Delta n_{\rm P}|$ give the corresponding lateral
-separations. The actual speed follows the desired profile and exceeds
-70~m~s$^{-1}$ during the pass.
+trajectory stays inside this corridor through the side-by-side passage.
+Triangles and squares mark footprint-based Encounter and Pass events. For the
+nearly aligned vehicles, Encounter begins at
+$\Delta s_{\rm E}\simeq(L_e+L_o)/2=5.2$~m, when the longitudinal body envelopes
+first overlap after the corridor has established $|\Delta n_{\rm E}|$. Pass is
+the side-by-side instant $\Delta s_{\rm P}\simeq0$, where
+$|\Delta n_{\rm P}|$ exceeds the combined projected half-width,
+$(W_e+W_o)/2=1.9$~m. Thereafter, $\Delta s<0$ records the ego reference point
+moving ahead, and $\Delta s\leq-5.2$~m marks full longitudinal clearance. The
+actual speed follows the desired profile and exceeds 70~m~s$^{-1}$ during the
+pass.
 
 \begin{figure}[!tbp]
 \centering
-\subfloat[FSM mode sequence.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
+\subfloat[FSM mode]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle-speed response.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
-\caption{Tactical, spatial, and speed evolution in Case~I. (a) The FSM
-progresses from \textsc{Raceline} through \textsc{Shadow} to the committed
-\textsc{Overtake} mode. (b) The actual ego trajectory remains inside the
-published feasible corridor, which lies within the physical track boundaries.
-Triangles and squares mark the Encounter and Pass events, respectively. With
-$\Delta s=s_o-s_e$ and $\Delta n=n_o-n_e$, $\Delta s_{\rm E}$ and
-$|\Delta n_{\rm E}|$ denote the signed longitudinal and absolute lateral
-separations at Encounter, while $\Delta s_{\rm P}$ and
-$|\Delta n_{\rm P}|$ denote those at Pass. The change from
-$\Delta s_{\rm E}>0$ to $\Delta s_{\rm P}<0$ identifies the completed
-overtake. (c) The actual speed tracks the desired profile and exceeds
-70~m~s$^{-1}$ during the pass.}
+\subfloat[Vehicle-speed]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
+\caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
+response in Case~I.}
 \label{fig:case02_tactical_new}
 \end{figure}
 
@@ -999,10 +997,8 @@ throughout the high-speed pass.
 \subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
 \subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_heading.png}}\\[-0.5mm]
 \subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
-\caption{Closed-loop tracking and tire-demand response in Case~I. (a--c)
-Lateral, speed, and heading errors remain close to zero, with brief transients
-during the tactical transition. (d) All recorded tangential--normal
-acceleration samples remain inside the speed-dependent tire envelope.}
+\caption{Closed-loop tracking errors and realized acceleration demand in
+Case~I.}
 \label{fig:case02_tracking_new}
 \end{figure}
 
@@ -1021,28 +1017,21 @@ trackwise progress relative to the initial ego position, and $n$ denotes the
 lateral position relative to the track centerline. The published feasible
 corridor follows the changing track boundaries, and the actual ego trajectory
 remains inside it while reversing lateral direction through the consecutive
-corners. The change from $\Delta s_{\rm E}>0$ at Encounter to
-$\Delta s_{\rm P}<0$ at Pass records the longitudinal order reversal, while
-$|\Delta n_{\rm E}|$ and $|\Delta n_{\rm P}|$ give the corresponding lateral
-separations. From an entry speed above 60~m~s$^{-1}$, the actual speed follows
-the desired braking and re-acceleration profile throughout the pass.
+corners. At Encounter, the curved corridor has already established
+$|\Delta n_{\rm E}|$ as the longitudinal footprints begin to overlap. At Pass,
+$\Delta s_{\rm P}\simeq0$ and $|\Delta n_{\rm P}|$ remains above the corresponding
+projected-width threshold, preserving lateral clearance through the
+side-by-side configuration.
+From an entry speed above 60~m~s$^{-1}$, the actual speed follows the desired
+braking and re-acceleration profile throughout the pass.
 
 \begin{figure}[!tbp]
 \centering
-\subfloat[FSM mode sequence.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
+\subfloat[FSM mode]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle-speed response.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
-\caption{Tactical, spatial, and speed evolution in Case~II. (a) The FSM
-progresses from \textsc{Raceline} through \textsc{Shadow} to the committed
-\textsc{Overtake} mode and retains the selected passing side through the
-consecutive corners. (b) The actual ego trajectory remains inside the published
-feasible corridor as it follows the varying physical track boundaries.
-Triangles and squares mark the Encounter and Pass events, respectively. With
-$\Delta s=s_o-s_e$ and $\Delta n=n_o-n_e$, the change from
-$\Delta s_{\rm E}>0$ to $\Delta s_{\rm P}<0$ identifies the completed overtake,
-while $|\Delta n_{\rm E}|$ and $|\Delta n_{\rm P}|$ give the corresponding
-lateral separations. (c) The actual speed tracks the desired braking and
-re-acceleration profile from an entry speed above 60~m~s$^{-1}$.}
+\subfloat[Vehicle-speed]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
+\caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
+response in Case~II.}
 \label{fig:case05_tactical_new}
 \end{figure}
 
@@ -1061,11 +1050,8 @@ available track width.
 \subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_speed.png}}\\[-0.5mm]
 \subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_heading.png}}\\[-0.5mm]
 \subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
-\caption{Closed-loop tracking and tire-demand response in Case~II. (a--c)
-Lateral, speed, and heading errors remain bounded about zero, with short
-transients during the curvature and speed transitions. (d) All recorded
-tangential--normal acceleration samples remain inside the speed-dependent tire
-envelope over the recorded speed range.}
+\caption{Closed-loop tracking errors and realized acceleration demand in
+Case~II.}
 \label{fig:case05_tracking_new}
 \end{figure}
 
@@ -1081,64 +1067,77 @@ representation and its constituent modules.
 \subsection{Comparison with tactical baselines}
 \label{subsec:comparison}
 
-All methods use the same plant, race-control interface, corridor projection,
-path and speed planners, and control module, with the tactical
-guidance module defining each comparison. \emph{Pure Raceline} follows the
-nominal racing line. \emph{Non-Interactive MPC} predicts the opponent
-independently of the ego plan and imposes obstacle constraints on the
-result~\cite{kabzan2020amzracing,betz2023autonomous}.
-\emph{Rule-based GT} uses a fixed-threshold state machine
-($g_{\rm chase}=20$ m, $g_{\rm ot}=8$ m, and $g_{\rm abort}=35$ m).
-\emph{iLQGames} computes coupled local responses with iterative
-linear-quadratic game approximations~\cite{fridovich2020ilqgames}. Outputs from
-all baselines are projected onto the same side, speed-cap, and corridor
-interface, yielding a matched comparison of tactical reasoning.
+All methods share the same vehicle plant, race-control interface, corridor
+projection, path and speed planners, and control module; only the tactical
+guidance generator differs. \emph{Non-Interactive MPC} predicts the opponent
+independently of the ego plan and incorporates the predicted occupancy into its
+obstacle constraints~\cite{kabzan2020amzracing,betz2023autonomous}.
+\emph{Rule-based GT} selects its tactical mode using a fixed-threshold state
+machine parameterized by \(g_{\rm chase}=20~\mathrm{m}\),
+\(g_{\rm ot}=8~\mathrm{m}\), and \(g_{\rm abort}=35~\mathrm{m}\).
+\emph{iLQGames} computes coupled local responses through iterative
+linear-quadratic game approximations~\cite{fridovich2020ilqgames}. The outputs
+of all baselines are mapped to a common tactical interface comprising a
+passing-side command, a speed cap, and corridor parameters before entering the
+shared planning and control stack. This setup isolates the effect of tactical
+guidance on closed-loop overtaking performance.
 
 \begin{table}[!tbp]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
 \renewcommand{\arraystretch}{1.08}
-\caption{Matched comparison over 1000 Monte Carlo closed-loop HIL runs per
-method. Arrows indicate the preferred direction.}
+\caption{Comparison over 1000 Monte Carlo closed-loop HIL runs per method.
+Arrows indicate the preferred direction.}
 \label{tab:comparison}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Metric & Prop. & PR & NI-MPC & RB-GT & iLQG \\
+Metric & Prop. & NI-MPC & RB-GT & iLQG \\
 \midrule
-OSR [\%] $\uparrow$             & \textbf{94.7} & 38.2 & 28.5 & 51.6 & 63.5 \\
-OSR def. [pp] $\downarrow$      & \textbf{0.0} & 56.5 & 66.2 & 43.1 & 31.2 \\
-TTO [s] $\downarrow$            & \textbf{4.82} & 7.25 & 11.23 & 9.37 & 7.83 \\
-Min. gap [m] $\uparrow$         & \textbf{5.83} & 1.42 & 3.85 & 2.14 & 2.31 \\
-Contact [\%] $\downarrow$      & \textbf{0.0} & 2.1 & 0.7 & 4.8 & 1.4 \\
-Mean TTC [s] $\uparrow$         & \textbf{8.52} & 3.21 & 6.92 & 5.64 & 5.73 \\
-Track viol. [\%] $\downarrow$  & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} \\
-PFR $\uparrow$                  & \textbf{1.000} & 0.988 & 0.998 & 0.987 & 0.995 \\
+OSR [\%] $\uparrow$
+& \textbf{94.7} & 28.5 & 51.6 & 63.5 \\
+TTO [s] $\downarrow$
+& \textbf{4.82} & 11.23 & 9.37 & 7.83 \\
+Min. gap [m] $\uparrow$
+& \textbf{5.83} & 3.85 & 2.14 & 2.31 \\
+Contact rate [\%] $\downarrow$
+& \textbf{0.0} & 0.7 & 4.8 & 1.4 \\
+Mean TTC [s] $\uparrow$
+& \textbf{8.52} & 6.92 & 5.64 & 5.73 \\
+Track violation [\%] $\downarrow$
+& \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} \\
+PFR $\uparrow$
+& \textbf{1.000} & 0.998 & 0.987 & 0.995 \\
 \bottomrule
 \end{tabular}
-\vspace{1mm}
 
+\vspace{1mm}
 \begingroup
 \scriptsize
-\emph{Notes:} Prop., proposed method; PR, Pure Raceline; NI-MPC,
-Non-Interactive MPC; RB-GT, Rule-based GT; iLQG, iLQGames. OSR def.
-is the percentage-point deficit from Prop. Min. gap is the mean per-lap
-minimum net clearance between the vehicle body envelopes. PFR is the fraction
-of planning cycles with a feasible SOCP solution. Bold denotes the best
-observed value; equal track
-violation values are jointly bold.
+\emph{Notes:} Prop., proposed method; NI-MPC, Non-Interactive MPC;
+RB-GT, Rule-based GT; iLQG, iLQGames. TTO is averaged over successful
+overtaking attempts. Min. gap is the mean per-run minimum net clearance
+between the vehicle body envelopes. PFR is the fraction of planning cycles
+with a feasible SOCP solution. Bold denotes the best observed value; equal
+track-violation values are jointly bold.
 \par\endgroup
 \end{table}
 
-The proposed tactical-corridor policy completed 94.7\% of the laps, exceeding
-the strongest baseline, iLQGames, by 31.2 percentage points while increasing
-the mean minimum gap from 2.31 to 5.83~m and reducing the contact rate from
-1.4\% to 0.0\% (Table~\ref{tab:comparison}). iLQGames achieved the strongest baseline result,
-showing the value of coupled interaction reasoning, whereas the additional
-conversion of that reasoning into a persistent feasible region markedly
-increased successful closed-loop realization. The PFR of 1.000 further shows
-that the published corridors consistently supplied usable domains to the
-common planner across the evaluated laps.
+Across 1000 Monte Carlo closed-loop HIL runs per method, the proposed method
+achieved an overtaking success rate of 94.7\% and a mean overtaking time of
+4.82~s. Compared with the three baselines, the success rate increased by
+31.2--66.2 percentage points and the mean overtaking time decreased by
+3.01--6.41~s. Among the baselines, iLQGames achieved the highest success rate
+of 63.5\%, demonstrating the benefit of coupled interaction reasoning. The
+further improvement obtained by the proposed method demonstrates the advantage
+of expressing tactical reasoning as a persistent feasible region for
+closed-loop execution. Compared with iLQGames, the proposed method increased
+the mean minimum gap from 2.31 to 5.83~m and reduced the contact rate from
+1.4\% to zero. A PFR of 1.000 indicates that the common SOCP planner found a
+feasible solution at every planning cycle.
+
+
+
 
 \subsection{Ablation study}
 \label{subsec:ablation}
