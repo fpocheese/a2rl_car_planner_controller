@@ -1,17 +1,8 @@
-Interactive overtaking in autonomous racing requires opponent-aware tactical
-decisions that remain coherent across repeated replanning and provide a
-realizable channel for downstream optimization. We address this
-decision-to-execution problem through game-guided tactical-corridor learning.
-A robust Stackelberg response-set teacher evaluates near-best opponent
-responses and supplies action and value supervision to Truncated Quantile
-Critics. The policy publishes a passing-side intention, time-varying Frenet
-bounds, and a speed cap. A hysteretic state machine and footprint carver
-maintain a connected, side-consistent corridor, which a sequential SOCP, speed
-profiler, and nonlinear MPC realize as closed-loop path--speed motion.
-Experimental results indicate that the method achieves a 94.7\% overtaking
-success rate and a mean overtaking time of 4.82~s. Success exceeded four matched baselines by
-31.2--66.2 percentage points; fixed-corridor and no-FSM ablations reduced
-success by 18.6 and 12.4 points. These results show that a persistent tactical
-feasible region provides an effective interface between interactive decisions
-and closed-loop vehicle execution.
+Overtaking planning and decision-making are central to performance in autonomous racing.
+Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed passes and collisions.
+To address this problem, we formulate interactive overtaking as robust tactical feasible-set selection and develop a game-guided decision framework that distils Stackelberg response-set reasoning into persistent tactical corridors for constrained motion planning and closed-loop execution.
+First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
+Second, a hysteretic state machine preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
+Finally, a corridor-constrained sequential SOCP planner and speed profiler generate a continuous path–speed reference, which is tracked by a reference-conditioned contouring-error nonlinear model predictive controller (RC-NMPC) for closed-loop vehicle control.
+Hardware-in-the-loop experiments were conducted using an EAV24 formula race-car simulator. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with four baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 2.43–6.41 s shorter; no collisions or track-boundary violations were observed.
 
