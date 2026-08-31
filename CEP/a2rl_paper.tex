@@ -83,7 +83,7 @@ To address this problem, we formulate interactive overtaking as robust tactical 
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
 Second, a hysteretic state machine preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
 Finally, a corridor-constrained sequential SOCP planner and speed profiler generate a continuous path–speed reference, which is tracked by a reference-conditioned contouring-error nonlinear model predictive controller (RC-NMPC) for closed-loop vehicle control.
-Hardware-in-the-loop experiments were conducted using an EAV24 formula race-car simulator. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with four baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 2.43–6.41 s shorter; no collisions or track-boundary violations were observed.
+Hardware-in-the-loop experiments were conducted using an EAV24 formula race-car simulator. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with three baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
 
 \end{abstract}
 
@@ -374,15 +374,23 @@ state, and $\omega(s)$ is the planned-path curvature:
 % standard execution details are summarized to preserve experimental space.
 
 % =====================================================================
-\section{Game-Supervised Tactical Feasible-Set Policy}\label{sec:tactical}
+\section{Game-Supervised Tactical Feasible-Region Framework for Interactive Overtaking}\label{sec:tactical}
 % =====================================================================
-The tactical layer converts opponent-aware interaction reasoning into a
-persistent feasible region. Response-set supervision identifies overtaking
-opportunities across plausible opponent reactions, TQC amortizes this
-reasoning into a real-time policy, and the hybrid publisher maintains the
-selected side while constructing explicit corridor bounds for the planner.
 
-\subsection{Executable Stackelberg Response-Set Supervision}
+The proposed tactical layer represents interactive overtaking decisions as
+persistent feasible regions for constrained motion planning. A robust
+Stackelberg response-set teacher evaluates constraint-admissible tactical
+candidates against near-best follower responses and generates a
+response-set-optimal action prior together with action-conditioned
+robust-value labels. A projected-action TQC actor--critic distils this
+supervision into passing-side intention, corridor parameters, and speed
+demand. A hysteretic state machine preserves the selected passing side, while
+a deterministic opponent-footprint carver converts the learned corridor
+parameters and evolving interaction geometry into time-varying Frenet
+corridors.
+
+
+\subsection{Robust Stackelberg Response-Set Supervision}
 \label{subsec:game_formulation}
 At each tactical update, the encoder combines the two vehicle states, local
 track preview, current mode, side lock, and execution health into
@@ -396,23 +404,19 @@ q_{\rm side}\bigr]^\top .
 \end{aligned}
 \label{eq:action_vec}
 \end{equation}
-where the components specify the usable track widths, footprint margin,
-requested speed cap, ordered interaction distances, defensive interval, and
-side intention. Together, these variables describe the spatial extent,
-timing, and side commitment of the passing opportunity. The Euclidean
-projection $\Pi_{\mathcal A}$ enforces the component bounds in
-Table~\ref{tab:setup_params}, the guard order
-$g_{\rm ot}+\Delta_g\le g_{\rm chase}\le g_{\rm abort}-\Delta_g$, and the
-minimum corridor width. The tactical action therefore follows the single
-chain
-\[
-\bm a^{\rm raw}\xrightarrow{\Pi_{\mathcal A}}\bm a^{\rm B}
-\xrightarrow{\Pi_{\rm tire}}\bm a^{\rm F},\qquad
-\mathcal G_t=(m_{t+1},\sigma_{t+1}^{\rm lock},
-V_{{\rm cap},t}^{\rm F},\mathcal C_t).
-\]
-The neural policy determines the tactical sample; mode, lock, corridor, and
-speed-cap publication are resolved by Algorithm~\ref{alg:tactical_corridor}.
+where the components specify the left and right lateral caps, footprint
+clearance, requested speed cap, three mode-transition distances, defensive
+lateral offset and width, and passing-side intention. Together, they
+parameterize a planner-compatible tactical feasible region with speed
+guidance. The Euclidean projection $\Pi_{\mathcal A}$ maps the raw action into
+the admissible parameter domain by enforcing the component bounds in
+Table~\ref{tab:setup_params}, the ordered transition thresholds
+$g_{\rm ot}+\Delta_g\le g_{\rm chase}\le
+g_{\rm abort}-\Delta_g$, and the minimum corridor width. This produces the
+bound-projected action $\bm a^{\rm B}$, which is subsequently processed by the
+tire-admissibility projection $\Pi_{\rm tire}$ to obtain the final tactical
+action $\bm a^{\rm F}$.
+
 
 The offline teacher forms deterministic leader and follower banks by combining
 the three side codes with a Sobol design over the remaining action components.
@@ -616,7 +620,7 @@ matched action--value supervision. The action prior guides corridor
 placement, while the auxiliary value labels organize the critic representation
 according to the robustness of the corresponding passing region.
 
-\subsection{Persistent Tactical Modes and Corridor Carving}
+\subsection{Persistent Tactical Feasible-Region Interface}
 \label{subsec:corridor_synthesis}
 The state machine carries the selected passing opportunity across successive
 tactical updates. This temporal persistence complements the spatial corridor:
@@ -629,8 +633,9 @@ through \textsc{Shadow} and \textsc{Overtake}, and released only after a
 confirmed pass, an abort, or an execution-health failure. Health and abort
 take precedence over passing, completed passes take precedence over continued
 overtaking, and an unlocked ego enters \textsc{Defend} only when a rear
-opponent is closing. The post-pass indicator $P_t$ used in the reward denotes
-$N_{\rm post}$ consecutive updates beyond the overtake clearance threshold.
+opponent is closing. 
+The pass-confirmation indicator $P_t$ is set when
+$\Delta s_t\le0$ holds for $N_{\rm post}$ consecutive tactical updates.
 
 The geometric operation that realizes the selected side is the corridor
 carver. For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
@@ -711,7 +716,8 @@ at constant Frenet velocity, and evaluate the available side widths
 \IF{$h_t$ is invalid, or a locked state satisfies $\Delta s_t\ge g_{\rm abort}$ or
 loses $L_{\min}^{\rm corr}$ width}
 \STATE set \textsc{Hold} and release the side lock
-\ELSIF{the locked ego satisfies $\Delta s_t\le-g_{\rm ot}$ for $N_{\rm post}$ updates}
+\ELSIF{the locked ego satisfies $\Delta s_t\le0$ for
+$N_{\rm post}$ consecutive updates}
 \STATE set $P_t=1$, return to \textsc{Raceline}, and release the lock
 \ELSIF{a lock exists, or a non-neutral feasible side is requested with
 $0<\Delta s_t\le g_{\rm chase}$ and $\Delta v_t\ge0$}
@@ -734,6 +740,14 @@ revalidate the preceding corridor for at most one update
 otherwise return braking-fallback status
 \end{algorithmic}
 \end{algorithm}
+
+Together, the robust Stackelberg response-set teacher, projected-action TQC
+policy, and persistent tactical feasible-region interface transform
+opponent-aware interaction reasoning into side-consistent Frenet bounds and
+speed guidance for constrained motion planning. By adapting the corridor
+geometry while preserving the selected passing side, the framework maintains
+a consistent overtaking intention throughout the interaction.
+
 
 % =====================================================================
 \section{Corridor-Constrained Path--Speed Planning and Closed-Loop Execution}
@@ -836,10 +850,12 @@ Here $\bm\nu_k^r=[V_k^r,\delta_k^r]^\top$, with
 $\delta_k^r=\arctan((l_f+l_r)\kappa_{p,k}^r)$. The quantities
 $e_{c,k}=(\bm n_k^r)^\top(\bm p_k-\bm p_k^r)$,
 $e_{\psi,k}=\operatorname{wrap}(\theta_k-\theta_k^r)$, and
-$\bm e_{\nu,k}=\bm\nu_k-\bm\nu_k^r$ are the contouring, heading, and input
-tracking errors. The stagewise bound $V_{{\rm cap},t,k}^{\rm C}$ is obtained by
+$\bm e_{\nu,k}=\bm\nu_k^r-\bm\nu_k
+=[V_k^r-V_k,\,\delta_k^r-\delta_k]^\top$
+are the contouring, heading, and input tracking errors.
+The stagewise bound $V_{{\rm cap},t,k}^{\rm C}$ is obtained by
 rate-limiting the steady tactical request from the previous speed command.
-Realized tire demand is reported in Section~\ref{sec:experiments}.
+% Realized tire demand is reported in Section~\ref{sec:experiments}.
 
 \begin{algorithm}[!tbp]
 \caption{Common reference generator and executor}
@@ -913,83 +929,87 @@ gap is the smallest net clearance between the ego and opponent body envelopes
 over a lap. Mean TTC and contact/track-violation rates describe interaction
 safety, while PFR is the fraction of feasible planning updates.
 
+
+
 \subsection{Overtaking performance under representative track conditions}
 \label{subsec:representative_cases}
 
-To examine whether the learned feasible region remains coherent across
-different overtaking geometries, Fig.~\ref{fig:four_case_track_overview}
-presents four encounters at separated locations on the Yas Marina circuit.
-Each spatial view pairs the published corridor and planned path with
-synchronized \textsc{Shadow} and \textsc{Overtake} frames. Across the four
-encounters, the paired views show how the feasible region evolves from
-approach guidance to a committed passing channel. In Case~I, the
-\textsc{Shadow} corridor at $\Delta s=18.6$~m places the planned path on the
-selected side behind the opponent; at $\Delta s=0.1$~m, the
-\textsc{Overtake} corridor excludes the opponent footprint and preserves a
-continuous path along the straight. Case~II exhibits the same progression
-through a tight bend: the corridor first establishes the lateral approach at
-$\Delta s=17.8$~m and then follows the track curvature while maintaining the
-locked-side channel at $\Delta s=0.0$~m. In Case~III, the corridor conforms to
-the sweeping corner during \textsc{Shadow} and carries the planned path past
-the opponent as the gap decreases from $15.0$ to $0.2$~m. Case~IV selects the
-complementary side in the opposite curved geometry; its gradual
+To evaluate overtaking performance across different geometries and illustrate
+the evolution of the learned feasible region throughout each maneuver,
+Fig.~\ref{fig:four_case_track_overview} presents four representative
+encounters at distinct locations on Yas Marina North. The matching labels
+(b)--(i) link each spatial view of the published corridor and planned path to
+its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. Across
+the four encounters, the feasible region evolves from approach guidance into a
+committed passing channel. In Case~1, the \textsc{Shadow} corridor at
+$\Delta s=18.6$~m places the planned path on the selected side behind the
+opponent; at $\Delta s=0.1$~m, the \textsc{Overtake} corridor excludes the
+opponent footprint and preserves a continuous path along the straight. Case~2
+exhibits the same progression through a tight bend: the corridor first
+establishes the lateral approach at $\Delta s=17.8$~m and then follows the
+track curvature while maintaining the locked-side channel at
+$\Delta s=0.0$~m. In Case~3, the corridor conforms to the sweeping corner
+during \textsc{Shadow} and carries the planned path past the opponent as the
+relative longitudinal gap decreases from $15.0$ to $0.2$~m. Case~4 selects the
+complementary side in the oppositely curved section; its gradual
 \textsc{Shadow} offset develops into a fully carved \textsc{Overtake} region
-as $\Delta s$ decreases from $14.3$ to $0.1$~m. The eight spatial views thus
-show that the state-dependent corridor consistently converts side intention
-into a connected, track-conforming passing region across straight and curved
-sections. Cases~I and II are then examined in detail as representative
-high-speed overtakes on a straight and through a consecutive-corner sequence.
+as $\Delta s$ decreases from $14.3$ to $0.1$~m. These views demonstrate that
+the state-dependent corridor consistently converts side intention into a
+connected, track-conforming passing region across straight and curved
+sections. Cases~1 and 2 are examined in detail as representative high-speed
+overtakes on a straight and through a consecutive-corner sequence.
 
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=\textwidth]{track_overview_case0205_v019.png}
-\caption{Representative overtaking situations on the Yas Marina circuit. }
+\caption{Representative overtaking situations on Yas Marina North.}
 \label{fig:four_case_track_overview}
 \end{figure*}
 
-\subsubsection*{Case I: high-speed overtake on a straight}
+\subsubsection*{Case 1: high-speed overtake on a straight}
 
-Case~I represents a high-speed overtake on the long straight. In
+Case~1 represents a high-speed overtake on the long straight. In
 Fig.~\ref{fig:four_case_track_overview}, the \textsc{Shadow} view at
-$\Delta s=18.6$~m shows the corridor forming a side-consistent approach channel
-behind the opponent, with the planned path gradually displaced toward the
-selected passing side. When the relative longitudinal gap decreases to
-$0.1$~m, the \textsc{Overtake} carver excludes the opponent-occupied region and
-retains a connected corridor on the locked side.
+$\Delta s=18.6$~m shows the corridor forming a side-consistent approach
+channel behind the opponent, with the planned path gradually displaced toward
+the selected passing side. When the relative longitudinal gap decreases to
+$0.1$~m, the \textsc{Overtake} carver excludes the opponent-occupied region
+and retains a connected corridor on the locked side.
+
 Figure~\ref{fig:case02_tactical_new} summarizes the corresponding FSM sequence,
 Frenet trajectories, and speed response. In panel~(b), $s-s_0$ denotes
 trackwise progress relative to the initial ego position, and $n$ denotes the
 lateral position relative to the track centerline. The published feasible
 corridor remains within the physical track boundaries, and the actual ego
-trajectory stays inside this corridor through the side-by-side passage.
-Triangles and squares mark footprint-based Encounter and Pass events. For the
-nearly aligned vehicles, Encounter begins at
-$\Delta s_{\rm E}\simeq(L_e+L_o)/2=5.2$~m, when the longitudinal body envelopes
-first overlap after the corridor has established $|\Delta n_{\rm E}|$. Pass is
-the side-by-side instant $\Delta s_{\rm P}\simeq0$, where
-$|\Delta n_{\rm P}|$ exceeds the combined projected half-width,
-$(W_e+W_o)/2=1.9$~m. Thereafter, $\Delta s<0$ records the ego reference point
-moving ahead, and $\Delta s\leq-5.2$~m marks full longitudinal clearance. The
-actual speed follows the desired profile and exceeds 70~m~s$^{-1}$ during the
-pass.
+trajectory stays inside this corridor throughout the overtaking maneuver.
+Triangles and squares mark the footprint-based Encounter and Pass events.
+Encounter occurs at $\Delta s_{\rm E}\simeq(L_e+L_o)/2$, when the longitudinal
+body envelopes first overlap after the corridor has established the lateral
+separation $|\Delta n_{\rm E}|$. Pass occurs at
+$\Delta s_{\rm P}\simeq0$, with
+$|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$ satisfying the
+footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver}.
+Thereafter, $\Delta s<0$ indicates that the ego reference point has moved
+ahead of the opponent. The actual speed closely follows the desired profile
+and exceeds 70~m~s$^{-1}$ during the pass.
 
 \begin{figure}[!tbp]
 \centering
-\subfloat[FSM mode]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
+\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle-speed]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
+\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
 \caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
-response in Case~I.}
+response in Case~1.}
 \label{fig:case02_tactical_new}
 \end{figure}
 
-Figure~\ref{fig:case02_tracking_new} shows the closed-loop realization of this
-passing channel. Lateral contouring, speed-tracking, and heading errors remain
-close to zero, apart from brief transients during the tactical transition.
-All recorded tangential--normal acceleration samples remain inside the
-speed-dependent tire envelope. Together, these results show that the
-committed-side corridor is converted into a trackable path--speed reference
-throughout the high-speed pass.
+Figure~\ref{fig:case02_tracking_new} presents the closed-loop realization of
+this passing channel. The peak absolute lateral contouring, speed-tracking,
+and heading errors are approximately 0.08~m, 0.35~m~s$^{-1}$, and 0.025~rad,
+respectively. All recorded tangential--normal acceleration samples remain
+inside the speed-dependent tire envelope. The committed-side corridor is
+therefore realized as a trackable path--speed reference throughout the
+high-speed overtake.
 
 \begin{figure}[!tbp]
 \centering
@@ -998,51 +1018,50 @@ throughout the high-speed pass.
 \subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_heading.png}}\\[-0.5mm]
 \subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
 \caption{Closed-loop tracking errors and realized acceleration demand in
-Case~I.}
+Case~1.}
 \label{fig:case02_tracking_new}
 \end{figure}
 
+\subsubsection*{Case 2: high-speed overtake through consecutive corners}
 
-\subsubsection*{Case II: high-speed overtake through consecutive corners}
-
-Case~II represents a high-speed overtake through successive curvature changes.
+Case~2 represents a high-speed overtake through successive curvature changes.
 In Fig.~\ref{fig:four_case_track_overview}, the \textsc{Shadow} view at
-$\Delta s=17.8$~m shows the corridor following the approaching bend and guiding
-the planned path toward the selected lateral position. At $\Delta s=0.0$~m,
-full \textsc{Overtake} exclusion preserves the same-side channel as the path
-curves around the opponent within the track boundaries.
+$\Delta s=17.8$~m shows the corridor following the approaching bend and
+guiding the planned path toward the selected lateral position. At
+$\Delta s=0.0$~m, full \textsc{Overtake} exclusion preserves the same-side
+channel as the planned path curves past the opponent within the track
+boundaries.
+
 Figure~\ref{fig:case05_tactical_new} summarizes the corresponding FSM sequence,
-Frenet trajectories, and speed response. In panel~(b), $s-s_0$ denotes
-trackwise progress relative to the initial ego position, and $n$ denotes the
-lateral position relative to the track centerline. The published feasible
-corridor follows the changing track boundaries, and the actual ego trajectory
-remains inside it while reversing lateral direction through the consecutive
-corners. At Encounter, the curved corridor has already established
-$|\Delta n_{\rm E}|$ as the longitudinal footprints begin to overlap. At Pass,
-$\Delta s_{\rm P}\simeq0$ and $|\Delta n_{\rm P}|$ remains above the corresponding
-projected-width threshold, preserving lateral clearance through the
-side-by-side configuration.
-From an entry speed above 60~m~s$^{-1}$, the actual speed follows the desired
-braking and re-acceleration profile throughout the pass.
+Frenet trajectories, and speed response. The published feasible corridor
+follows the changing track boundaries, and the actual ego trajectory remains
+inside it while traversing the consecutive corners. At Encounter, the curved
+corridor has already established the lateral separation
+$|\Delta n_{\rm E}|$ as the longitudinal body envelopes begin to overlap. At
+Pass, $\Delta s_{\rm P}\simeq0$ and
+$|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$, preserving lateral clearance
+throughout the overtaking maneuver. From an entry speed above
+60~m~s$^{-1}$, the actual speed closely follows the desired braking and
+re-acceleration profile throughout the pass.
 
 \begin{figure}[!tbp]
 \centering
-\subfloat[FSM mode]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
+\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle-speed]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
+\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
 \caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
-response in Case~II.}
+response in Case~2.}
 \label{fig:case05_tactical_new}
 \end{figure}
 
-Figure~\ref{fig:case05_tracking_new} shows the closed-loop realization of this
-curved passing channel. Lateral contouring, speed-tracking, and heading errors
-remain bounded about zero, with short transients during the strongest curvature
-and speed transitions. All recorded tangential--normal acceleration samples
-remain inside the speed-dependent tire envelope over the recorded speed range.
-Together, these results show that the side-locked corridor is converted into a
-trackable path--speed reference despite successive changes in curvature and
-available track width.
+Figure~\ref{fig:case05_tracking_new} presents the closed-loop realization of
+this curved passing channel. The peak absolute lateral contouring,
+speed-tracking, and heading errors are approximately 0.15~m,
+0.35~m~s$^{-1}$, and 0.11~rad, respectively, throughout the successive
+curvature and speed changes. All recorded tangential--normal acceleration
+samples remain inside the speed-dependent tire envelope. These results
+confirm accurate closed-loop realization of the side-locked corridor through
+consecutive corners with changing track width.
 
 \begin{figure}[!tbp]
 \centering
@@ -1051,14 +1070,17 @@ available track width.
 \subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_heading.png}}\\[-0.5mm]
 \subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
 \caption{Closed-loop tracking errors and realized acceleration demand in
-Case~II.}
+Case~2.}
 \label{fig:case05_tracking_new}
 \end{figure}
 
 Across 1000 Monte Carlo runs, the full method achieved an OSR of 94.7\%,
-with collision and track-violation rates of 0.0\%. The matched
-comparisons below quantify the contribution of the interactive tactical
-representation and its constituent modules.
+with contact and track-violation rates of 0.0\%. The following matched
+comparisons quantify the performance gains provided by the interactive
+tactical representation and its constituent modules.
+
+
+
 
 % =====================================================================
 % Matched comparison and ablation results
@@ -1080,7 +1102,12 @@ linear-quadratic game approximations~\cite{fridovich2020ilqgames}. The outputs
 of all baselines are mapped to a common tactical interface comprising a
 passing-side command, a speed cap, and corridor parameters before entering the
 shared planning and control stack. This setup isolates the effect of tactical
-guidance on closed-loop overtaking performance.
+guidance on closed-loop overtaking performance. The comparison results are
+summarized in Table~\ref{tab:comparison}, where Prop. denotes the proposed
+method, NI-MPC Non-Interactive MPC, RB-GT Rule-based GT, and iLQG iLQGames.
+TTO is averaged over successful overtakes, minimum gap is the mean per-run
+minimum net clearance between the vehicle body envelopes, and PFR is the
+fraction of planning cycles with a feasible SOCP solution.
 
 \begin{table}[!tbp]
 \centering
@@ -1110,17 +1137,6 @@ PFR $\uparrow$
 & \textbf{1.000} & 0.998 & 0.987 & 0.995 \\
 \bottomrule
 \end{tabular}
-
-\vspace{1mm}
-\begingroup
-\scriptsize
-\emph{Notes:} Prop., proposed method; NI-MPC, Non-Interactive MPC;
-RB-GT, Rule-based GT; iLQG, iLQGames. TTO is averaged over successful
-overtaking attempts. Min. gap is the mean per-run minimum net clearance
-between the vehicle body envelopes. PFR is the fraction of planning cycles
-with a feasible SOCP solution. Bold denotes the best observed value; equal
-track-violation values are jointly bold.
-\par\endgroup
 \end{table}
 
 Across 1000 Monte Carlo closed-loop HIL runs per method, the proposed method
@@ -1138,19 +1154,22 @@ feasible solution at every planning cycle.
 
 
 
-
 \subsection{Ablation study}
 \label{subsec:ablation}
 
-Four ablations isolate the proposed tactical components while retaining the
-same execution layer. \emph{Without game guidance} removes both the Stackelberg
-response-set action prior and the action-conditioned robust-value supervision.
-\emph{Without FSM} bypasses
-hysteretic mode and side locking, allowing the policy to reshape the corridor
-on every update. \emph{Without learned corridor} replaces the continuous
-width, clearance, lateral-bias, and speed-cap outputs by fixed nominal values.
-The final variant replaces TQC with Soft Actor-Critic (SAC) while preserving
-the network, replay, reward, and other training settings.
+Four ablation variants evaluate the contributions of robust response-set
+supervision, hysteretic side commitment, adaptive corridor and speed guidance,
+and TQC-based distributional value learning while retaining the same downstream
+planning and control stack. \emph{Without game guidance (No-GG)} removes the
+response-set-optimal action prior and action-conditioned robust-value labels.
+\emph{Without FSM (No-FSM)} removes hysteretic mode transitions and side
+locking, allowing the passing-side command to follow the current policy output
+at each tactical update. In the \emph{Fixed corridor and speed guidance
+(Fixed-C/S)} variant, the learned corridor-width, clearance, lateral-bias, and
+speed-cap outputs are replaced with fixed nominal values. The final variant
+replaces TQC with Soft Actor-Critic (SAC) under the same observation and action
+spaces, actor architecture, reward function, replay protocol, and training
+budget.
 
 \begin{table}[!htbp]
 \centering
@@ -1158,116 +1177,138 @@ the network, replay, reward, and other training settings.
 \setlength{\tabcolsep}{2.3pt}
 \renewcommand{\arraystretch}{1.08}
 \caption{Component ablations over 1000 Monte Carlo closed-loop HIL runs per
-variant. Each variant removes or replaces one tactical component. Arrows
-indicate the preferred direction.}
+variant. Arrows indicate the preferred direction.}
 \label{tab:ablation}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-Metric & Full & No-GG & No-FSM & Fixed-C & SAC \\
+Metric & Full & No-GG & No-FSM & Fixed-C/S & SAC \\
 \midrule
-OSR [\%] $\uparrow$            & \textbf{94.7} & 85.4 & 82.3 & 76.1 & 88.5 \\
-OSR loss [pp] $\downarrow$    & \textbf{0.0} & 9.3 & 12.4 & 18.6 & 6.2 \\
-TTO [s] $\downarrow$           & \textbf{4.82} & 6.38 & 6.71 & 8.94 & 5.53 \\
-Contact [\%] $\downarrow$    & \textbf{0.0} & 0.9 & 1.2 & 3.1 & 0.5 \\
-Min. gap [m] $\uparrow$       & \textbf{5.83} & 2.86 & 2.17 & 1.05 & 3.94 \\
-Mean TTC [s] $\uparrow$       & \textbf{8.52} & 4.93 & 4.31 & 2.86 & 6.17 \\
-PFR $\uparrow$                & \textbf{1.000} & 0.983 & 0.974 & 0.961 & 0.992 \\
+OSR [\%] $\uparrow$
+& \textbf{94.7} & 85.4 & 82.3 & 76.1 & 88.5 \\
+TTO [s] $\downarrow$
+& \textbf{4.82} & 6.38 & 6.71 & 8.94 & 5.53 \\
+Contact rate [\%] $\downarrow$
+& \textbf{0.0} & 0.9 & 1.2 & 3.1 & 0.5 \\
+Min. gap [m] $\uparrow$
+& \textbf{5.83} & 2.86 & 2.17 & 1.05 & 3.94 \\
+Mean TTC [s] $\uparrow$
+& \textbf{8.52} & 4.93 & 4.31 & 2.86 & 6.17 \\
+PFR $\uparrow$
+& \textbf{1.000} & 0.983 & 0.974 & 0.961 & 0.992 \\
 \bottomrule
 \end{tabular}
-\vspace{1mm}
 
-\begin{minipage}{\columnwidth}
-\scriptsize
-\emph{Notes:} Full, full method; No-GG, without game guidance; No-FSM, without
-the finite-state machine; Fixed-C, fixed corridor. OSR loss is the
-percentage-point difference from Full. PFR is the fraction of planning cycles with a feasible SOCP
-solution. Bold denotes the best observed value.
-\end{minipage}
 \end{table}
 
-The ablations trace the performance gain to the three stages of the proposed
-interface (Table~\ref{tab:ablation}). Fixing the corridor produced the largest
-effect, reducing OSR by 18.6 percentage points, increasing the contact rate
-from 0.0\% to 3.1\%, and yielding the lowest PFR; adaptive feasible-set shaping
-therefore determines whether a usable passing channel is formed. Removing the
-FSM reduced OSR by 12.4 points and raised the contact rate to 1.2\%, showing the
-importance of preserving that channel across successive updates. Removing game guidance
-reduced OSR by 9.3 points and increased TTO by 1.56~s, linking response-set
-supervision to opportunity timing and clearance. Replacing TQC with SAC
-produced a 6.2-point OSR reduction and a 0.5\% contact rate, indicating an
-additional benefit from truncating optimistic return quantiles.
+The full method achieved the best performance across all reported metrics,
+including an OSR of 94.7\%, a mean TTO of 4.82~s, a zero contact rate, and a
+PFR of 1.000 (Table~\ref{tab:ablation}). Adaptive corridor and speed guidance
+provided the largest performance gain. Compared with Fixed-C/S, the full
+method increased OSR by 18.6 percentage points, reduced the contact rate from
+3.1\% to zero, and increased PFR from 0.961 to 1.000. Hysteretic mode
+transitions and persistent side commitment increased OSR by 12.4 percentage
+points over No-FSM and reduced the contact rate from 1.2\% to zero, maintaining
+a consistent passing intention across successive replanning updates. Robust
+response-set supervision increased OSR by 9.3 percentage points, reduced TTO
+by 1.56~s, and increased the mean minimum gap from 2.86 to 5.83~m relative to
+No-GG, demonstrating its contribution to overtaking success, efficiency, and
+clearance. TQC increased OSR by 6.2 percentage points over SAC and reduced the
+contact rate from 0.5\% to zero, highlighting the advantage of TQC-based
+distributional value learning for robust overtaking decisions.
 
-\subsection{Sensitivity analysis of hyperparameters}
+
+
+
+\subsection{Hyperparameter sensitivity analysis}
 \label{subsec:sensitivity}
 
-Each setting was retrained and evaluated over 1000 Monte Carlo closed-loop
-runs; $\varepsilon_{\rm BR}$ changes also regenerated the teacher labels.
-Table~\ref{tab:sensitivity} shows that halving
-$\varepsilon_{\rm BR}$ shortened TTO from 4.82 to 4.71~s, but reduced the
-minimum gap from 5.83 to 4.55~m and raised the contact rate to 0.6\%. Doubling
-it instead increased the gap to 6.22~m with a 0.1\% contact rate, but lengthened
-TTO to 5.70~s, revealing the intended efficiency--robustness trade-off.
-Removing the action
-prior or robust-value supervision reduced OSR to 90.8\% and 92.3\%, respectively.
-Doubling either loss weight retained OSR above 93\% and PFR above 0.996.
+Each hyperparameter setting was independently trained and evaluated over
+1000 Monte Carlo closed-loop HIL runs under the same experimental conditions.
+The nominal setting uses $\varepsilon_{\rm BR}=0.05$ and
+$\lambda_p=\lambda_g=1$. For each value of $\varepsilon_{\rm BR}$, the
+corresponding teacher labels were regenerated before training.
+The nominal setting provided the strongest overall balance, achieving the
+highest OSR, a zero contact rate, and full planning feasibility
+(Table~\ref{tab:sensitivity}). Reducing $\varepsilon_{\rm BR}$ from 0.05 to
+0.025 shortened TTO from 4.82 to 4.71~s, while OSR decreased to 92.4\% and
+the minimum gap decreased from 5.83 to 4.55~m. Increasing
+$\varepsilon_{\rm BR}$ to 0.10 enlarged the minimum gap to 6.22~m, while
+TTO increased to 5.70~s. These results show that $\varepsilon_{\rm BR}$
+regulates the balance between overtaking efficiency and spatial clearance.
+Setting $\lambda_p$ or $\lambda_g$ to zero reduced OSR to 90.8\% and
+92.3\%, respectively, confirming the contribution of both the action-prior
+and robust-value supervision signals. Doubling either loss weight maintained
+OSR above 93\% and PFR at or above 0.9968, demonstrating stable performance
+under increased supervision weights.
 
 \begin{table}[!htbp]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{2.0pt}
 \renewcommand{\arraystretch}{1.02}
-\caption{Sensitivity results over 1000 Monte Carlo runs per setting.}
+\caption{Hyperparameter sensitivity over 1000 Monte Carlo closed-loop HIL
+runs per setting. Arrows indicate the preferred direction.}
 \label{tab:sensitivity}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lccccc@{}}
 \toprule
 Setting & OSR [\%] $\uparrow$ & TTO [s] $\downarrow$ &
-$g_{\min}$ [m] $\uparrow$ & Contact [\%] $\downarrow$ & PFR $\uparrow$ \\
+Min. gap [m] $\uparrow$ & Contact rate [\%] $\downarrow$ &
+PFR $\uparrow$ \\
 \midrule
-Nominal & $94.7$ & $4.82$ & $5.83$ & $0.0$ & $1.000$ \\
-$\varepsilon_{\rm BR}=0.025$ & $92.4$ & $4.71$ & $4.55$ &
-$0.6$ & $0.9926$ \\
-$\varepsilon_{\rm BR}=0.10$ & $93.0$ & $5.70$ & $6.22$ &
-$0.1$ & $0.9980$ \\
-$\lambda_p=0$ & $90.8$ & $5.70$ & $4.28$ & $0.7$ & $0.9916$ \\
-$\lambda_p=2$ & $93.1$ & $5.29$ & $5.51$ & $0.3$ & $0.9968$ \\
-$\lambda_g=0$ & $92.3$ & $5.31$ & $4.85$ & $0.5$ & $0.9938$ \\
-$\lambda_g=2$ & $93.4$ & $5.21$ & $5.78$ & $0.1$ & $0.9980$ \\
+Nominal
+& \textbf{94.7} & 4.82 & 5.83 & \textbf{0.0} & \textbf{1.0000} \\
+$\varepsilon_{\rm BR}=0.025$
+& 92.4 & \textbf{4.71} & 4.55 & 0.6 & 0.9926 \\
+$\varepsilon_{\rm BR}=0.10$
+& 93.0 & 5.70 & \textbf{6.22} & 0.1 & 0.9980 \\
+$\lambda_p=0$
+& 90.8 & 5.70 & 4.28 & 0.7 & 0.9916 \\
+$\lambda_p=2$
+& 93.1 & 5.29 & 5.51 & 0.3 & 0.9968 \\
+$\lambda_g=0$
+& 92.3 & 5.31 & 4.85 & 0.5 & 0.9938 \\
+$\lambda_g=2$
+& 93.4 & 5.21 & 5.78 & 0.1 & 0.9980 \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-\subsection{Algorithm evaluation on unseen circuits}
+\subsection{Evaluation on unseen circuits}
 \label{subsec:unseen_track}
 
-The Yas Marina-trained tactical--execution stack was evaluated on the unseen
-Imola and Suzuka circuits using the same policy and execution parameters to
-examine whether the track-relative feasible-set representation transfers to
-new geometries.
-Figures~\ref{fig:imola_overview} and~\ref{fig:suzuka_overview} each localize
-four overtaking events and pair the corresponding \textrm{\textsc{Shadow}} and
-\textrm{\textsc{Overtake}} simulator views. Imola introduces separated braking zones
-and curved approaches, whereas Suzuka combines high-speed direction changes,
-tight turns, and long acceleration sections. These geometries exercise the
-track-relative observation, persistent side commitment, and corridor carver
-beyond the circuit used for training.
+The tactical policy trained on the Yas Marina Circuit was evaluated on the
+unseen Imola and Suzuka circuits without retraining or parameter retuning. All
+planning and control parameters were also kept unchanged.
+
+Figures~\ref{fig:imola_overview} and~\ref{fig:suzuka_overview} each present four
+representative overtaking events. Every event pairs the \textsc{Shadow} and
+\textsc{Overtake} phases and localizes them on the corresponding track map.
+Imola features curved approaches and varied corner geometries, while Suzuka
+combines rapid direction changes, tight turns, and long acceleration sections.
+Together, these cases evaluate whether the learned tactical feasible-set
+representation sustains consistent overtaking decisions across new circuit
+geometries.
 
 \begin{figure}[!tbp]
 \centering
-\includegraphics[width=\columnwidth]{track_overview_imola_v006.png}
+\includegraphics[width=\columnwidth]{track_overview_imola_v007.png}
 \caption{Representative overtaking events on the unseen Imola circuit. The
-track map localizes four events, with paired \textrm{\textsc{Shadow}} and
-\textrm{\textsc{Overtake}} simulator views at each location.}
+central map localizes the \textsc{Shadow} and \textsc{Overtake} phases of four
+events, with the corresponding simulator views arranged around the map. Blue
+and red boxes indicate the ego and opponent vehicles, respectively.}
 \label{fig:imola_overview}
 \end{figure}
 
 \begin{figure}[!tbp]
 \centering
-\includegraphics[width=\columnwidth]{track_overview_suzuka_selected_four_v005.png}
-\caption{Representative overtaking events on the unseen Suzuka circuit. Four
-track locations connect the approach and committed passing phases across
-distinct local geometries.}
+\includegraphics[width=\columnwidth]
+{track_overview_suzuka_selected_four_v005.png}
+\caption{Representative overtaking events on the unseen Suzuka circuit. The
+central map localizes the \textsc{Shadow} and \textsc{Overtake} phases of four
+events across distinct local geometries. Blue and red boxes indicate the ego
+and opponent vehicles, respectively.}
 \label{fig:suzuka_overview}
 \end{figure}
 
@@ -1276,36 +1317,33 @@ distinct local geometries.}
 \footnotesize
 \setlength{\tabcolsep}{3.0pt}
 \renewcommand{\arraystretch}{1.05}
-\caption{Aggregate performance over 1000 Monte Carlo runs on each unseen
-circuit.}
+\caption{Aggregate performance over 1000 Monte Carlo closed-loop HIL runs per
+unseen circuit.}
 \label{tab:unseen_generalization}
 \begin{tabular}{@{}lcc@{}}
 \toprule
 Metric & Imola & Suzuka \\
 \midrule
-OSR [\%]                      & 91.8 & 88.9 \\
-TTO [s]                       & $5.19$ & $4.08$ \\
-Minimum gap [m]               & $5.46$ & $5.05$ \\
-Mean TTC [s]                  & $8.07$ & $7.45$ \\
-Contact rate [\%]             & 0.0 & 0.0 \\
-Track-violation rate [\%]     & 0.0 & 0.1 \\
-PFR                           & $0.9968$ & $0.9934$ \\
+OSR [\%]                  & 91.8   & 88.9   \\
+TTO [s]                   & 5.19   & 4.08   \\
+Min. gap [m]              & 5.46   & 5.05   \\
+Mean TTC [s]              & 8.07   & 7.45   \\
+Contact rate [\%]         & 0.0    & 0.0    \\
+Track-violation rate [\%] & 0.0    & 0.1    \\
+PFR                       & 0.9968 & 0.9934 \\
 \bottomrule
 \end{tabular}
-
-\vspace{1mm}
-\begin{minipage}{0.98\columnwidth}
-\scriptsize
-\emph{Notes:} Continuous entries are Monte Carlo means; TTO is averaged over
-successful overtakes. Binary outcomes are reported as percentages.
-\end{minipage}
 \end{table}
 
-Across the eight illustrated events, the tactical state progresses from
-approach to committed passing on both straight and curved sections, while the
-corridor remains aligned with the local track geometry. The aggregate outcomes
-in Table~\ref{tab:unseen_generalization} quantify this cross-circuit transfer.
-
+Across the eight illustrated events, the paired simulator views show the
+tactical state progressing from \textsc{Shadow} to \textsc{Overtake} on both
+straight and curved sections. Without retraining or parameter retuning, the
+framework achieved OSRs of 91.8\% and 88.9\% on Imola and Suzuka,
+respectively, while maintaining a zero contact rate on both circuits. The mean
+minimum gap remained above 5.0~m, and PFR remained above 0.993. The
+track-violation rates were 0.0\% on Imola and 0.1\% on Suzuka. These results
+demonstrate effective cross-circuit transfer of the learned tactical
+feasible-set representation.
 
 
 % % =====================================================================
@@ -1350,7 +1388,7 @@ in Table~\ref{tab:unseen_generalization} quantify this cross-circuit transfer.
 
 High-speed overtaking on narrow closed circuits is constrained by limited maneuvering space, increasing the risk of failed passes and collisions. Repeated replanning further complicates the preservation of a consistent passing intention while retaining sufficient geometric freedom for downstream planning and control. To address these challenges, this paper developed a game-guided tactical-corridor decision framework that formulates interactive overtaking as robust tactical feasible-set selection. A robust Stackelberg response-set teacher provides a response-set-optimal action prior and action-conditioned robust-value labels for training a Truncated Quantile Critics (TQC) policy that predicts passing-side intention, corridor parameters, and speed demand. A hysteretic state machine preserves the selected passing side, while deterministic opponent-footprint carving adapts the feasible region to the evolving track and interaction geometry. The resulting side-locked, time-varying Frenet corridor and speed guidance are realized through sequential second-order cone programming (SOCP) planning and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC).
 
-Target-hardware experiments on the EAV24 hardware-in-the-loop platform comprised 1000 Monte Carlo closed-loop runs. The proposed framework achieved a 94.7% overtaking success rate, a mean overtaking time of 4.82~s, and a planning-feasibility rate of 1.000, with no collisions or track-boundary violations. Compared with four matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 2.43--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8% and 88.9% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
+Target-hardware experiments on the EAV24 hardware-in-the-loop platform comprised 1000 Monte Carlo closed-loop runs. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a planning-feasibility rate of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
 
 Future work will leverage participation in the Abu Dhabi Autonomous Racing League (A2RL) to deploy the proposed framework on a full-scale autonomous race car and conduct high-speed on-track validation. The framework will also be extended from the current two-vehicle setting to multi-vehicle racing scenarios to evaluate its performance under more complex competitive interactions.
 
