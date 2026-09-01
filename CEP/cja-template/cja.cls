@@ -903,7 +903,7 @@
   \@footnotetext{%
     \hspace{-1.8em}%
     \fbox{%
-      \parbox{8.5cm}{%
+      \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{%
         \hspace{0.2cm}%
         \includegraphics[height=1cm,width=1cm]{elsevier.png}%
         \hspace{0.1cm}%
@@ -1006,43 +1006,7 @@
   \vspace*{-0.33cm}%
   \begin{\elsarticletitlealign}%
     \def\baselinestretch{1}%
-    \hrule
-    \vskip 3pt%
-    \includegraphics[height=2.8cm]{csaa.jpg}%
-    \hfill
-    \raisebox{0.1cm}{%
-      \colorbox{cjagray}{%
-        \parbox[b][2.8cm][t]{11.2cm}{%
-          \vskip 0.25cm%
-          \centering
-          \begingroup
-            \fontsize{12}{14.4}\selectfont
-            Chinese Society of Aeronautics and Astronautics \\
-            \& Beihang University\par
-          \endgroup
-          \vskip 5bp%
-          \begingroup
-            \bfseries\fontsize{14}{16.8}\selectfont
-            Chinese Journal of Aeronautics\par
-          \endgroup
-          \vskip 10bp%
-          \begingroup
-            \fontsize{8}{8}\selectfont
-            cja@buaa.edu.cn\par
-            \begingroup
-              \color{link}%
-              www.sciencedirect.com\par
-            \endgroup
-          \endgroup
-        }%
-      }%
-    }%
-    \hfill
-    \includegraphics[height=3cm]{cja.jpg}%
-    \par
-    % \vskip -0.0cm%
-    \rule{\textwidth}{1.8mm}%
-    \vskip 1.3cm%
+    \vskip 0.3cm%
     % \Large\@title\par\vskip18pt
     \parbox[t]{15cm}{%
       {\bfseries\fontsize{20}{24}\selectfont\@title\par\vskip22pt}%

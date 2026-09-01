@@ -1,51 +1,26 @@
-%% Control Engineering Practice submission manuscript.
-%% Elsevier CAS double-column template, version 2.4 (4 May 2024).
-\documentclass[a4paper,fleqn]{cas-dc}
+%% Control Engineering Practice submission manuscript typeset with the
+%% supplied CJA two-column class.
+\documentclass{cja}
 \pdfminorversion=7
-\usepackage[numbers,sort&compress]{natbib}
-\usepackage{amsmath,amsfonts,amssymb,bm}
+\usepackage{amsfonts,bm}
 \usepackage{mathtools}
-\usepackage{xcolor}
 \usepackage{algorithmic}
 \usepackage{algorithm}
 \usepackage{array}
 \allowdisplaybreaks
 \usepackage{subfig}
-\captionsetup[subfloat]{font=small,labelfont=normalfont,
-  justification=centering,singlelinecheck=true}
-\captionsetup{skip=4pt}
 \usepackage{textcomp}
-\usepackage{url}
 \usepackage{verbatim}
 \usepackage{booktabs}
-\usepackage{graphicx}
 \usepackage{float}
 \usepackage{placeins}
 \usepackage{multirow}
-% Permit compact, ordered float packing in the two-column review layout.
-\setcounter{topnumber}{4}
-\setcounter{bottomnumber}{2}
-\setcounter{totalnumber}{6}
-\setcounter{dbltopnumber}{2}
-\renewcommand{\topfraction}{0.95}
-\renewcommand{\bottomfraction}{0.80}
-\renewcommand{\textfraction}{0.05}
-\renewcommand{\floatpagefraction}{0.88}
-\renewcommand{\dbltopfraction}{0.95}
-\renewcommand{\dblfloatpagefraction}{0.88}
-\setlength{\textfloatsep}{6pt plus 2pt minus 2pt}
-\setlength{\floatsep}{5pt plus 2pt minus 2pt}
-\setlength{\intextsep}{5pt plus 2pt minus 2pt}
-\setlength{\dbltextfloatsep}{6pt plus 2pt minus 2pt}
-\setlength{\dblfloatsep}{5pt plus 2pt minus 2pt}
 % Elsevier Editorial Manager does not preserve source subdirectories, so the
 % submission artwork is kept beside this file in CEP/.
-\graphicspath{{./}}
+\graphicspath{{./}{cja-template/}}
 \hyphenation{au-ton-o-mous over-taking race-car}
-% Ignore only sub-2-pt class-rounding noise; substantive boxes are fixed below.
-\hfuzz=1.95pt
 \emergencystretch=2em
-\AtBeginDocument{\setlength{\mathindent}{0pt}}
+\hfuzz=1pt
 
 % --- Math shortcuts ---
 \newcommand{\R}{\mathbb{R}}
@@ -58,14 +33,11 @@
 \newcommand{\IEEEmembership}[1]{#1}
 
 \begin{document}
-\let\WriteBookmarks\relax
-\def\floatpagepagefraction{1}
-\def\textpagefraction{.001}
 
-% \shorttitle{Game-Guided Tactical Corridor Learning}
-% \shortauthors{S. Gao et~al.}
+\shorttitle{Game-Guided Tactical Corridor Learning}
+\shortauthors{S. Gao et~al.}
 
-\title[mode=title]{Game-Guided Tactical Corridor Learning for Autonomous Racing Overtakes}
+\title{Game-Guided Tactical Corridor Learning for Autonomous Racing Overtakes}
 
 % \author[1]{Shuyi Gao}
 % \author[1]{Ren Jin}
@@ -87,10 +59,10 @@ Hardware-in-the-loop experiments were conducted using an EAV24 formula race-car 
 
 \end{abstract}
 
-\begin{keywords}
+\begin{keyword}
 Autonomous racing \sep game-guided reinforcement learning \sep tactical corridor
 \sep interactive overtaking
-\end{keywords}
+\end{keyword}
 
 \maketitle
 
@@ -461,8 +433,10 @@ U_i(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
 \label{eq:game_utility}
 \end{equation}
 where $\bm\phi_i\in[0,1]^{10}$ contains the role-relative reward features in
-Appendix~\ref{app:parameters}. Hence $U_i\in[0,1]$, and
+\ref{app:parameters}. Hence $U_i\in[0,1]$, and
 $\varepsilon_{\rm BR}$ directly specifies the admissible follower-utility gap.
+\begingroup
+\setlength{\arraycolsep}{2pt}
 \begin{equation}
 \begin{aligned}
 U_o^{\max}(\bm s_t^G,\bm a_e^{\rm F})
@@ -489,6 +463,7 @@ v_{g,n}=\mathcal V_g(\bm s_n^G,\bm a_{g,n}^{\rm F})\right\}.
 \end{aligned}
 \label{eq:response_set_teacher}
 \end{equation}
+\endgroup
 Here $\varepsilon_{\rm BR}=0.05$ retains responses within $0.05$ of the best
 candidate on the normalized utility scale.
 
@@ -557,7 +532,7 @@ r_t&=\bm w^\top\bm\phi_t,\\
 \end{aligned}
 \label{eq:reward_sum}
 \end{equation}
-Appendix~\ref{app:parameters} gives the normalized definitions and weights.
+\ref{app:parameters} gives the normalized definitions and weights.
 The same role-swapped features define Eq.~\eqref{eq:game_utility}, aligning the
 teacher and online reward at the level of overtaking progress, clearance,
 smoothness, and usable corridor width.
@@ -772,8 +747,8 @@ and solves one corridor-constrained SOCP subproblem:
 \bm y^{j+1}=\argmin_{\bm y}\;&
 \sum_kw_\omega\sigma_k^\omega
 +w_{n,T}\epsilon_n+w_{\xi,T}\epsilon_\xi\\
-\mathrm{s.t.}\;&\bm z_0=[n_e,\xi_e]^\top,\quad
- \bm z_{k+1}-\bm z_k=\frac{\Delta s_{\rm sta}}{2}
+\mathrm{s.t.}\;&\bm z_0=[n_e,\xi_e]^\top,\\
+&\bm z_{k+1}-\bm z_k=\frac{\Delta s_{\rm sta}}{2}
  (\widehat{\bm f}_{s,k}^{j}+\widehat{\bm f}_{s,k+1}^{j}),\\
 &\underline n_k\le n_k\le\overline n_k,\quad
 1-\kappa(s_k)n_k\ge\varepsilon_s,\\
@@ -781,8 +756,8 @@ and solves one corridor-constrained SOCP subproblem:
 &\left\|[2\omega_k,\sigma_k^\omega-1]^\top\right\|_2
 \le\sigma_k^\omega+1,\\
 &|n_{N-1}-n_T|\le\epsilon_n,\quad
-|\xi_{N-1}-\xi_T|\le\epsilon_\xi,\quad
-\epsilon_n,\epsilon_\xi\ge0 .
+|\xi_{N-1}-\xi_T|\le\epsilon_\xi,\\
+&\epsilon_n,\epsilon_\xi\ge0 .
 \end{aligned}
 \label{eq:execution_socp}
 \end{equation}
@@ -871,7 +846,7 @@ corridor midpoint
 \STATE solve SOCP~\eqref{eq:execution_socp}, update the linearization, and
 evaluate the nonlinear Frenet and corridor residuals
 \STATE stop when the solver and residual tolerances in
-Appendix~\ref{app:parameters} are satisfied
+\ref{app:parameters} are satisfied
 \ENDFOR
 \STATE set valid if the path passes the solver, domain, and residual checks
 \IF{valid}
@@ -1245,18 +1220,19 @@ under increased supervision weights.
 
 \begin{table}[!htbp]
 \centering
-\scriptsize
-\setlength{\tabcolsep}{2.0pt}
-\renewcommand{\arraystretch}{1.02}
+\footnotesize
+\setlength{\tabcolsep}{1.2pt}
+\renewcommand{\arraystretch}{1.08}
 \caption{Hyperparameter sensitivity over 1000 Monte Carlo closed-loop HIL
 runs per setting. Arrows indicate the preferred direction.}
 \label{tab:sensitivity}
-\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-Setting & OSR [\%] $\uparrow$ & TTO [s] $\downarrow$ &
-Min. gap [m] $\uparrow$ & Contact rate [\%] $\downarrow$ &
-PFR $\uparrow$ \\
+Setting & \shortstack{OSR [\%]\\$\uparrow$} &
+\shortstack{TTO [s]\\$\downarrow$} &
+\shortstack{Min. gap [m]\\$\uparrow$} &
+\shortstack{Contact rate [\%]\\$\downarrow$} &
+\shortstack{PFR\\$\uparrow$} \\
 \midrule
 Nominal
 & \textbf{94.7} & 4.82 & 5.83 & \textbf{0.0} & \textbf{1.0000} \\
@@ -1273,8 +1249,7 @@ $\lambda_g=0$
 $\lambda_g=2$
 & 93.4 & 5.21 & 5.78 & 0.1 & 0.9980 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 \subsection{Evaluation on unseen circuits}
@@ -1632,8 +1607,6 @@ doi: 10.1080/00423114.2019.1608364.
 \label{app:parameters}
 \setcounter{table}{0}
 \setcounter{equation}{0}
-\renewcommand{\thetable}{\thesection.\arabic{table}}
-\renewcommand{\theequation}{\thesection.\arabic{equation}}
 
 This appendix reports the numerical settings and normalized reward features
 needed to reproduce the algorithmic logic.
@@ -1682,8 +1655,8 @@ Training & learning rate; replay capacity; batch size; target-update coefficient
 Policy networks & actor encoder; critic outputs; auxiliary head &
 \(51\!\to\!256\!\to\!256\); two quantile heads; training only \\
 Reward & \(\bm w\), ordered as in Eq.~\eqref{eq:reward_sum} &
-\(\begin{gathered}(30,-20,-100,-2,-5,\\[-1mm]
-3,-0.1,-0.5,0.5,0.25)\end{gathered}\) \\
+\(\begin{gathered}(30,-20,-100,-2,\\[-1mm]
+-5,3,-0.1,-0.5,\\[-1mm]0.5,0.25)\end{gathered}\) \\
 Corridor & preview; stations; \(L_{\min}^{\rm corr}\); relaxation factor \(\beta\) &
 \(300\) m; \(150\); \(3\) m; \(0.2\) \\
 Frenet health & \(\varepsilon_s\); \(\xi_{\max}\) &
