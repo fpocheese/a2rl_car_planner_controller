@@ -53,7 +53,7 @@ Limited maneuvering space on narrow closed circuits makes high-speed overtaking 
 To address this problem, we formulate interactive overtaking as robust tactical feasible-set selection and develop a game-guided decision framework that distills Stackelberg response-set reasoning into persistent tactical corridors for constrained motion planning and closed-loop execution.
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
 Second, a hysteretic state machine preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
-Finally, a corridor-constrained sequential SOCP planner and speed profiler generate a continuous path–speed reference, which is tracked by a reference-conditioned contouring-error nonlinear model predictive controller (RC-NMPC) for closed-loop vehicle control.
+Finally, a corridor-constrained sequential second-order cone programming (SOCP) planner and a speed profiler generate a continuous path--speed reference, which is tracked using reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) to produce closed-loop vehicle commands.
 Hardware-in-the-loop experiments were conducted using an EAV24 formula race-car simulator. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with three baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
 
 \end{abstract}
@@ -186,7 +186,8 @@ main contributions are as follows:
 We develop a robust Stackelberg response-set teacher that evaluates constraint-admissible tactical candidates against near-best follower responses. The teacher then derives a response-set-optimal action prior and action-conditioned robust-value labels, thereby supervising a Truncated Quantile Critics (TQC) actor--critic to learn robust overtaking decisions.
 
 \item \textbf{Persistent Tactical Feasible-Region Interface:}
-We introduce a persistent tactical feasible-region interface that converts TQC outputs into a side-locked, time-varying Frenet corridor with speed guidance. A hysteretic state machine and deterministic opponent-footprint carving adapt the feasible region to evolving track and interaction geometry, enabling continuous support for sequential-SOCP planning and reference-conditioned contouring-error nonlinear MPC (RC-NMPC) throughout overtaking.
+We introduce a persistent tactical feasible-region interface that converts TQC outputs into a side-locked, time-varying Frenet corridor with speed guidance. 
+A hysteretic state machine and deterministic opponent-footprint carving adapt the feasible region to evolving track and interaction geometry, enabling continuous support for path planning via sequential second-order cone programming (SOCP) and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) throughout overtaking.
 
 
 \item \textbf{System Validation under High-Speed Conditions:}
@@ -741,7 +742,7 @@ a consistent overtaking intention throughout the interaction.
 
 
 % =====================================================================
-\section{Corridor-Constrained Path--Speed Planning and Closed-Loop Execution}
+\section{Tactical Corridor Execution with Sequential SOCP and RC-NMPC}
 \label{sec:execution}\label{sec:planner}\label{sec:controller}
 % =====================================================================
 
@@ -849,7 +850,7 @@ rate-limiting the steady tactical request from the previous speed command.
 % Realized tire demand is reported in Section~\ref{sec:experiments}.
 
 \begin{algorithm}[!tbp]
-\caption{Common reference generator and executor}
+\caption{Sequential SOCP and RC-NMPC Execution}
 \label{alg:executor}
 \footnotesize
 \begin{algorithmic}[1]
