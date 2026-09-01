@@ -785,21 +785,19 @@
 \def\abstracttitle#1{\gdef\@elsarticleabstitle{#1}} %*%
 \abstracttitle{Abstract} %*%
 \renewenvironment{abstract}{\global\setbox\absbox=\vbox\bgroup
-  % \hsize=\textwidth\def\baselinestretch{1}%
   \@dimen\textwidth
   \advance\@dimen -4.8cm%
   \hsize=\@dimen
   \fontsize{8.5}{10.965}\selectfont
   \def\baselinestretch{1}%
-  \hrule
-  \vskip 12.5pt%
   \parindent\z@
-  \noindent\unskip\textbf{\@elsarticleabstitle} %*%
-%  \par\medskip\noindent\unskip\ignorespaces}
-  \quad\ignorespaces}
- { \vskip 6pt%
-   \hrule
-   \egroup}
+  \noindent\fontsize{10}{12}\selectfont
+  A\,B\,S\,T\,R\,A\,C\,T\par
+  \vskip 5pt%
+  \hrule
+  \vskip 5pt%
+  \fontsize{8.5}{10.965}\selectfont\ignorespaces}
+ {\par\egroup}
 
 \newbox\elsarticlehighlightsbox
 \newbox\elsarticlegrabsbox
@@ -855,22 +853,22 @@
 % \keywordtitlesep{:\ }
 \keywordtitlesep{}
 \def\keyword{%
-  % \def\sep{\unskip, }%
-  \def\sep{\unskip;\\}%
+  \def\sep{\unskip\\}%
  \def\MSC{\@ifnextchar[{\@MSC}{\@MSC[2000]}}
   \def\@MSC[##1]{\par\leavevmode\hbox {\it ##1~MSC:\space}}%
   \def\PACS{\par\leavevmode\hbox {\it PACS:\space}}%
   \def\JEL{\par\leavevmode\hbox {\it JEL:\space}}%
-  % \global\setbox\keybox=\vbox\bgroup\hsize=\textwidth
-  \global\setbox\keybox=\vbox\bgroup\hsize=3.4cm\relax
-  % \normalsize\normalfont\def\baselinestretch{1}
-  \fontsize{8}{10.08}\selectfont\normalfont\def\baselinestretch{1}
+  \global\setbox\keybox=\vbox\bgroup\hsize=4.2cm\relax
+  \fontsize{8.5}{10.965}\selectfont\normalfont\def\baselinestretch{1}
   \parskip\z@
-  \vskip 0.25cm%
-  % \noindent\textit{\@elsarticlekwdtitle\@elsarticlekeywordtitlesep}
-  \noindent\textbf{\@elsarticlekwdtitle}\par
-  \vskip 6.42pt%
-  \raggedright                         % Keywords are not justified.
+  \noindent\fontsize{10}{12}\selectfont
+  A\,R\,T\,I\,C\,L\,E\hspace{0.75em}I\,N\,F\,O\par
+  \vskip 5pt%
+  \hrule
+  \vskip 5pt%
+  \fontsize{8.5}{10.965}\selectfont
+  \noindent\textit{Keywords:}\par
+  \raggedright
   \ignorespaces}
 \def\endkeyword{\par \egroup}
 
@@ -898,21 +896,6 @@
      \@elsuads}\fi
 \fi
   \ifx\@fnotes\@empty\else\@fnotes\fi
-  \protected@xdef\@thefnmark{}%
-  \@footnotetext{Peer review under responsibility of Editorial Committee of CJA.}
-  \@footnotetext{%
-    \hspace{-1.8em}%
-    \fbox{%
-      \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{%
-        \hspace{0.2cm}%
-        \includegraphics[height=1cm,width=1cm]{elsevier.png}%
-        \hspace{0.1cm}%
-        \rule{0.01cm}{1cm}%
-        \hspace{0.2cm}%
-        \sffamily\bfseries Production and hosting by Elsevier%
-      }%
-    }%
-  }%
   \iflongmktitle\if@twocolumn
    \let\columnwidth=\Columnwidth\fi\fi
 }
@@ -977,14 +960,14 @@
 \definecolor{cjagray}{gray}{0.85}
 
 \def\@article@doi{}
-\def\@front@header{Chinese Journal of Aeronautics, (year), \textbf{volum}(number): page--page}
+\def\@front@header{}
 \def\@front@footer{}
 \def\@received{}
 \def\@revised{}
 \def\@accepted{}
 \def\@available@online{}
 \def\@short@title{}
-\def\@short@authors{Short Author names}
+\def\@short@authors{}
 
 \def\articledoi#1{\gdef\@article@doi{#1}}
 \def\frontheader#1{\gdef\@front@header{#1}}
@@ -1009,15 +992,21 @@
     \vskip 0.3cm%
     % \Large\@title\par\vskip18pt
     \parbox[t]{15cm}{%
-      {\bfseries\fontsize{20}{24}\selectfont\@title\par\vskip22pt}%
+      {\bfseries\fontsize{20}{24}\selectfont\@title\par}%
       \ifdoubleblind
-        \vspace*{2pc}
+        \vskip 10pt%
       \else
-        % \normalsize\elsauthors\par\vskip10pt
-        {\bfseries\fontsize{14}{16.8}\selectfont\elsauthors\par}%
-        \vskip 25pt%
-        % \footnotesize\itshape\elsaddress\par\vskip36pt
-        {\fontsize{9}{10.98}\selectfont\itshape\elsaddress\par}%
+        \ifx\elsauthors\@empty
+          \vskip 10pt%
+        \else
+          \vskip 12pt%
+          {\bfseries\fontsize{14}{16.8}\selectfont\elsauthors\par}%
+          \ifx\elsaddress\@empty\else
+            \vskip 8pt%
+            {\fontsize{9}{10.98}\selectfont\itshape\elsaddress\par}%
+          \fi
+          \vskip 10pt%
+        \fi
       \fi
     }\hfill
     \parbox[t]{1cm}{%
@@ -1026,7 +1015,7 @@
       }%
     }%
     \par
-    \vskip 0.6cm%
+    \vskip 0.2cm%
     \begingroup
       \ifx\@received\@empty\else
         Received \@received ;\space
@@ -1042,11 +1031,13 @@
         Available online \@available@online\par
       \fi
     \endgroup
-    \vskip 0.9cm%
+    \vskip 0.3cm%
     % \hrule\vskip12pt
     % \ifvoid\absbox\else\unvbox\absbox\par\vskip10pt\fi
     % \ifvoid\keybox\else\unvbox\keybox\par\vskip10pt\fi
     % \hrule\vskip12pt
+    \hrule
+    \vskip 7pt%
     \ifvoid\keybox\else
       \ifvoid\absbox\else
         \@tempdima=\ht\keybox
@@ -1058,22 +1049,17 @@
       \fi
     \fi
     \ifvoid\keybox\else
-      \raisebox{0.1cm}{%
-        \colorbox{cjagray}{%
-          \hspace{0.2cm}%
-          \parbox[t]{3.4cm}{%
-            \box\keybox
-          }%
-        }%
-      }%
+      \parbox[t]{4.2cm}{\box\keybox}%
       \hfill
     \fi
     \ifvoid\absbox\else
-      \parbox[t]{16.2cm}{%
+      \parbox[t]{\dimexpr\textwidth-4.8cm\relax}{%
         \box\absbox
       }%
     \fi
     \par
+    \vskip 5pt%
+    \hrule
     \end{\elsarticletitlealign}%
 }
 
@@ -1251,34 +1237,14 @@
 \fancypagestyle{pprintTitle}{%
   \fancyhf{}
   \renewcommand\headrulewidth{0pt}%
-  \fancyhead[L]{%
-    \fontsize{8}{9.6}\selectfont
-    \ifx\@article@doi\@empty
-      \@front@header
-    \else
-      \href{https://doi.org/\@article@doi}{\@front@header}%
-    \fi
-  }%
-  \fancyfoot[L]{%
-    \fontsize{8}{8.96}\selectfont
-    \ifx\@article@doi\@empty\else
-      \url{https://doi.org/\@article@doi}\\
-    \fi
-    \@front@footer
+  \fancyhead[R]{%
+    \fontsize{8}{8.96}\selectfont\thepage
   }%
 }
 
 \fancypagestyle{plain}{%
   \fancyhf{}
-  \renewcommand\headrulewidth{0.4pt}%
-  \fancyhead[LO]{%
-    \fontsize{9}{10.8}\selectfont
-    \ifx\@short@title\@empty
-      \@title
-    \else
-      \@short@title
-    \fi
-  }%
+  \renewcommand\headrulewidth{0pt}%
   \fancyhead[RO]{%
     \fontsize{8}{8.96}\selectfont
     \thepage
@@ -1286,14 +1252,6 @@
   \fancyhead[LE]{%
     \fontsize{8}{8.96}\selectfont
     \thepage
-  }%
-  \fancyhead[RE]{%
-    \fontsize{8}{8.96}\selectfont
-    \ifdoubleblind
-      Anonymous Author(s)
-    \else
-      \@short@authors
-    \fi
   }%
 }
 \pagestyle{plain}
