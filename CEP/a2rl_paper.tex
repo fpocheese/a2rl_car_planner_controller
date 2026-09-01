@@ -50,7 +50,7 @@
 \begin{abstract}
 Overtaking planning and decision-making are central to performance in autonomous racing. 
 Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed passes and collisions. 
-To address this problem, we formulate interactive overtaking as robust tactical feasible-set selection and develop a game-guided decision framework that distils Stackelberg response-set reasoning into persistent tactical corridors for constrained motion planning and closed-loop execution.
+To address this problem, we formulate interactive overtaking as robust tactical feasible-set selection and develop a game-guided decision framework that distills Stackelberg response-set reasoning into persistent tactical corridors for constrained motion planning and closed-loop execution.
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
 Second, a hysteretic state machine preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
 Finally, a corridor-constrained sequential SOCP planner and speed profiler generate a continuous path–speed reference, which is tracked by a reference-conditioned contouring-error nonlinear model predictive controller (RC-NMPC) for closed-loop vehicle control.
@@ -325,7 +325,9 @@ Centerline projection gives the relative ego--opponent state
 \end{equation}
 Here $\operatorname{wrap}_{L_{\rm trk}}(\cdot)$ returns the signed arc-length
 difference in $[-L_{\rm trk}/2,L_{\rm trk}/2)$; $\Delta s>0$ denotes an
-opponent ahead and $\Delta v>0$ denotes the ego closing.
+opponent ahead and $\Delta v>0$ denotes the ego closing. The first sampled
+instant satisfying $\Delta s<0$ is termed the \emph{Pass} event throughout
+this paper.
 
 For path generation, the same geometry is written in spatial form. Here $s$
 is the independent variable, $\bm z(s)=[n(s),\xi(s)]^\top$ is the geometric
@@ -353,7 +355,7 @@ persistent feasible regions for constrained motion planning. A robust
 Stackelberg response-set teacher evaluates constraint-admissible tactical
 candidates against near-best follower responses and generates a
 response-set-optimal action prior together with action-conditioned
-robust-value labels. A projected-action TQC actor--critic distils this
+robust-value labels. A projected-action TQC actor--critic distills this
 supervision into passing-side intention, corridor parameters, and speed
 demand. A hysteretic state machine preserves the selected passing side, while
 a deterministic opponent-footprint carver converts the learned corridor
@@ -397,9 +399,15 @@ Let
 \(
 \bm s_t^G=(\widetilde{\bm o}_t,\bm\chi_t^G)
 \)
-denote the teacher state, where $\bm\chi_t^G$ collects the publisher,
-executor, and one-step reward memory carried between tactical updates, and
-let $\mathcal A_i^G(\bm s_t^G)$ denote the candidate bank for role $i$.
+denote the full rollout state available to the offline teacher, where
+\(\bm\chi_t^G\) collects the internal publisher, executor, and one-step
+reward memory required to evaluate a coupled candidate preview. The deployed
+policy receives only the 51-dimensional observation
+\(\widetilde{\bm o}_t\); the additional rollout variables
+\(\bm\chi_t^G\) are therefore treated as latent variables when the
+full-state teacher labels are transferred to the observation-conditioned
+policy. Let \(\mathcal A_i^G(\bm s_t^G)\) denote the candidate bank for
+role \(i\).
 Each candidate pair induces the coupled executable preview
 \begin{equation}
 (\mathcal R_e,\mathcal R_o)=
@@ -514,7 +522,7 @@ contract if its repeated search remains empty.
 \label{subsec:theory_guided_rl}
 The real-time policy maps the evolving duel geometry to the tactical feasible
 set at a fixed computational cost. Its 51-dimensional observation concatenates 27 duel-state features with two
-12-dimensional track summaries centred at the ego and opponent. The duel
+12-dimensional track summaries centered at the ego and opponent. The duel
 features contain normalized Frenet states and accelerations, relative progress,
 lateral gap and closing rate, time to contact, closing-speed code, side lock, and a
 nine-state race-mode code. Each track summary reports mean curvature, peak
@@ -585,14 +593,22 @@ $\bm h_{\zeta,g}=\mathcal E_\zeta^Q(
 \end{aligned}
 \label{eq:total_loss}
 \end{equation}
+The offline teacher uses $\bm\chi^G$ as privileged rollout information for
+coupled preview evaluation, whereas the deployed actor and critic are
+conditioned on $\widetilde{\bm o}$ and
+$(\widetilde{\bm o},\bm a^{\rm F})$, respectively. The matched samples in
+$\mathcal D_g$ therefore distill the teacher action and response-set value
+into observation-conditioned supervision over the rollout contexts represented
+in the dataset.
+
 Here $J_Q$ and $J_\pi$ are the standard TQC critic and entropy-regularized
 actor losses; $\mathsf N_a$ and $\mathsf N_V$ normalize actions and teacher
 values. The actor encoder is independent, whereas the two quantile heads and
 the training-only robust-value head share the critic encoder. Consequently,
-$\mathcal D$ supplies Bellman transitions and $\mathcal D_g$ supplies only
-matched action--value supervision. The action prior guides corridor
-placement, while the auxiliary value labels organize the critic representation
-according to the robustness of the corresponding passing region.
+$\mathcal D$ supplies Bellman transitions, whereas $\mathcal D_g$ supplies
+matched teacher-action and response-set-value supervision. The action prior
+guides corridor placement, while the auxiliary value labels encourage the
+shared critic representation to retain response-set robustness information.
 
 \subsection{Persistent Tactical Feasible-Region Interface}
 \label{subsec:corridor_synthesis}
@@ -608,8 +624,9 @@ confirmed pass, an abort, or an execution-health failure. Health and abort
 take precedence over passing, completed passes take precedence over continued
 overtaking, and an unlocked ego enters \textsc{Defend} only when a rear
 opponent is closing. 
-The pass-confirmation indicator $P_t$ is set when
-$\Delta s_t\le0$ holds for $N_{\rm post}$ consecutive tactical updates.
+The pass-confirmation indicator $P_t$ debounces the Pass condition defined
+after Eq.~\eqref{eq:rel} over $N_{\rm post}$ consecutive tactical updates
+before the state machine releases the side lock.
 
 The geometric operation that realizes the selected side is the corridor
 carver. For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
@@ -638,7 +655,7 @@ $\eta=\operatorname{clip}((g_{\rm chase}-\widehat{\Delta s}_k)/
 (g_{\rm chase}-g_{\rm ot}),0,1)$, whereas \textsc{Overtake} uses full
 exclusion ($\eta=1$) on the locked side. \textsc{Raceline} uses the capped
 track interval; \textsc{Defend} intersects it with a width-$w_{\rm safe}$
-interval centred at the clipped offset $n_{o,k}+b_{\rm lat}$; and
+interval centered at the clipped offset $n_{o,k}+b_{\rm lat}$; and
 \textsc{Hold} retains only the connected component containing the ego vehicle.
 Figure~\ref{fig:tactical_mode_semantics} illustrates these geometric semantics.
 
@@ -690,8 +707,8 @@ at constant Frenet velocity, and evaluate the available side widths
 \IF{$h_t$ is invalid, or a locked state satisfies $\Delta s_t\ge g_{\rm abort}$ or
 loses $L_{\min}^{\rm corr}$ width}
 \STATE set \textsc{Hold} and release the side lock
-\ELSIF{the locked ego satisfies $\Delta s_t\le0$ for
-$N_{\rm post}$ consecutive updates}
+\ELSIF{the locked ego satisfies the Pass condition defined after
+Eq.~\eqref{eq:rel} for $N_{\rm post}$ consecutive updates}
 \STATE set $P_t=1$, return to \textsc{Raceline}, and release the lock
 \ELSIF{a lock exists, or a non-neutral feasible side is requested with
 $0<\Delta s_t\le g_{\rm chase}$ and $\Delta v_t\ge0$}
@@ -770,8 +787,8 @@ path curvature, and the terminal slacks soften convergence to
 $(n_T,0)$. The nonlinear Frenet model is re-evaluated after each sequential
 update.
 
-The forward--backward sweep distributes the certified tactical cap over the
-optimized path.
+The forward--backward sweep converts the tactical speed request into a
+tire-envelope-screened speed reference over the optimized path.
 For curvature \(\kappa_{p,k}\), the envelope supplies the traction and
 braking limits \(a_{T,k}^{+}\) and \(b_{T,k}^{-}\) at
 \((\kappa_{p,k}V^2,V)\), after subtracting the resistance acceleration in
@@ -881,7 +898,7 @@ steering angle
 \subsection{Experimental platform and configuration}
 \label{subsec:hil_env}\label{subsec:param_setup}
 
-The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale head-to-head racing environment for EAV24 vehicles at the Yas Marina Circuit, together with the high-fidelity AutoVerse simulation platform. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through CAN.
+The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale head-to-head racing environment for EAV24 vehicles on Yas Marina North, together with the high-fidelity AutoVerse simulation platform. Both policy training and the in-domain HIL evaluation use Yas Marina North. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through CAN.
 
 
 \begin{figure}[!tbp]
@@ -897,10 +914,11 @@ full-scale race vehicle.}
 The perception, localization, tactical, planning, and control modules operate at 20, 100, 200, 50, and 100~Hz, respectively. The localization module fuses GNSS/IMU measurements to provide the ego vehicle's position, velocity, attitude, and acceleration, while the perception module processes measurements from three LiDAR sensors to estimate the opponent's position, velocity, and heading. Independent zero-mean Gaussian noise is added to the localization outputs with standard deviations of 0.05~m, $0.10~\mathrm{m/s}$, 0.002~rad, and $0.10~\mathrm{m/s^{2}}$, respectively, and to the perception outputs with standard deviations of 0.10~m, $0.22~\mathrm{m/s}$, and 0.003~rad, respectively. A 10\% independent packet-drop rate is also applied to both output streams before they are supplied to the downstream tactical and planning modules. The tactical module implements the framework presented in Section~\ref{sec:tactical}, while the planning and control modules generate the path--speed reference and closed-loop vehicle commands, respectively.
 
 
-Statistical results aggregate 1000 Monte Carlo closed-loop simulations per
-setting. In each run, the opponent initial condition is randomized relative to
+Statistical results aggregate 1000 Monte Carlo closed-loop laps per setting.
+In each lap, the opponent initial condition is randomized relative to
 the ego vehicle in longitudinal position, lateral position, and heading. OSR is
-the fraction of completed overtakes, and TTO is their completion time. Minimum
+the fraction of laps reaching the Pass event defined after
+Eq.~\eqref{eq:rel}, and TTO is the time to that event. Minimum
 gap is the smallest net clearance between the ego and opponent body envelopes
 over a lap. Mean TTC and contact/track-violation rates describe interaction
 safety, while PFR is the fraction of feasible planning updates.
@@ -958,15 +976,13 @@ trackwise progress relative to the initial ego position, and $n$ denotes the
 lateral position relative to the track centerline. The published feasible
 corridor remains within the physical track boundaries, and the actual ego
 trajectory stays inside this corridor throughout the overtaking maneuver.
-Triangles and squares mark the footprint-based Encounter and Pass events.
+Triangles and squares mark the Encounter and Pass events, respectively.
 Encounter occurs at $\Delta s_{\rm E}\simeq(L_e+L_o)/2$, when the longitudinal
 body envelopes first overlap after the corridor has established the lateral
-separation $|\Delta n_{\rm E}|$. Pass occurs at
-$\Delta s_{\rm P}\simeq0$, with
-$|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$ satisfying the
-footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver}.
-Thereafter, $\Delta s<0$ indicates that the ego reference point has moved
-ahead of the opponent. The actual speed closely follows the desired profile
+separation $|\Delta n_{\rm E}|$. At the Pass marker, the lateral separation
+satisfies $|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$, and the
+footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver} remains
+satisfied. The actual speed closely follows the desired profile
 and exceeds 70~m~s$^{-1}$ during the pass.
 
 \begin{figure}[!tbp]
@@ -1005,7 +1021,7 @@ In Fig.~\ref{fig:four_case_track_overview}, the \textsc{Shadow} view at
 $\Delta s=17.8$~m shows the corridor following the approaching bend and
 guiding the planned path toward the selected lateral position. At
 $\Delta s=0.0$~m, full \textsc{Overtake} exclusion preserves the same-side
-channel as the planned path curves past the opponent within the track
+channel as the planned path curves alongside the opponent within the track
 boundaries.
 
 Figure~\ref{fig:case05_tactical_new} summarizes the corresponding FSM sequence,
@@ -1014,9 +1030,8 @@ follows the changing track boundaries, and the actual ego trajectory remains
 inside it while traversing the consecutive corners. At Encounter, the curved
 corridor has already established the lateral separation
 $|\Delta n_{\rm E}|$ as the longitudinal body envelopes begin to overlap. At
-Pass, $\Delta s_{\rm P}\simeq0$ and
-$|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$, preserving lateral clearance
-throughout the overtaking maneuver. From an entry speed above
+the Pass marker, $|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$,
+preserving lateral clearance throughout the overtaking maneuver. From an entry speed above
 60~m~s$^{-1}$, the actual speed closely follows the desired braking and
 re-acceleration profile throughout the pass.
 
@@ -1050,7 +1065,7 @@ Case~2.}
 \label{fig:case05_tracking_new}
 \end{figure}
 
-Across 1000 Monte Carlo runs, the full method achieved an OSR of 94.7\%,
+Across 1000 Monte Carlo laps, the full method achieved an OSR of 94.7\%,
 with contact and track-violation rates of 0.0\%. The following matched
 comparisons quantify the performance gains provided by the interactive
 tactical representation and its constituent modules.
@@ -1079,9 +1094,9 @@ of all baselines are mapped to a common tactical interface comprising a
 passing-side command, a speed cap, and corridor parameters before entering the
 shared planning and control stack. This setup isolates the effect of tactical
 guidance on closed-loop overtaking performance. The comparison results are
-summarized in Table~\ref{tab:comparison}, where Prop. denotes the proposed
-method, NI-MPC Non-Interactive MPC, RB-GT Rule-based GT, and iLQG iLQGames.
-TTO is averaged over successful overtakes, minimum gap is the mean per-run
+summarized in Table~\ref{tab:comparison}, where Prop., NI-MPC, and RB-GT
+denote the proposed method, Non-Interactive MPC, and Rule-based GT,
+respectively. TTO is averaged over successful overtakes, minimum gap is the mean per-lap
 minimum net clearance between the vehicle body envelopes, and PFR is the
 fraction of planning cycles with a feasible SOCP solution.
 
@@ -1090,12 +1105,12 @@ fraction of planning cycles with a feasible SOCP solution.
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
 \renewcommand{\arraystretch}{1.08}
-\caption{Comparison over 1000 Monte Carlo closed-loop HIL runs per method.
+\caption{Comparison over 1000 Monte Carlo closed-loop HIL laps per method.
 Arrows indicate the preferred direction.}
 \label{tab:comparison}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
-Metric & Prop. & NI-MPC & RB-GT & iLQG \\
+Metric & Prop. & NI-MPC & RB-GT & iLQGames \\
 \midrule
 OSR [\%] $\uparrow$
 & \textbf{94.7} & 28.5 & 51.6 & 63.5 \\
@@ -1115,7 +1130,7 @@ PFR $\uparrow$
 \end{tabular}
 \end{table}
 
-Across 1000 Monte Carlo closed-loop HIL runs per method, the proposed method
+Across 1000 Monte Carlo closed-loop HIL laps per method, the proposed method
 achieved an overtaking success rate of 94.7\% and a mean overtaking time of
 4.82~s. Compared with the three baselines, the success rate increased by
 31.2--66.2 percentage points and the mean overtaking time decreased by
@@ -1152,7 +1167,7 @@ budget.
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
 \renewcommand{\arraystretch}{1.08}
-\caption{Component ablations over 1000 Monte Carlo closed-loop HIL runs per
+\caption{Component ablations over 1000 Monte Carlo closed-loop HIL laps per
 variant. Arrows indicate the preferred direction.}
 \label{tab:ablation}
 \begin{tabular}{@{}lccccc@{}}
@@ -1199,7 +1214,7 @@ distributional value learning for robust overtaking decisions.
 \label{subsec:sensitivity}
 
 Each hyperparameter setting was independently trained and evaluated over
-1000 Monte Carlo closed-loop HIL runs under the same experimental conditions.
+1000 Monte Carlo closed-loop HIL laps under the same experimental conditions.
 The nominal setting uses $\varepsilon_{\rm BR}=0.05$ and
 $\lambda_p=\lambda_g=1$. For each value of $\varepsilon_{\rm BR}$, the
 corresponding teacher labels were regenerated before training.
@@ -1223,7 +1238,7 @@ under increased supervision weights.
 \setlength{\tabcolsep}{1.2pt}
 \renewcommand{\arraystretch}{1.08}
 \caption{Hyperparameter sensitivity over 1000 Monte Carlo closed-loop HIL
-runs per setting. Arrows indicate the preferred direction.}
+laps per setting. Arrows indicate the preferred direction.}
 \label{tab:sensitivity}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
@@ -1254,7 +1269,7 @@ $\lambda_g=2$
 \subsection{Evaluation on unseen circuits}
 \label{subsec:unseen_track}
 
-The tactical policy trained on the Yas Marina Circuit was evaluated on the
+The tactical policy trained on Yas Marina North was evaluated on the
 unseen Imola and Suzuka circuits without retraining or parameter retuning. All
 planning and control parameters were also kept unchanged.
 
@@ -1293,7 +1308,7 @@ and opponent vehicles, respectively.}
 \footnotesize
 \setlength{\tabcolsep}{3.0pt}
 \renewcommand{\arraystretch}{1.05}
-\caption{Aggregate performance over 1000 Monte Carlo closed-loop HIL runs per
+\caption{Aggregate performance over 1000 Monte Carlo closed-loop HIL laps per
 unseen circuit.}
 \label{tab:unseen_generalization}
 \begin{tabular}{@{}lcc@{}}
@@ -1364,7 +1379,7 @@ feasible-set representation.
 
 High-speed overtaking on narrow closed circuits is constrained by limited maneuvering space, increasing the risk of failed passes and collisions. Repeated replanning further complicates the preservation of a consistent passing intention while retaining sufficient geometric freedom for downstream planning and control. To address these challenges, this paper developed a game-guided tactical-corridor decision framework that formulates interactive overtaking as robust tactical feasible-set selection. A robust Stackelberg response-set teacher provides a response-set-optimal action prior and action-conditioned robust-value labels for training a Truncated Quantile Critics (TQC) policy that predicts passing-side intention, corridor parameters, and speed demand. A hysteretic state machine preserves the selected passing side, while deterministic opponent-footprint carving adapts the feasible region to the evolving track and interaction geometry. The resulting side-locked, time-varying Frenet corridor and speed guidance are realized through sequential second-order cone programming (SOCP) planning and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC).
 
-Target-hardware experiments on the EAV24 hardware-in-the-loop platform comprised 1000 Monte Carlo closed-loop runs. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a planning-feasibility rate of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
+Target-hardware experiments on the EAV24 hardware-in-the-loop platform comprised 1000 Monte Carlo closed-loop laps. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a planning-feasibility rate of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
 
 Future work will leverage participation in the Abu Dhabi Autonomous Racing League (A2RL) to deploy the proposed framework on a full-scale autonomous race car and conduct high-speed on-track validation. The framework will also be extended from the current two-vehicle setting to multi-vehicle racing scenarios to evaluate its performance under more complex competitive interactions.
 
@@ -1378,12 +1393,7 @@ the EAV24 simulation and vehicle-interface environment.
 
 \renewcommand{\bibfont}{\fontsize{7}{7.8}\selectfont}
 \setlength{\bibsep}{-0.1pt}
-\begin{thebibliography}{35}
-
-\bibitem{kabzan2020amzracing}
-J. Kabzan, M. de la Iglesia Valls, V. J. F. Reijgwart \emph{et al.},
-``AMZ Driverless: The full autonomous racing system,''
-\emph{Journal of Field Robotics}, vol. 37, no. 7, pp. 1267--1294, 2020.
+\begin{thebibliography}{34}
 
 \bibitem{betz2022survey}
 J. Betz, H. Zheng, A. Liniger \emph{et al.},
@@ -1391,17 +1401,10 @@ J. Betz, H. Zheng, A. Liniger \emph{et al.},
 \emph{IEEE Open Journal of Intelligent Transportation Systems}, vol. 3,
 pp. 458--488, 2022.
 
-\bibitem{betz2023autonomous}
-J. Betz, T. Betz, F. Fent \emph{et al.},
-``TUM autonomous motorsport: An autonomous racing software for the Indy
-Autonomous Challenge,'' \emph{Journal of Field Robotics}, vol. 40, no. 4,
-pp. 783--809, 2023.
-
-\bibitem{jung2023iac}
-C. Jung, A. Finazzi, H. Seong \emph{et al.},
-``An autonomous system for head-to-head race: Design, implementation and
-analysis,'' \emph{IEEE Transactions on Intelligent Transportation Systems},
-vol. 24, no. 10, pp. 10470--10486, 2023.
+\bibitem{hoffmann2026a2rl}
+S. Hoffmann, S. Sagmeister, T. Betz \emph{et al.},
+``Head-to-head autonomous racing at the limits of handling in the A2RL
+challenge,'' arXiv preprint arXiv:2602.08571, 2026.
 
 \bibitem{sureshbabu2022autopass}
 V. Suresh Babu and M. Behl,
@@ -1416,31 +1419,17 @@ C. Kim, K. Yi, and J. Park,
 vehicles for overtaking maneuvers,'' in \emph{SAE Technical Paper Series},
 2023, Paper 2023-01-0698, doi: 10.4271/2023-01-0698.
 
-\bibitem{ji2023hierarchicalgame}
-K. Ji, N. Li, M. Orsag, and K. Han,
-``Hierarchical and game-theoretic decision-making for connected and automated
-vehicles in overtaking scenarios,'' \emph{Transportation Research Part C:
-Emerging Technologies}, vol. 150, art. 104109, 2023,
-doi: 10.1016/j.trc.2023.104109.
+\bibitem{jung2023iac}
+C. Jung, A. Finazzi, H. Seong \emph{et al.},
+``An autonomous system for head-to-head race: Design, implementation and
+analysis,'' \emph{IEEE Transactions on Intelligent Transportation Systems},
+vol. 24, no. 10, pp. 10470--10486, 2023.
 
-\bibitem{ji2024competition}
-K. Ji, S. Bae, N. Li, and K. Han,
-``Competition-aware decision-making approach for mobile robots in racing
-scenarios,'' in \emph{Proc. IEEE Intelligent Vehicles Symposium (IV)}, 2024,
-pp. 878--884, doi: 10.1109/IV55156.2024.10588596.
-
-\bibitem{swain2023cooperative}
-S. K. Swain, J. J. Rath, and K. C. Veluvolu,
-``Cooperative game theory based robust shared lateral control for driver
-vehicle interactions,'' \emph{Control Engineering Practice}, vol. 141,
-art. 105678, 2023, doi: 10.1016/j.conengprac.2023.105678.
-
-\bibitem{lopez2022payoff}
-V. Lopez, F. Lewis, M. Liu, Y. Wan, S. Nageshrao, and D. Filev,
-``Game-theoretic lane-changing decision making and payoff learning for
-autonomous vehicles,'' \emph{IEEE Transactions on Vehicular Technology},
-vol. 71, no. 4, pp. 3609--3620, 2022,
-doi: 10.1109/TVT.2022.3148972.
+\bibitem{thakkar2024hierarchical}
+R. S. Thakkar, A. S. Samyal, D. Fridovich-Keil, Z. Xu, and U. Topcu,
+``Hierarchical control for head-to-head autonomous racing,''
+\emph{Field Robotics}, vol. 4, no. 1, pp. 46--69, 2024,
+doi: 10.55417/FR.2024002.
 
 \bibitem{liniger2019game}
 A. Liniger and J. Lygeros,
@@ -1461,6 +1450,26 @@ multi-player general-sum differential games,'' in \emph{Proc. IEEE
 International Conference on Robotics and Automation (ICRA)}, 2020,
 pp. 1475--1481.
 
+\bibitem{ji2023hierarchicalgame}
+K. Ji, N. Li, M. Orsag, and K. Han,
+``Hierarchical and game-theoretic decision-making for connected and automated
+vehicles in overtaking scenarios,'' \emph{Transportation Research Part C:
+Emerging Technologies}, vol. 150, art. 104109, 2023,
+doi: 10.1016/j.trc.2023.104109.
+
+\bibitem{lopez2022payoff}
+V. Lopez, F. Lewis, M. Liu, Y. Wan, S. Nageshrao, and D. Filev,
+``Game-theoretic lane-changing decision making and payoff learning for
+autonomous vehicles,'' \emph{IEEE Transactions on Vehicular Technology},
+vol. 71, no. 4, pp. 3609--3620, 2022,
+doi: 10.1109/TVT.2022.3148972.
+
+\bibitem{ji2024competition}
+K. Ji, S. Bae, N. Li, and K. Han,
+``Competition-aware decision-making approach for mobile robots in racing
+scenarios,'' in \emph{Proc. IEEE Intelligent Vehicles Symposium (IV)}, 2024,
+pp. 878--884, doi: 10.1109/IV55156.2024.10588596.
+
 \bibitem{jia2023bayesian}
 Y. Jia, M. Bhatt, and N. Mehr,
 ``RAPID: Autonomous multi-agent racing using constrained potential dynamic
@@ -1473,22 +1482,28 @@ control in autonomous racing using $\alpha$-potential function,'' in
 \emph{Proc. Learning for Dynamics and Control Conference}, PMLR, vol. 283,
 pp. 1--18, 2025.
 
-\bibitem{wurman2022gtsophy}
-P. R. Wurman, S. Barrett, K. Kawamoto \emph{et al.},
-``Outracing champion Gran Turismo drivers with deep reinforcement learning,''
-\emph{Nature}, vol. 602, no. 7896, pp. 223--228, 2022.
-
-\bibitem{yuan2022drlgame}
-M. Yuan, J. Shan, and K. Mi,
-``Deep reinforcement learning based game-theoretic decision-making for
-autonomous vehicles,'' \emph{IEEE Robotics and Automation Letters}, vol. 7,
-no. 2, pp. 818--825, 2022, doi: 10.1109/LRA.2021.3134249.
+\bibitem{song2021overtaking}
+Y. Song, H. Lin, E. Kaufmann, P. D\"urr, and D. Scaramuzza,
+``Autonomous overtaking in Gran Turismo Sport using curriculum reinforcement
+learning,'' in \emph{Proc. IEEE International Conference on Robotics and
+Automation (ICRA)}, 2021, pp. 9403--9409.
 
 \bibitem{fuchs2021superhuman}
 F. Fuchs, Y. Song, E. Kaufmann, D. Scaramuzza, and P. D\"urr,
 ``Super-human performance in Gran Turismo Sport using deep reinforcement
 learning,'' \emph{IEEE Robotics and Automation Letters}, vol. 6, no. 3,
 pp. 4257--4264, 2021.
+
+\bibitem{wurman2022gtsophy}
+P. R. Wurman, S. Barrett, K. Kawamoto \emph{et al.},
+``Outracing champion Gran Turismo drivers with deep reinforcement learning,''
+\emph{Nature}, vol. 602, no. 7896, pp. 223--228, 2022.
+
+\bibitem{lin2023limit}
+H. Lin, Y. Song, and D. Scaramuzza,
+``Reaching the limit in autonomous racing: Optimal control versus
+reinforcement learning,'' \emph{Science Robotics}, vol. 8, no. 82,
+art. eadg1462, 2023.
 
 \bibitem{evans2023trajectory}
 B. D. Evans, H. A. Engelbrecht, and H. W. Jordaan,
@@ -1502,24 +1517,6 @@ M. Hell, G. Hajgat\'o, \'A. Bog\'ar-N\'emeth \emph{et al.},
 learning,'' in \emph{Proc. IEEE Intelligent Vehicles Symposium (IV)}, 2024,
 pp. 258--263, doi: 10.1109/IV55156.2024.10588613.
 
-\bibitem{song2021overtaking}
-Y. Song, H. Lin, E. Kaufmann, P. D\"urr, and D. Scaramuzza,
-``Autonomous overtaking in Gran Turismo Sport using curriculum reinforcement
-learning,'' in \emph{Proc. IEEE International Conference on Robotics and
-Automation (ICRA)}, 2021, pp. 9403--9409.
-
-\bibitem{lin2023limit}
-H. Lin, Y. Song, and D. Scaramuzza,
-``Reaching the limit in autonomous racing: Optimal control versus
-reinforcement learning,'' \emph{Science Robotics}, vol. 8, no. 82,
-art. eadg1462, 2023.
-
-\bibitem{hu2023dynamicgraph}
-X. Hu, Y. Liu, B. Tang, J. Yan, and L. Chen,
-``Learning dynamic graph for overtaking strategy in autonomous driving,''
-\emph{IEEE Transactions on Intelligent Transportation Systems}, vol. 24,
-no. 11, pp. 11921--11933, 2023, doi: 10.1109/TITS.2023.3287223.
-
 \bibitem{baumann2025predictive}
 N. Baumann, E. Ghignone, C. Hu, B. Hildisch, T. H\"ammerle,
 A. Bettoni, A. Carron, L. Xie, and M. Magno,
@@ -1528,12 +1525,36 @@ opponent trajectory prediction,'' \emph{IEEE Robotics and Automation
 Letters}, vol. 10, no. 2, pp. 1816--1823, 2025,
 doi: 10.1109/LRA.2024.3519878.
 
+\bibitem{yuan2022drlgame}
+M. Yuan, J. Shan, and K. Mi,
+``Deep reinforcement learning based game-theoretic decision-making for
+autonomous vehicles,'' \emph{IEEE Robotics and Automation Letters}, vol. 7,
+no. 2, pp. 818--825, 2022, doi: 10.1109/LRA.2021.3134249.
+
+\bibitem{hu2023dynamicgraph}
+X. Hu, Y. Liu, B. Tang, J. Yan, and L. Chen,
+``Learning dynamic graph for overtaking strategy in autonomous driving,''
+\emph{IEEE Transactions on Intelligent Transportation Systems}, vol. 24,
+no. 11, pp. 11921--11933, 2023, doi: 10.1109/TITS.2023.3287223.
+
 \bibitem{han2024marl}
 S. Han, S. Zhou, J. Wang, L. Pepin, C. Ding, J. Fu, and F. Miao,
 ``A multi-agent reinforcement learning approach for safe and efficient
 behavior planning of connected autonomous vehicles,''
 \emph{IEEE Transactions on Intelligent Transportation Systems}, vol. 25,
 no. 5, pp. 3654--3670, 2024, doi: 10.1109/TITS.2023.3336670.
+
+\bibitem{guo2025rlhf}
+H. Guo, R. Khaire, and J. Zhao,
+``Reinforcement learning from human feedback with fast--slow updates for
+stable driving strategies,'' \emph{Control Engineering Practice}, vol. 165,
+art. 106549, 2025, doi: 10.1016/j.conengprac.2025.106549.
+
+\bibitem{reiter2023hierarchical}
+R. Reiter, J. Hoffmann, J. Boedecker, and M. Diehl,
+``A hierarchical approach for strategic motion planning in autonomous
+racing,'' in \emph{Proc. European Control Conference (ECC)}, 2023, pp. 1--8,
+doi: 10.23919/ECC57647.2023.10178143.
 
 \bibitem{liu2023proactive}
 Y. Liu, A. Zhou, Y. Wang, and S. Peeta,
@@ -1542,41 +1563,12 @@ human-driven vehicles in mixed-flow traffic,''
 \emph{Control Engineering Practice}, vol. 136, art. 105522, 2023,
 doi: 10.1016/j.conengprac.2023.105522.
 
-\bibitem{guo2025rlhf}
-H. Guo, R. Khaire, and J. Zhao,
-``Reinforcement learning from human feedback with fast--slow updates for
-stable driving strategies,'' \emph{Control Engineering Practice}, vol. 165,
-art. 106549, 2025, doi: 10.1016/j.conengprac.2025.106549.
-
 \bibitem{muzahid2025merging}
 A. J. M. Muzahid, Y. Shi, Z. Wang, A. Zhou, A. Cook, C. R. Wang, and Z. Wang,
 ``Optimizing on-ramp merging for connected and automated vehicles: A
 hierarchical approach using deep reinforcement learning and optimal control,''
 \emph{Control Engineering Practice}, vol. 165, art. 106614, 2025,
 doi: 10.1016/j.conengprac.2025.106614.
-
-\bibitem{thakkar2024hierarchical}
-R. S. Thakkar, A. S. Samyal, D. Fridovich-Keil, Z. Xu, and U. Topcu,
-``Hierarchical control for head-to-head autonomous racing,''
-\emph{Field Robotics}, vol. 4, no. 1, pp. 46--69, 2024,
-doi: 10.55417/FR.2024002.
-
-\bibitem{reiter2023hierarchical}
-R. Reiter, J. Hoffmann, J. Boedecker, and M. Diehl,
-``A hierarchical approach for strategic motion planning in autonomous
-racing,'' in \emph{Proc. European Control Conference (ECC)}, 2023, pp. 1--8,
-doi: 10.23919/ECC57647.2023.10178143.
-
-\bibitem{hoffmann2026a2rl}
-S. Hoffmann, S. Sagmeister, T. Betz \emph{et al.},
-``Head-to-head autonomous racing at the limits of handling in the A2RL
-challenge,'' arXiv preprint arXiv:2602.08571, 2026.
-
-\bibitem{kuznetsov2020tqc}
-A. Kuznetsov, P. Shvechikov, A. Grishin, and D. Vetrov,
-``Controlling overestimation bias with truncated mixture of continuous
-distributional quantile critics,'' in \emph{Proc. 37th International
-Conference on Machine Learning}, PMLR, vol. 119, pp. 5556--5566, 2020.
 
 \bibitem{yang2026corridor}
 C. Yang, H. Liu, Z. Li, X. Zhang, X. Zhao, and B. Wang,
@@ -1598,6 +1590,23 @@ M. Veneri and M. Massaro,
 lap-time of race vehicles,''
 \emph{Vehicle System Dynamics}, vol. 58, no. 6, pp. 933--954, 2020,
 doi: 10.1080/00423114.2019.1608364.
+
+\bibitem{kuznetsov2020tqc}
+A. Kuznetsov, P. Shvechikov, A. Grishin, and D. Vetrov,
+``Controlling overestimation bias with truncated mixture of continuous
+distributional quantile critics,'' in \emph{Proc. 37th International
+Conference on Machine Learning}, PMLR, vol. 119, pp. 5556--5566, 2020.
+
+\bibitem{kabzan2020amzracing}
+J. Kabzan, M. de la Iglesia Valls, V. J. F. Reijgwart \emph{et al.},
+``AMZ Driverless: The full autonomous racing system,''
+\emph{Journal of Field Robotics}, vol. 37, no. 7, pp. 1267--1294, 2020.
+
+\bibitem{betz2023autonomous}
+J. Betz, T. Betz, F. Fent \emph{et al.},
+``TUM autonomous motorsport: An autonomous racing software for the Indy
+Autonomous Challenge,'' \emph{Journal of Field Robotics}, vol. 40, no. 4,
+pp. 783--809, 2023.
 
 \end{thebibliography}
 
@@ -1637,7 +1646,7 @@ Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \(d_{\rm safe}\);
 \(V_{\rm cap}^{\rm req}\) &
 \([1.5,6.0]\) m; \([0.2,0.8]\) m; \([15,90]\) m s\(^{-1}\) \\
 Gap bounds & \(g_{\rm chase}\); \(g_{\rm ot}\); \(g_{\rm abort}\) &
-\([18,24]\) m; \([16,24]\) m; \([28,45]\) m \\
+\([18,24]\) m; \([8,14]\) m; \([28,45]\) m \\
 Mode bounds & \(b_{\rm lat}\); \(w_{\rm safe}\); \(q_{\rm side}\) &
 \([-1.5,1.5]\) m; \([1,5]\) m; \([-1,1]\) \\
 Response-set teacher & Sobol candidates per side code; \(\varepsilon_{\rm BR}\);
