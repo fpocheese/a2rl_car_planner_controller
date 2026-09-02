@@ -223,13 +223,6 @@ footprints centered at their state reference points, with length $L_j=5.2$~m
 and width $W_j=1.9$~m,
 $j\in\{e,o\}$.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{model_shuoming_corrected.pdf}
-\caption{Vehicle motion and relative geometry in the Frenet frame.}
-\label{fig:vehicle_track_model}
-\end{figure}
-
 For vehicle $i\in\{e,o\}$, $(X_i,Y_i,\psi_i)$ denotes the inertial
 pose and $(v_{x,i},v_{y,i},r_i)$ the body-frame velocity and yaw rate, with
 $V_i=\sqrt{v_{x,i}^2+v_{y,i}^2}$ and
@@ -272,6 +265,14 @@ r_i\\
 Here $m$ and $I_z$ are the vehicle mass and yaw inertia, and
 $F_{\rm drag}$ is the aerodynamic drag force. The identified pure-slip tire
 forces are represented by
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{model_shuoming_corrected.pdf}
+\caption{Vehicle motion and relative geometry in the Frenet frame.}
+\label{fig:vehicle_track_model}
+\end{figure}
+
 \begin{equation}
 \begin{aligned}
 F_{d,q}(\chi_{d,q},F_{z,q})
@@ -618,6 +619,16 @@ $\mathcal D$ supplies Bellman transitions, whereas $\mathcal D_g$ supplies
 matched teacher-action and response-set-value supervision. The action prior
 guides corridor placement, while the auxiliary value labels encourage the
 shared critic representation to retain response-set robustness information.
+Figure~\ref{fig:framework_overview} summarizes the overall information flow.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{framework_overview.pdf}
+\caption{Overview of the proposed game-supervised tactical feasible-region
+framework.}
+\label{fig:framework_overview}
+\end{figure*}
+
 
 \subsection{Persistent Tactical Feasible-Region Interface}
 \label{subsec:corridor_synthesis}
@@ -912,7 +923,7 @@ steering angle
 \RETURN four-channel command and health status
 \end{algorithmic}
 \end{algorithm}
-\FloatBarrier
+% \FloatBarrier
 \endgroup
 
 
@@ -960,6 +971,14 @@ Fig.~\ref{fig:four_case_track_overview} presents four representative
 encounters at distinct locations on Yas Marina North. The matching labels
 (b)--(i) link each spatial view of the published corridor and planned path to
 its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. Across
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{track_overview_case0205_v019.png}
+\caption{Representative overtaking situations on Yas Marina North.}
+\label{fig:four_case_track_overview}
+\end{figure*}
+
 the four encounters, the feasible region evolves from approach guidance into a
 committed passing channel. In Case~1, the \textsc{Shadow} corridor at
 $\Delta s=18.6$~m places the planned path on the selected side behind the
@@ -978,13 +997,6 @@ the state-dependent corridor consistently converts side intention into a
 connected, track-conforming passing region across straight and curved
 sections. Cases~1 and 2 are examined in detail as representative high-speed
 overtakes on a straight and through a consecutive-corner sequence.
-
-\begin{figure*}[!t]
-\centering
-\includegraphics[width=\textwidth]{track_overview_case0205_v019.png}
-\caption{Representative overtaking situations on Yas Marina North.}
-\label{fig:four_case_track_overview}
-\end{figure*}
 
 \subsubsection*{Case 1: high-speed overtake on a straight}
 
@@ -1011,7 +1023,7 @@ footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver} remains
 satisfied. The actual speed closely follows the desired profile
 and exceeds 70~m~s$^{-1}$ during the pass.
 
-\begin{figure}[!tbp]
+\begin{figure}[H]
 \centering
 \subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_path_corridor.png}}\\[-0.5mm]
@@ -1029,7 +1041,7 @@ inside the speed-dependent tire envelope. The committed-side corridor is
 therefore realized as a trackable path--speed reference throughout the
 high-speed overtake.
 
-\begin{figure}[!tbp]
+\begin{figure}[H]
 \centering
 \subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_lateral.png}}\\[-0.5mm]
 \subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
@@ -1310,7 +1322,7 @@ Together, these cases evaluate whether the learned tactical feasible-set
 representation sustains consistent overtaking decisions across new circuit
 geometries.
 
-\begin{figure}[!tbp]
+\begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{track_overview_imola_v007.png}
 \caption{Representative overtaking events on the unseen Imola circuit. The
@@ -1320,7 +1332,7 @@ and red boxes indicate the ego and opponent vehicles, respectively.}
 \label{fig:imola_overview}
 \end{figure}
 
-\begin{figure}[!tbp]
+\begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]
 {track_overview_suzuka_selected_four_v005.png}
