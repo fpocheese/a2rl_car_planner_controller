@@ -36,7 +36,7 @@
 
 % Running heads are intentionally omitted for the CEP submission layout.
 
-\title{Game-Guided Tactical Corridor Learning for Autonomous Racing Overtakes}
+\title{Robust Stackelberg-Supervised Overtaking Policy with Persistent Tactical Corridors for Autonomous Racing}
 
 % \author[1]{Shuyi Gao}
 % \author[1]{Ren Jin}
@@ -384,8 +384,8 @@ clearance, requested speed cap, three mode-transition distances, defensive
 lateral offset and width, and passing-side intention. Together, they
 parameterize a planner-compatible tactical feasible region with speed
 guidance. The Euclidean projection $\Pi_{\mathcal A}$ maps the raw action into
-the admissible parameter domain by enforcing the component bounds in
-Table~\ref{tab:setup_params}, the ordered transition thresholds
+the admissible parameter domain by enforcing the configured component bounds,
+the ordered transition thresholds
 $g_{\rm ot}+\Delta_g\le g_{\rm chase}\le
 g_{\rm abort}-\Delta_g$, and the minimum corridor width. This produces the
 bound-projected action $\bm a^{\rm B}$, which is subsequently processed by the
@@ -894,12 +894,9 @@ and choose the mode-dependent terminal target
 \STATE initialize the spatial path from the previous valid solution or the
 corridor midpoint
 \FOR{each configured sequential-convexification iteration}
-\STATE solve SOCP~\eqref{eq:execution_socp}, update the linearization, and
-evaluate the nonlinear Frenet and corridor residuals
-\STATE stop when the solver and residual tolerances in
-\ref{app:parameters} are satisfied
+\STATE solve SOCP~\eqref{eq:execution_socp} and update the linearization
 \ENDFOR
-\STATE set valid if the path passes the solver, domain, and residual checks
+\STATE set valid if the path passes the solver and domain checks
 \IF{valid}
 \STATE query $\mathcal A_{\rm tire}(V)$ and construct
 $V_{{\rm cap},k}^{\rm P}$ from $V_{\rm cap}^{\rm F}$, measured speed, and
@@ -1023,7 +1020,7 @@ footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver} remains
 satisfied. The actual speed closely follows the desired profile
 and exceeds 70~m~s$^{-1}$ during the pass.
 
-\begin{figure}[H]
+\begin{figure}[!t]
 \centering
 \subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_path_corridor.png}}\\[-0.5mm]
@@ -1041,7 +1038,7 @@ inside the speed-dependent tire envelope. The committed-side corridor is
 therefore realized as a trackable path--speed reference throughout the
 high-speed overtake.
 
-\begin{figure}[H]
+\begin{figure}[!t]
 \centering
 \subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_lateral.png}}\\[-0.5mm]
 \subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
@@ -1656,8 +1653,8 @@ pp. 783--809, 2023.
 \setcounter{table}{0}
 \setcounter{equation}{0}
 
-This appendix reports the numerical settings and normalized reward features
-needed to reproduce the algorithmic logic.
+This appendix reports the principal numerical settings and normalized reward
+features used in the study.
 
 \FloatBarrier
 \begingroup
@@ -1678,8 +1675,6 @@ Tire curves & \(F_{z,0}\); \(C_x,C_y\) &
 \(2079.72\) N; \(1.6144,1.5998\) \\
 Tire curves & \(\mu_x,\mu_y\); \(s_x,s_y\); \(q_{x,\rm pk},q_{y,\rm pk}\) &
 \(2.2345,1.9745\); \(-0.2555,-0.4787\); \(0.1296,0.140\) \\
-Tire envelope & construction; online evaluation &
-quasi-steady-state map~\eqref{eq:tire_accel_envelope}; speed interpolation \\
 Time scales & \(T_{\rm tac}\); \(T_c\); station spacing &
 \(0.005\) s; \(0.01\) s; \(2\) m \\
 Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \(d_{\rm safe}\);
@@ -1687,13 +1682,13 @@ Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \(d_{\rm safe}\);
 \([1.5,6.0]\) m; \([0.2,0.8]\) m; \([15,90]\) m s\(^{-1}\) \\
 Gap bounds & \(g_{\rm chase}\); \(g_{\rm ot}\); \(g_{\rm abort}\) &
 \([18,24]\) m; \([8,14]\) m; \([28,45]\) m \\
-Mode bounds & \(b_{\rm lat}\); \(w_{\rm safe}\); \(q_{\rm side}\) &
-\([-1.5,1.5]\) m; \([1,5]\) m; \([-1,1]\) \\
+Mode bounds & \(b_{\rm lat}\); \(q_{\rm side}\) &
+\([-1.5,1.5]\) m; \([-1,1]\) \\
 Response-set teacher & Sobol candidates per side code; \(\varepsilon_{\rm BR}\);
 \(\gamma_g\) & \(64\); \(0.05\); \(0.99\) \\
-Projection and FSM & guard separation \(\Delta_g\); neutral dead band
-\(q_{\rm neu}\); \(N_{\rm post}\); stale-reference limit &
-\(0.5\) m; \(0.25\); \(3\) updates; \(1\) cycle \\
+Projection and FSM & guard separation \(\Delta_g\); \(N_{\rm post}\);
+stale-reference limit &
+\(0.5\) m; \(3\) updates; \(1\) cycle \\
 TQC & critics; \(N_q\); retained \(K\); \(\gamma\) &
 \(2\); \(25\); \(46\); \(0.99\) \\
 TQC guidance & \(\lambda_p\); \(\lambda_g\); prior metric &
@@ -1705,12 +1700,12 @@ Policy networks & actor encoder; critic outputs; auxiliary head &
 Reward & \(\bm w\), ordered as in Eq.~\eqref{eq:reward_sum} &
 \(\begin{gathered}(30,-20,-100,-2,\\[-1mm]
 -5,3,-0.1,-0.5,\\[-1mm]0.5,0.25)\end{gathered}\) \\
-Corridor & preview; stations; \(L_{\min}^{\rm corr}\); relaxation factor \(\beta\) &
-\(300\) m; \(150\); \(3\) m; \(0.2\) \\
+Corridor & minimum width \(L_{\min}^{\rm corr}\) &
+\(3\) m \\
 Frenet health & \(\varepsilon_s\); \(\xi_{\max}\) &
 \(0.05\); \(1.30\) rad \\
-Path health & iterations; \((\varepsilon_{\rm dyn},\varepsilon_{\rm cor})\) &
-\(5\); \((10^{-3},10^{-3}\ {\rm m})\) \\
+Path health & sequential-convexification iterations &
+\(5\) \\
 Speed profile & tire-cap grid intervals \(H_s\); \(V_{\min},v_{x,\max}\) &
 \(150\); \(15,90\) m s\(^{-1}\) \\
 RC-NMPC & steps \(N_c\); \(\delta_{\max}\); \(\dot\delta_{\max}\);
@@ -1736,8 +1731,7 @@ Here \(n_{\rm rl}\) is the raceline offset at \(s_e\),
 \phi_{\rm ot}&=\mathbb{1}[m_t=\textsc{Overtake},
 m_{t+1}=\textsc{Raceline},P_t],\\
 \phi_{\rm ovb}&=\phi_{\rm ot}\text{ with roles exchanged},\\
-\phi_{\rm col}&=\mathbb{1}[\mathrm{contact}\vee\mathrm{offtrack}
-\vee\mathrm{comm\_loss}],\\
+\phi_{\rm col}&=\mathbb{1}[\mathrm{contact}\vee\mathrm{offtrack}],\\
 \phi_{\rm lat}&=\mathbb{1}[m_t=\textsc{Raceline}]
 \operatorname{clip}\!\left(\frac{n_e-n_{\rm rl}}{W_{\rm trk}/2},-1,1\right)^2,\\
 \phi_{\rm crush}&=\mathbb{1}[|\Delta s_t|<g_{\rm ot}]
