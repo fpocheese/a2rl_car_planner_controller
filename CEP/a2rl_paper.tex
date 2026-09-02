@@ -413,19 +413,20 @@ role \(i\).
 Each candidate pair induces the coupled executable preview
 \begin{equation}
 (\mathcal R_e,\mathcal R_o)=
-\mathscr P_{N_{\rm sta}}\!\left(
+\mathscr P_{H_G}\!\left(
 \bm s_t^G;\bm a_e^{\rm F},\bm a_o^{\rm F}\right),
 \label{eq:coupled_game_preview}
 \end{equation}
-where $\mathscr P_{N_{\rm sta}}$ recursively applies the stateful publisher
-in Algorithm~\ref{alg:tactical_corridor} and the common execution stack.
+where $H_G$ denotes the number of tactical updates in the coupled offline
+teacher rollout. The operator $\mathscr P_{H_G}$ recursively applies the stateful
+publisher in Algorithm~\ref{alg:tactical_corridor} and the common execution stack.
 The candidate pair remains fixed over the preview while both vehicle and
 hybrid states evolve jointly; both utilities use the corresponding
 role-relative features of this preview.
 
 Let
 \(
-Z_g=\sum_{k=0}^{N_{\rm sta}-1}\gamma_g^k
+Z_g=\sum_{k=0}^{H_G-1}\gamma_g^k
 \)
 and
 \(
@@ -436,7 +437,7 @@ The normalized role-relative utility is
 \begin{aligned}
 U_i(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
 &=\frac{1}{Z_g\|\bm w\|_1}
-\sum_{k=0}^{N_{\rm sta}-1}\gamma_g^k\\[-1mm]
+\sum_{k=0}^{H_G-1}\gamma_g^k\\[-1mm]
 &\quad{}\left[\bm w^\top\bm\phi_{i,k}(\mathcal R_e,\mathcal R_o)+c_w\right],
 \end{aligned}
 \label{eq:game_utility}
@@ -985,7 +986,7 @@ exhibits the same progression through a tight bend: the corridor first
 establishes the lateral approach at $\Delta s=17.8$~m and then follows the
 track curvature while maintaining the locked-side channel at
 $\Delta s=0.0$~m. In Case~3, the corridor conforms to the sweeping corner
-during \textsc{Shadow} and carries the planned path past the opponent as the
+during \textsc{Shadow} and carries the planned path alongside the opponent as the
 relative longitudinal gap decreases from $15.0$ to $0.2$~m. Case~4 selects the
 complementary side in the oppositely curved section; its gradual
 \textsc{Shadow} offset develops into a fully carved \textsc{Overtake} region
@@ -1056,7 +1057,7 @@ In Fig.~\ref{fig:four_case_track_overview}, the \textsc{Shadow} view at
 $\Delta s=17.8$~m shows the corridor following the approaching bend and
 guiding the planned path toward the selected lateral position. At
 $\Delta s=0.0$~m, full \textsc{Overtake} exclusion preserves the same-side
-channel as the planned path curves alongside the opponent within the track
+channel as the planned path curves past the opponent within the track
 boundaries.
 
 Figure~\ref{fig:case05_tactical_new} summarizes the corresponding FSM sequence,
@@ -1325,7 +1326,7 @@ geometries.
 \caption{Representative overtaking events on the unseen Imola circuit. The
 central map localizes the \textsc{Shadow} and \textsc{Overtake} phases of four
 events, with the corresponding simulator views arranged around the map. Blue
-and red boxes indicate the ego and opponent vehicles, respectively.}
+and red boxes indicate the ego and opponent vehicles.}
 \label{fig:imola_overview}
 \end{figure}
 
@@ -1336,7 +1337,7 @@ and red boxes indicate the ego and opponent vehicles, respectively.}
 \caption{Representative overtaking events on the unseen Suzuka circuit. The
 central map localizes the \textsc{Shadow} and \textsc{Overtake} phases of four
 events across distinct local geometries. Blue and red boxes indicate the ego
-and opponent vehicles, respectively.}
+and opponent vehicles.}
 \label{fig:suzuka_overview}
 \end{figure}
 
