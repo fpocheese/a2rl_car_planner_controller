@@ -945,9 +945,28 @@ full-scale race vehicle.}
 \end{figure}
 
 
-The perception, localization, tactical, planning, and control modules operate at 20, 100, 200, 50, and 100~Hz, respectively. The localization module fuses GNSS/IMU measurements to provide the ego vehicle's position, velocity, attitude, and acceleration, while the perception module processes measurements from three LiDAR sensors to estimate the opponent's position, velocity, and heading. Independent zero-mean Gaussian noise is added to the localization outputs with standard deviations of 0.05~m, $0.10~\mathrm{m/s}$, 0.002~rad, and $0.10~\mathrm{m/s^{2}}$, respectively, and to the perception outputs with standard deviations of 0.10~m, $0.22~\mathrm{m/s}$, and 0.003~rad, respectively. A 10\% independent packet-drop rate is also applied to both output streams before they are supplied to the downstream tactical and planning modules. The tactical module implements the framework presented in Section~\ref{sec:tactical}, while the planning and control modules generate the path--speed reference and closed-loop vehicle commands, respectively.
+The perception, localization, tactical, planning, and control modules operate at 20, 100, 200, 40, and 100~Hz, respectively. The localization module fuses GNSS/IMU measurements to provide the ego vehicle's position, velocity, attitude, and acceleration, while the perception module processes measurements from three LiDAR sensors to estimate the opponent's position, velocity, and heading. Independent zero-mean Gaussian noise is added to the localization outputs with standard deviations of 0.05~m, $0.10~\mathrm{m/s}$, 0.002~rad, and $0.10~\mathrm{m/s^{2}}$, respectively, and to the perception outputs with standard deviations of 0.10~m, $0.22~\mathrm{m/s}$, and 0.003~rad, respectively. A 10\% independent packet-drop rate is also applied to both output streams before they are supplied to the downstream tactical and planning modules. The tactical module implements the framework presented in Section~\ref{sec:tactical}, while the planning and control modules generate the path--speed reference and closed-loop vehicle commands, respectively.
 Throughout policy training and HIL evaluation, the opponent follows the minimum-curvature racing line.
 
+Execution times were recorded throughout 1000 Monte Carlo closed-loop HIL laps of the proposed method. Table~\ref{tab:runtime} shows that the P99 latency of each online module remained within its scheduled period. No solver failure was recorded.
+
+\begin{table}[!tbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.0pt}
+\renewcommand{\arraystretch}{1.05}
+\caption{Execution-time statistics on the target computer.}
+\label{tab:runtime}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Stage & Period [ms] & Mean [ms] & P95 [ms] & P99 [ms] \\
+\midrule
+Tactical callback & 5 & 1.213 & 1.895 & 2.486 \\
+Planning cycle & 25 & 12.673 & 19.988 & 23.989 \\
+RC-NMPC & 10 & 5.221 & 7.087 & 8.736 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 Statistical results aggregate 1000 Monte Carlo closed-loop laps per setting.
 In each lap, the opponent initial condition is randomized relative to
@@ -973,7 +992,7 @@ its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. Across
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=\textwidth]{track_overview_case0205_v019.png}
+\includegraphics[width=\textwidth]{track_overview_case0205_v020.png}
 \caption{Representative overtaking situations on Yas Marina North.}
 \label{fig:four_case_track_overview}
 \end{figure*}
@@ -981,17 +1000,17 @@ its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. Across
 the four encounters, the feasible region evolves from approach guidance into a
 committed passing channel. In Case~1, the \textsc{Shadow} corridor at
 $\Delta s=18.6$~m places the planned path on the selected side behind the
-opponent; at $\Delta s=0.1$~m, the \textsc{Overtake} corridor excludes the
-opponent footprint and preserves a continuous path along the straight. Case~2
+opponent; at $\Delta s=-0.5$~m, the \textsc{Overtake} corridor excludes the
+opponent footprint and preserves a continuous path past the opponent along the straight. Case~2
 exhibits the same progression through a tight bend: the corridor first
 establishes the lateral approach at $\Delta s=17.8$~m and then follows the
-track curvature while maintaining the locked-side channel at
-$\Delta s=0.0$~m. In Case~3, the corridor conforms to the sweeping corner
-during \textsc{Shadow} and carries the planned path alongside the opponent as the
-relative longitudinal gap decreases from $15.0$ to $0.2$~m. Case~4 selects the
+track curvature while maintaining the locked-side channel past the opponent at
+$\Delta s=-0.4$~m. In Case~3, the corridor conforms to the sweeping corner
+during \textsc{Shadow} and carries the planned path past the opponent as the
+relative longitudinal gap decreases from $15.0$ to $-0.6$~m. Case~4 selects the
 complementary side in the oppositely curved section; its gradual
 \textsc{Shadow} offset develops into a fully carved \textsc{Overtake} region
-as $\Delta s$ decreases from $14.3$ to $0.1$~m. These views demonstrate that
+as $\Delta s$ decreases from $14.3$ to $-0.4$~m. These views demonstrate that
 the state-dependent corridor consistently converts side intention into a
 connected, track-conforming passing region across straight and curved
 sections. Cases~1 and 2 are examined in detail as representative high-speed
@@ -1004,8 +1023,8 @@ Fig.~\ref{fig:four_case_track_overview}, the \textsc{Shadow} view at
 $\Delta s=18.6$~m shows the corridor forming a side-consistent approach
 channel behind the opponent, with the planned path gradually displaced toward
 the selected passing side. When the relative longitudinal gap decreases to
-$0.1$~m, the \textsc{Overtake} carver excludes the opponent-occupied region
-and retains a connected corridor on the locked side.
+$-0.5$~m, the \textsc{Overtake} carver excludes the opponent-occupied region
+and retains a connected corridor as the ego moves past the opponent.
 
 Figure~\ref{fig:case02_tactical_new} summarizes the corresponding FSM sequence,
 Frenet trajectories, and speed response. In panel~(b), $s-s_0$ denotes
@@ -1057,7 +1076,7 @@ Case~2 represents a high-speed overtake through successive curvature changes.
 In Fig.~\ref{fig:four_case_track_overview}, the \textsc{Shadow} view at
 $\Delta s=17.8$~m shows the corridor following the approaching bend and
 guiding the planned path toward the selected lateral position. At
-$\Delta s=0.0$~m, full \textsc{Overtake} exclusion preserves the same-side
+$\Delta s=-0.4$~m, full \textsc{Overtake} exclusion preserves the same-side
 channel as the planned path curves past the opponent within the track
 boundaries.
 
