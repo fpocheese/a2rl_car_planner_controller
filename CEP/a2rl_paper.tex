@@ -1206,64 +1206,101 @@ violation, or an unrecovered execution-health fault.
 \subsection{Ablation study}
 \label{subsec:ablation}
 
-Four ablation variants evaluate the contributions of robust response-set
-supervision, hysteretic side commitment, adaptive corridor and speed guidance,
-and TQC-based distributional value learning while retaining the same downstream
-planning and control stack. \emph{Without game guidance (No-GG)} removes the
-response-set-optimal action prior and action-conditioned robust-value labels.
-\emph{Without FSM (No-FSM)} removes hysteretic mode transitions and side
-locking, allowing the passing-side command to follow the current policy output
-at each tactical update. In the \emph{Fixed corridor and speed guidance
-(Fixed-C/S)} variant, the learned corridor-width, clearance, lateral-bias, and
-speed-cap outputs are replaced with fixed nominal values. The final variant
-replaces TQC with Soft Actor-Critic (SAC) under the same observation and action
-spaces, actor architecture, reward function, replay protocol, and training
-budget.
+Eight ablation variants evaluate the contributions of response-set
+supervision, stateful side commitment, adaptive corridor--speed guidance, and
+distributional value learning while retaining the same downstream planning
+and control stack. All variants were independently trained and evaluated under
+matched conditions. \emph{Without action prior (No-AP)} sets
+$\lambda_p=0$ while retaining action-conditioned robust-value supervision,
+whereas \emph{without robust-value supervision (No-RV)} sets
+$\lambda_g=0$ while retaining the response-set-optimal action prior.
+\emph{Without game guidance (No-GG)} removes both supervision signals.
+\emph{Without FSM (No-FSM)} jointly removes the hysteretic mode transitions
+and side lock, allowing the passing-side command to follow the current policy
+output at each tactical update. \emph{Fixed corridor geometry (Fixed-C)}
+replaces the learned lateral-cap, clearance, lateral-bias, and width outputs
+with the same nominal values used in Fixed-C/S, while retaining the learned
+speed request. \emph{Fixed speed guidance (Fixed-S)} fixes only
+$V_{\rm cap}^{\rm req}$ while retaining the learned corridor geometry.
+\emph{Fixed corridor and speed guidance (Fixed-C/S)} combines both
+interventions. The passing-side and transition outputs remain learned in all
+three fixed-guidance variants. The final variant replaces TQC with Soft
+Actor-Critic (SAC) under the same observation and action spaces, actor
+architecture, reward function, replay protocol, and training budget.
 
-\begin{table}[!htbp]
+\begin{table*}[!t]
 \centering
-\footnotesize
-\setlength{\tabcolsep}{2.3pt}
-\renewcommand{\arraystretch}{1.08}
-\caption{Component ablations over 1000 Monte Carlo closed-loop HIL laps per
-variant. Arrows indicate the preferred direction.}
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.10}
+\caption{Targeted and grouped component ablations in Monte Carlo closed-loop
+HIL experiments. Arrows indicate the preferred direction.}
 \label{tab:ablation}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabular}{@{}lccccccccc@{}}
 \toprule
-Metric & Full & No-GG & No-FSM & Fixed-C/S & SAC \\
+& & \multicolumn{3}{c}{Response-set supervision}
+& \multicolumn{1}{c}{State}
+& \multicolumn{3}{c}{Tactical guidance}
+& \multicolumn{1}{c}{Critic} \\
+\cmidrule(lr){3-5}
+\cmidrule(lr){6-6}
+\cmidrule(lr){7-9}
+\cmidrule(l){10-10}
+Metric
+& Full
+& \shortstack{No-AP\\($\lambda_p=0$)}
+& \shortstack{No-RV\\($\lambda_g=0$)}
+& No-GG
+& No-FSM
+& Fixed-C
+& Fixed-S
+& Fixed-C/S
+& SAC \\
 \midrule
 OSR [\%] $\uparrow$
-& \textbf{94.7} & 85.4 & 82.3 & 76.1 & 88.5 \\
+& \textbf{94.7} & 90.8 & 92.3 & 85.4 & 82.3 & 81.4 & 89.6 & 76.1 & 88.5 \\
 TTO [s] $\downarrow$
-& \textbf{4.82} & 6.38 & 6.71 & 8.94 & 5.53 \\
+& \textbf{4.82} & 5.70 & 5.31 & 6.38 & 6.71 & 7.86 & 6.12 & 8.94 & 5.53 \\
 Contact rate [\%] $\downarrow$
-& \textbf{0.0} & 0.9 & 1.2 & 3.1 & 0.5 \\
+& \textbf{0.0} & 0.7 & 0.5 & 0.9 & 1.2 & 2.4 & 0.6 & 3.1 & 0.5 \\
 Min. gap [m] $\uparrow$
-& \textbf{5.83} & 2.86 & 2.17 & 1.05 & 3.94 \\
+& \textbf{5.83} & 4.28 & 4.85 & 2.86 & 2.17 & 1.68 & 4.71 & 1.05 & 3.94 \\
 Mean TTC [s] $\uparrow$
-& \textbf{8.52} & 4.93 & 4.31 & 2.86 & 6.17 \\
+& \textbf{8.52} & 6.35 & 7.02 & 4.93 & 4.31 & 3.52 & 6.79 & 2.86 & 6.17 \\
 PFR $\uparrow$
-& \textbf{1.000} & 0.983 & 0.974 & 0.961 & 0.992 \\
+& \textbf{1.000} & 0.992 & 0.994 & 0.983 & 0.974 & 0.970 & 0.994 & 0.961 & 0.992 \\
 \bottomrule
 \end{tabular}
-
-\end{table}
+\end{table*}
 
 The full method achieved the best performance across all reported metrics,
 including an OSR of 94.7\%, a mean TTO of 4.82~s, a zero contact rate, and a
-PFR of 1.000 (Table~\ref{tab:ablation}). Adaptive corridor and speed guidance
-provided the largest performance gain. Compared with Fixed-C/S, the full
-method increased OSR by 18.6 percentage points, reduced the contact rate from
-3.1\% to zero, and increased PFR from 0.961 to 1.000. Hysteretic mode
-transitions and persistent side commitment increased OSR by 12.4 percentage
-points over No-FSM and reduced the contact rate from 1.2\% to zero, maintaining
-a consistent passing intention across successive replanning updates. Robust
-response-set supervision increased OSR by 9.3 percentage points, reduced TTO
-by 1.56~s, and increased the mean minimum gap from 2.86 to 5.83~m relative to
-No-GG, demonstrating its contribution to overtaking success, efficiency, and
-clearance. TQC increased OSR by 6.2 percentage points over SAC and reduced the
-contact rate from 0.5\% to zero, highlighting the advantage of TQC-based
-distributional value learning for robust overtaking decisions.
+PFR of 1.000 (Table~\ref{tab:ablation}). The targeted supervision ablations
+separate the contributions of the two teacher signals. Removing the action
+prior reduced OSR by 3.9 percentage points and increased TTO by 0.88~s,
+whereas removing robust-value supervision reduced OSR by 2.4 percentage
+points and increased TTO by 0.49~s. Their joint removal in No-GG produced a
+larger 9.3-point OSR reduction, together with a decrease in minimum gap from
+5.83 to 2.86~m, supporting the complementary roles of action and value
+supervision.
+
+The guidance ablations further distinguish spatial adaptation from speed
+adaptation. Fixing the corridor geometry reduced OSR by 13.3 percentage points,
+increased TTO to 7.86~s, and decreased PFR to 0.970. Fixing only the speed
+request produced a smaller 5.1-point OSR reduction and increased TTO to
+6.12~s, while retaining a PFR of 0.994. Their joint removal in Fixed-C/S
+caused the largest degradation, reducing OSR to 76.1\%, increasing TTO to
+8.94~s, and decreasing PFR to 0.961. These results show that adaptive corridor
+geometry provides the primary spatial support for feasible overtaking, while
+adaptive speed guidance contributes complementary pacing and efficiency.
+
+Compared with No-FSM, the complete stateful mechanism increased OSR by
+12.4 percentage points and reduced the contact rate from 1.2\% to zero,
+demonstrating the combined contribution of hysteretic mode transitions and
+persistent side locking. Replacing TQC with SAC reduced OSR by 6.2 percentage
+points and increased TTO by 0.71~s, supporting the contribution of
+distributional value learning under the same tactical and execution
+architecture.
 
 
 
@@ -1271,11 +1308,15 @@ distributional value learning for robust overtaking decisions.
 \subsection{Hyperparameter sensitivity analysis}
 \label{subsec:sensitivity}
 
-Each hyperparameter setting was independently trained and evaluated over
-1000 Monte Carlo closed-loop HIL laps under the same experimental conditions.
-The nominal setting uses $\varepsilon_{\rm BR}=0.05$ and
-$\lambda_p=\lambda_g=1$. For each value of $\varepsilon_{\rm BR}$, the
-corresponding teacher labels were regenerated before training.
+The zero-weight cases are evaluated as targeted component ablations in
+Table~\ref{tab:ablation}. The sensitivity analysis therefore examines the
+response-set tolerance and increased supervision weights around the nominal
+setting, using $\varepsilon_{\rm BR}=0.05$ and
+$\lambda_p=\lambda_g=1$ as the reference configuration. Each setting was
+independently trained and evaluated over 1000 Monte Carlo closed-loop HIL laps
+under the same experimental conditions. For each value of
+$\varepsilon_{\rm BR}$, the corresponding teacher labels were regenerated
+before training.
 The nominal setting provided the strongest overall balance, achieving the
 highest OSR, a zero contact rate, and full planning feasibility
 (Table~\ref{tab:sensitivity}). Reducing $\varepsilon_{\rm BR}$ from 0.05 to
@@ -1284,11 +1325,8 @@ the minimum gap decreased from 5.83 to 4.55~m. Increasing
 $\varepsilon_{\rm BR}$ to 0.10 enlarged the minimum gap to 6.22~m, while
 TTO increased to 5.70~s. These results show that $\varepsilon_{\rm BR}$
 regulates the balance between overtaking efficiency and spatial clearance.
-Setting $\lambda_p$ or $\lambda_g$ to zero reduced OSR to 90.8\% and
-92.3\%, respectively, confirming the contribution of both the action-prior
-and robust-value supervision signals. Doubling either loss weight maintained
-OSR above 93\% and PFR at or above 0.9968, demonstrating stable performance
-under increased supervision weights.
+Doubling either loss weight maintained OSR above 93\% and PFR at or above
+0.9968, demonstrating stable performance under increased supervision weights.
 
 \begin{table}[!htbp]
 \centering
@@ -1312,12 +1350,8 @@ $\varepsilon_{\rm BR}=0.025$
 & 92.4 & \textbf{4.71} & 4.55 & 0.6 & 0.9926 \\
 $\varepsilon_{\rm BR}=0.10$
 & 93.0 & 5.70 & \textbf{6.22} & 0.1 & 0.9980 \\
-$\lambda_p=0$
-& 90.8 & 5.70 & 4.28 & 0.7 & 0.9916 \\
 $\lambda_p=2$
 & 93.1 & 5.29 & 5.51 & 0.3 & 0.9968 \\
-$\lambda_g=0$
-& 92.3 & 5.31 & 4.85 & 0.5 & 0.9938 \\
 $\lambda_g=2$
 & 93.4 & 5.21 & 5.78 & 0.1 & 0.9980 \\
 \bottomrule
