@@ -68,7 +68,7 @@
 
 \begin{abstract}
 Overtaking planning and decision-making are central to performance in autonomous racing. 
-Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed passes and collisions. 
+Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed overtaking attempts and collisions.
 % To address this problem, we formulate interactive overtaking as robust tactical feasible-set selection and develop a game-guided decision framework that distills Stackelberg response-set reasoning into persistent tactical corridors for constrained motion planning and closed-loop execution.
 To address this problem, we formulate overtaking as robust tactical feasible-set selection and develop a Stackelberg-supervised policy that translates response-set reasoning into persistent tactical corridors for constrained planning and closed-loop control.
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
@@ -348,8 +348,8 @@ Centerline projection gives the relative ego--opponent state
 Here $\operatorname{wrap}_{L_{\rm trk}}(\cdot)$ returns the signed
 arc-length difference in $[-L_{\rm trk}/2,L_{\rm trk}/2)$;
 $\Delta s>0$ denotes an opponent ahead and $\Delta v>0$ denotes
-the ego closing. Under the adopted racing rule, the ego vehicle
-acquires passing priority once it advances longitudinally ahead of
+the ego closing. Under the adopted A2RL racing rule, the ego vehicle
+acquires the lead once its longitudinal reference point advances ahead of
 the opponent. Accordingly, the first sampled instant satisfying
 $\Delta s<0$ is defined as the lead-acquisition event, hereafter
 referred to as the Lead event.
@@ -648,7 +648,7 @@ Figure~\ref{fig:framework_overview} summarizes the overall information flow.
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=\textwidth]{framework_overview.pdf}
+\includegraphics[width=\textwidth]{figure_sources/framework_overview_lead.png}
 \caption{Overview of the proposed game-supervised tactical feasible-region
 framework.}
 \label{fig:framework_overview}
@@ -660,18 +660,18 @@ framework.}
 The state machine carries the selected passing opportunity across successive
 tactical updates. This temporal persistence complements the spatial corridor:
 the policy may refine its width and speed request as the encounter evolves,
-while the committed side remains consistent through the pass.
+while the committed side remains consistent until the Lead event.
 Let $\Delta s_t$ and $\Delta v_t$ be the sampled relative quantities defined in
 Eq.~\eqref{eq:rel}.
 A feasible side is committed as the ego closes on the opponent, retained
-through \textsc{Shadow} and \textsc{Overtake}, and released only after a
-confirmed pass, an abort, or an execution-health failure. Health and abort
-take precedence over passing, completed passes take precedence over continued
-overtaking, and an unlocked ego enters \textsc{Defend} only when a rear
-opponent is closing. 
-The pass-confirmation indicator $P_t$ debounces the Pass condition defined
-after Eq.~\eqref{eq:rel} over $N_{\rm post}$ consecutive tactical updates
-before the state machine releases the side lock.
+through \textsc{Shadow} and \textsc{Overtake}, and released only after
+confirmation of the Lead event, an abort, or an execution-health failure.
+Health and abort take precedence over overtaking, Lead confirmation takes
+precedence over continued overtaking, and an unlocked ego enters
+\textsc{Defend} only when a rear opponent is closing.
+The lead-confirmation indicator $L_t$ debounces the condition for the Lead
+event defined after Eq.~\eqref{eq:rel} over $N_{\rm post}$ consecutive tactical
+updates before the state machine releases the side lock.
 
 The geometric operation that realizes the selected side is the corridor
 carver. For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
@@ -753,9 +753,9 @@ at constant Frenet velocity, and evaluate the available side widths
 \IF{$h_t$ is invalid, or a locked state satisfies $\Delta s_t\ge g_{\rm abort}$ or
 loses $L_{\min}^{\rm corr}$ width}
 \STATE set \textsc{Hold} and release the side lock
-\ELSIF{the locked ego satisfies the Pass condition defined after
+\ELSIF{the locked ego satisfies the condition for the Lead event defined after
 Eq.~\eqref{eq:rel} for $N_{\rm post}$ consecutive updates}
-\STATE set $P_t=1$, return to \textsc{Raceline}, and release the lock
+\STATE set $L_t=1$, return to \textsc{Raceline}, and release the lock
 \ELSIF{a lock exists, or a non-neutral feasible side is requested with
 $0<\Delta s_t\le g_{\rm chase}$ and $\Delta v_t\ge0$}
 \STATE retain/commit that side; select \textsc{Shadow} for $\Delta s_t>g_{\rm ot}$
@@ -1027,16 +1027,18 @@ the four encounters, the feasible region evolves from approach guidance into a
 committed passing channel. In Case~1, the \textsc{Shadow} corridor at
 $\Delta s=18.6$~m places the planned path on the selected side behind the
 opponent; at $\Delta s=-0.5$~m, the \textsc{Overtake} corridor excludes the
-opponent footprint and preserves a continuous path past the opponent along the straight. Case~2
+opponent footprint and preserves a continuous path as the ego reaches the Lead
+event along the straight. Case~2
 exhibits the same progression through a tight bend: the corridor first
 establishes the lateral approach at $\Delta s=17.8$~m and then follows the
-track curvature while maintaining the locked-side channel past the opponent at
-$\Delta s=-0.4$~m. In Case~3, the corridor conforms to the sweeping corner
-during \textsc{Shadow} and carries the planned path past the opponent as the
+track curvature while maintaining the locked-side channel as the ego reaches
+the Lead event at $\Delta s=-0.4$~m. In Case~3, the corridor conforms to the sweeping corner
+during \textsc{Shadow} and carries the ego through the Lead event as the
 relative longitudinal gap decreases from $15.0$ to $-0.6$~m. Case~4 selects the
 complementary side in the oppositely curved section; its gradual
 \textsc{Shadow} offset develops into a fully carved \textsc{Overtake} region
-as $\Delta s$ decreases from $14.3$ to $-0.4$~m. These views demonstrate that
+as $\Delta s$ decreases from $14.3$ to $-0.4$~m, where the ego reaches the
+Lead event. These views demonstrate that
 the state-dependent corridor consistently converts side intention into a
 connected, track-conforming passing region across straight and curved
 sections. Cases~1 and 2 are examined in detail as representative high-speed
@@ -1050,7 +1052,7 @@ $\Delta s=18.6$~m shows the corridor forming a side-consistent approach
 channel behind the opponent, with the planned path gradually displaced toward
 the selected passing side. When the relative longitudinal gap decreases to
 $-0.5$~m, the \textsc{Overtake} carver excludes the opponent-occupied region
-and retains a connected corridor as the ego moves past the opponent.
+and retains a connected corridor as the ego reaches the Lead event.
 
 Figure~\ref{fig:case02_tactical_new} summarizes the corresponding FSM sequence,
 Frenet trajectories, and speed response. In panel~(b), $s-s_0$ denotes
@@ -1061,16 +1063,16 @@ trajectory stays inside this corridor throughout the overtaking maneuver.
 Triangles and squares mark the Encounter and Lead events, respectively.
 Encounter occurs at $\Delta s_{\rm E}\simeq(L_e+L_o)/2$, when the longitudinal
 body envelopes first overlap after the corridor has established the lateral
-separation $|\Delta n_{\rm E}|$. At the Pass marker, the lateral separation
-satisfies $|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$, and the
+separation $|\Delta n_{\rm E}|$. At the Lead marker, the lateral separation
+satisfies $|\Delta n_{\rm L}|\geq\rho_{{\rm exc},{\rm L}}$, and the
 footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver} remains
 satisfied. The actual speed closely follows the desired profile
-and exceeds 70~m~s$^{-1}$ during the pass.
+and exceeds 70~m~s$^{-1}$ during lead acquisition.
 
 \begin{figure}[!t]
 \centering
 \subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
-\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_path_corridor.png}}\\[-0.5mm]
+\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_02_path_corridor.png}}\\[-0.5mm]
 \subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
 \caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
 response in Case~1.}
@@ -1103,7 +1105,7 @@ In Fig.~\ref{fig:four_case_track_overview}, the \textsc{Shadow} view at
 $\Delta s=17.8$~m shows the corridor following the approaching bend and
 guiding the planned path toward the selected lateral position. At
 $\Delta s=-0.4$~m, full \textsc{Overtake} exclusion preserves the same-side
-channel as the planned path curves past the opponent within the track
+channel as the corridor guides the ego through the Lead event within the track
 boundaries.
 
 Figure~\ref{fig:case05_tactical_new} summarizes the corresponding FSM sequence,
@@ -1112,15 +1114,15 @@ follows the changing track boundaries, and the actual ego trajectory remains
 inside it while traversing the consecutive corners. At Encounter, the curved
 corridor has already established the lateral separation
 $|\Delta n_{\rm E}|$ as the longitudinal body envelopes begin to overlap. At
-the Pass marker, $|\Delta n_{\rm P}|\geq\rho_{{\rm exc},{\rm P}}$,
+the Lead marker, $|\Delta n_{\rm L}|\geq\rho_{{\rm exc},{\rm L}}$,
 preserving lateral clearance throughout the overtaking maneuver. From an entry speed above
 60~m~s$^{-1}$, the actual speed closely follows the desired braking and
-re-acceleration profile throughout the pass.
+re-acceleration profile throughout lead acquisition.
 
 \begin{figure}[!tbp]
 \centering
 \subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
-\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_path_corridor.png}}\\[-0.5mm]
+\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_05_path_corridor.png}}\\[-0.5mm]
 \subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
 \caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
 response in Case~2.}
@@ -1165,7 +1167,7 @@ The ego followed the published feasible corridor from $n_e=2.83$~m at
 instant~2 to $n_e=-2.89$~m at instant~3, completing a $5.71$-m lateral
 transition. By instant~4, the relative longitudinal gap had decreased to
 $\Delta s_4=5.00$~m, while the lateral separation reached
-$|\Delta n_4|=5.34$~m. At instant~5, the ego reached the Pass event at
+$|\Delta n_4|=5.34$~m. At instant~5, the ego reached the Lead event at
 $\Delta s_5=-2.65$~m with $|\Delta n_5|=4.50$~m. This sequence demonstrates
 adaptive passing-side commitment and continuous, track-conforming corridor
 realization during closed-loop overtaking under opponent-initiated blocking.
@@ -1249,9 +1251,10 @@ of expressing tactical reasoning as a persistent feasible region for
 closed-loop execution. Compared with iLQGames, the proposed method increased
 the mean minimum gap from 2.31 to 5.83~m and reduced the contact rate from
 1.4\% to zero. A PFR of 1.000 indicates that the common SOCP planner found a
-feasible solution at every planning cycle. All 53 unsuccessful laps of the proposed method reached the end of the
-evaluation lap without a Pass event; none involved contact, a track-boundary
-violation, or an unrecovered execution-health fault.
+feasible solution at every planning cycle. All 53 unsuccessful laps of the
+proposed method reached the end of the evaluation lap without reaching the
+Lead event; none involved contact, a track-boundary violation, or an
+unrecovered execution-health fault.
 
 
 
@@ -1505,7 +1508,7 @@ feasible-set representation.
 % extent, and speed demand; the FSM and carver maintain a connected channel as
 % relative geometry changes; and the common executor realizes that channel as
 % path--speed motion. The two detailed cases show this sequence during a short
-% high-speed pass and a prolonged corner engagement, with tracking and
+% high-speed lead-acquisition sequence and a prolonged corner engagement, with tracking and
 % acceleration responses compatible with the reference-level tire envelope.
 % Target-computer HIL further captures optimization, CAN communication,
 % fallback, and actuator-command response throughout this chain.
@@ -1521,7 +1524,7 @@ feasible-set representation.
 \section{Conclusion}\label{sec:conclusion}
 % =====================================================================
 
-High-speed overtaking on narrow closed circuits is constrained by limited maneuvering space, increasing the risk of failed passes and collisions. Repeated replanning further complicates the preservation of a consistent passing intention while retaining sufficient geometric freedom for downstream planning and control. To address these challenges, this paper developed a game-guided tactical-corridor decision framework that formulates interactive overtaking as robust tactical feasible-set selection. A robust Stackelberg response-set teacher provides a response-set-optimal action prior and action-conditioned robust-value labels for training a Truncated Quantile Critics (TQC) policy that predicts passing-side intention, corridor parameters, and speed demand. A hysteretic state machine preserves the selected passing side, while deterministic opponent-footprint carving adapts the feasible region to the evolving track and interaction geometry. The resulting side-locked, time-varying Frenet corridor and speed guidance are realized through sequential second-order cone programming (SOCP) planning and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC).
+High-speed overtaking on narrow closed circuits is constrained by limited maneuvering space, increasing the risk of failed overtaking attempts and collisions. Repeated replanning further complicates the preservation of a consistent passing intention while retaining sufficient geometric freedom for downstream planning and control. To address these challenges, this paper developed a game-guided tactical-corridor decision framework that formulates interactive overtaking as robust tactical feasible-set selection. A robust Stackelberg response-set teacher provides a response-set-optimal action prior and action-conditioned robust-value labels for training a Truncated Quantile Critics (TQC) policy that predicts passing-side intention, corridor parameters, and speed demand. A hysteretic state machine preserves the selected passing side, while deterministic opponent-footprint carving adapts the feasible region to the evolving track and interaction geometry. The resulting side-locked, time-varying Frenet corridor and speed guidance are realized through sequential second-order cone programming (SOCP) planning and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC).
 
 Monte Carlo closed-loop experiments were conducted on the EAV24 hardware-in-the-loop platform. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a planning-feasibility rate of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
 
@@ -1838,7 +1841,7 @@ Here \(n_{\rm rl}\) is the raceline offset at \(s_e\),
 \begin{equation}
 \begin{aligned}
 \phi_{\rm ot}&=\mathbb{1}[m_t=\textsc{Overtake},
-m_{t+1}=\textsc{Raceline},P_t],\\
+m_{t+1}=\textsc{Raceline},L_t],\\
 \phi_{\rm ovb}&=\phi_{\rm ot}\text{ with roles exchanged},\\
 \phi_{\rm col}&=\mathbb{1}[\mathrm{contact}\vee\mathrm{offtrack}],\\
 \phi_{\rm lat}&=\mathbb{1}[m_t=\textsc{Raceline}]

@@ -1,0 +1,16 @@
+\documentclass[tikz,border=0pt]{standalone}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{newtxtext}
+
+\definecolor{publisherbox}{RGB}{215,227,191}
+
+\begin{document}
+\begin{tikzpicture}[x=1pt,y=1pt]
+  \node[anchor=south west,inner sep=0pt] at (0,0)
+    {\includegraphics{../framework_overview.pdf}};
+  \fill[publisherbox] (667,280.4) rectangle (745,293.9);
+  \node[anchor=center,inner sep=0pt,font=\fontsize{10}{10}\selectfont]
+    at (706,287.1) {Side-Lock Update};
+\end{tikzpicture}
+\end{document}
