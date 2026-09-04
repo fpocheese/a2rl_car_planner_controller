@@ -946,7 +946,9 @@ full-scale race vehicle.}
 
 
 The perception, localization, tactical, planning, and control modules operate at 20, 100, 200, 40, and 100~Hz, respectively. The localization module fuses GNSS/IMU measurements to provide the ego vehicle's position, velocity, attitude, and acceleration, while the perception module processes measurements from three LiDAR sensors to estimate the opponent's position, velocity, and heading. Independent zero-mean Gaussian noise is added to the localization outputs with standard deviations of 0.05~m, $0.10~\mathrm{m/s}$, 0.002~rad, and $0.10~\mathrm{m/s^{2}}$, respectively, and to the perception outputs with standard deviations of 0.10~m, $0.22~\mathrm{m/s}$, and 0.003~rad, respectively. A 10\% independent packet-drop rate is also applied to both output streams before they are supplied to the downstream tactical and planning modules. The tactical module implements the framework presented in Section~\ref{sec:tactical}, while the planning and control modules generate the path--speed reference and closed-loop vehicle commands, respectively.
-Throughout policy training and HIL evaluation, the opponent follows the minimum-curvature racing line.
+During policy training and the Monte Carlo HIL evaluations, the opponent
+follows the minimum-curvature racing line; Section~\ref{subsec:blocking_response}
+additionally evaluates an opponent-initiated blocking maneuver.
 
 Execution times were recorded throughout 1000 Monte Carlo closed-loop HIL laps of the proposed method. Table~\ref{tab:runtime} shows that the P99 latency of each online module remained within its scheduled period. No solver failure was recorded.
 
@@ -1121,10 +1123,30 @@ Case~2.}
 \label{fig:case05_tracking_new}
 \end{figure}
 
-Across 1000 Monte Carlo laps, the full method achieved an OSR of 94.7\%,
-with contact and track-violation rates of 0.0\%. The following matched
-comparisons quantify the performance gains provided by the interactive
-tactical representation and its constituent modules.
+Across 1000 Monte Carlo laps with the minimum-curvature opponent, the full
+method achieved an OSR of 94.7\%,
+with contact and track-violation rates of 0.0\%.
+
+\subsection{Adaptive overtaking under opponent-initiated blocking}
+\label{subsec:blocking_response}
+
+Figure~\ref{fig:blocking_response} presents a five-instant encounter with an
+actively blocking opponent. At instant~1, the vehicles occupy opposite lateral
+sides; by instant~2, the opponent has changed line toward the ego's initial
+approach side. The tactical publisher commits the feasible corridor to the
+newly open complementary side, which the ego follows through instants~3--4
+while closing the longitudinal gap. At instant~5, the ego completes the Pass
+event at $\Delta s_5=-2.65$~m, demonstrating adaptive corridor generation
+against an opponent-initiated blocking maneuver while maintaining a continuous,
+track-conforming passing route.
+
+\begin{figure}[!tbp]
+\centering
+\includegraphics[width=\linewidth]{case_blocking_sequence_half_body.png}
+\caption{Closed-loop response to an active blocking maneuver. Numbered markers
+correspond to the synchronized simulator frames.}
+\label{fig:blocking_response}
+\end{figure}
 
 
 
