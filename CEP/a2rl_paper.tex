@@ -1130,17 +1130,23 @@ with contact and track-violation rates of 0.0\%.
 \subsection{Adaptive overtaking under opponent-initiated blocking}
 \label{subsec:blocking_response}
 
-Figure~\ref{fig:blocking_response} presents a five-instant encounter with an
-actively blocking opponent. At instant~1, the vehicles occupy opposite lateral
-sides; by instant~2, the opponent has changed line toward the ego's initial
-approach side. The tactical publisher commits the feasible corridor to the
-newly open complementary side, which the ego follows through instants~3--4
-while closing the longitudinal gap. At instant~5, the ego completes the Pass
-event at $\Delta s_5=-2.65$~m, demonstrating adaptive corridor generation
-against an opponent-initiated blocking maneuver while maintaining a continuous,
-track-conforming passing route.
+Figure~\ref{fig:blocking_response} presents the closed-loop response to an
+opponent-initiated blocking maneuver at five representative instants. Across
+the full tactical interval, the opponent's Frenet lateral coordinate spanned
+$7.01$~m. Between instants~1 and 2, the opponent crossed the track centerline
+from $n_o=-2.29$ to $n_o=1.10$~m, a $3.38$-m net shift toward the ego's initial
+approach side. The tactical publisher then committed the newly open
+complementary passing side and published the corresponding feasible corridor.
+The ego followed the published feasible corridor from $n_e=2.83$~m at
+instant~2 to $n_e=-2.89$~m at instant~3, completing a $5.71$-m lateral
+transition. By instant~4, the relative longitudinal gap had decreased to
+$\Delta s_4=5.00$~m, while the lateral separation reached
+$|\Delta n_4|=5.34$~m. At instant~5, the ego reached the Pass event at
+$\Delta s_5=-2.65$~m with $|\Delta n_5|=4.50$~m. This sequence demonstrates
+adaptive passing-side commitment and continuous, track-conforming corridor
+realization during closed-loop overtaking under opponent-initiated blocking.
 
-\begin{figure}[!tbp]
+\begin{figure}[!t]
 \centering
 \includegraphics[width=\linewidth]{case_blocking_sequence_half_body.png}
 \caption{Closed-loop response to an active blocking maneuver. Numbered markers
@@ -1178,7 +1184,7 @@ respectively. Minimum gap is the mean per-lap
 minimum net clearance between the vehicle body envelopes, and PFR is the
 fraction of planning cycles with a feasible SOCP solution.
 
-\begin{table}[!tbp]
+\begin{table}[!t]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
