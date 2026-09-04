@@ -22,6 +22,25 @@
 \emergencystretch=2em
 \hfuzz=1pt
 
+% The supplied CJA class balances the bibliography columns and forces
+% appendices onto a new page.  Keep the final references column ragged and
+% start the appendix at the top of the opposite column on the same page.
+\makeatletter
+\renewcommand\appendix{\par
+  \raggedend
+  \newpage
+  \setcounter{section}{0}%
+  \setcounter{subsection}{0}%
+  \setcounter{equation}{0}%
+  \gdef\thefigure{\@Alph\c@section.\arabic{figure}}%
+  \gdef\thetable{\@Alph\c@section.\arabic{table}}%
+  \gdef\thesection{\appendixname~\@Alph\c@section}%
+  \@addtoreset{equation}{section}%
+  \gdef\theequation{\@Alph\c@section\arabic{equation}}%
+  \addtocontents{toc}{\string\let\string\numberline\string\tmptocnumberline}{}{}%
+}
+\makeatother
+
 % --- Math shortcuts ---
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\E}{\mathbb{E}}
@@ -326,11 +345,15 @@ Centerline projection gives the relative ego--opponent state
 \end{aligned}
 \label{eq:rel}
 \end{equation}
-Here $\operatorname{wrap}_{L_{\rm trk}}(\cdot)$ returns the signed arc-length
-difference in $[-L_{\rm trk}/2,L_{\rm trk}/2)$; $\Delta s>0$ denotes an
-opponent ahead and $\Delta v>0$ denotes the ego closing. The first sampled
-instant satisfying $\Delta s<0$ is termed the \emph{Pass} event throughout
-this paper.
+Here $\operatorname{wrap}_{L_{\rm trk}}(\cdot)$ returns the signed
+arc-length difference in $[-L_{\rm trk}/2,L_{\rm trk}/2)$;
+$\Delta s>0$ denotes an opponent ahead and $\Delta v>0$ denotes
+the ego closing. Under the adopted racing rule, the ego vehicle
+acquires passing priority once it advances longitudinally ahead of
+the opponent. Accordingly, the first sampled instant satisfying
+$\Delta s<0$ is defined as the lead-acquisition event, hereafter
+referred to as the Lead event.
+
 
 For path generation, the same geometry is written in spatial form. Here $s$
 is the independent variable, $\bm z(s)=[n(s),\xi(s)]^\top$ is the geometric
@@ -935,7 +958,7 @@ steering angle
 The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale head-to-head racing environment for EAV24 vehicles on Yas Marina North, together with the high-fidelity AutoVerse simulation platform. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). Both policy training and the in-domain HIL evaluation use Yas Marina North. The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through CAN.
 
 
-\begin{figure}[!tbp]
+\begin{figure}[!t]
 \centering
 \includegraphics[width=\linewidth]{sim_shuoming.pdf}
 \caption{Hardware-in-the-loop architecture coupling the A2RL high-fidelity
@@ -952,7 +975,7 @@ additionally evaluates an opponent-initiated blocking maneuver.
 
 Execution times were recorded throughout 1000 Monte Carlo closed-loop HIL laps of the proposed method. Table~\ref{tab:runtime} shows that the P99 latency of each online module remained within its scheduled period. No solver failure was recorded.
 
-\begin{table}[!tbp]
+\begin{table}[!t]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{2.0pt}
@@ -972,9 +995,10 @@ RC-NMPC & 10 & 5.221 & 7.087 & 8.736 \\
 
 Statistical results aggregate 1000 Monte Carlo closed-loop laps per setting.
 In each lap, the opponent initial condition is randomized relative to
-the ego vehicle in longitudinal position, lateral position, and heading. OSR is
-the fraction of laps reaching the Pass event defined after
-Eq.~\eqref{eq:rel}, and TTO is the time to that event. All reported mean TTO
+the ego vehicle in longitudinal position, lateral position, and heading. 
+OSR is the fraction of laps reaching the Lead event defined after
+Eq.~\eqref{eq:rel}, and TTO is the time to that event.
+All reported mean TTO
 values are computed over successful laps only. Minimum
 gap is the smallest net clearance between the ego and opponent body envelopes
 over a lap. Mean TTC and contact/track-violation rates describe interaction
@@ -1034,7 +1058,7 @@ trackwise progress relative to the initial ego position, and $n$ denotes the
 lateral position relative to the track centerline. The published feasible
 corridor remains within the physical track boundaries, and the actual ego
 trajectory stays inside this corridor throughout the overtaking maneuver.
-Triangles and squares mark the Encounter and Pass events, respectively.
+Triangles and squares mark the Encounter and Lead events, respectively.
 Encounter occurs at $\Delta s_{\rm E}\simeq(L_e+L_o)/2$, when the longitudinal
 body envelopes first overlap after the corridor has established the lateral
 separation $|\Delta n_{\rm E}|$. At the Pass marker, the lateral separation
@@ -1758,7 +1782,8 @@ Tire curves & \(F_{z,0}\); \(C_x,C_y\) &
 \(2079.72\) N; \(1.6144,1.5998\) \\
 Tire curves & \(\mu_x,\mu_y\); \(s_x,s_y\); \(q_{x,\rm pk},q_{y,\rm pk}\) &
 \(2.2345,1.9745\); \(-0.2555,-0.4787\); \(0.1296,0.140\) \\
-Time scales & \(T_{\rm tac}\); \(T_c\); station spacing &
+Time scales & tactical/RL decision step \(T_{\rm tac}\); \(T_c\);
+station spacing &
 \(0.005\) s; \(0.01\) s; \(2\) m \\
 Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \(d_{\rm safe}\);
 \(V_{\rm cap}^{\rm req}\) &
@@ -1768,12 +1793,13 @@ Gap bounds & \(g_{\rm chase}\); \(g_{\rm ot}\); \(g_{\rm abort}\) &
 Mode bounds & \(b_{\rm lat}\); \(q_{\rm side}\) &
 \([-1.5,1.5]\) m; \([-1,1]\) \\
 Response-set teacher & Sobol candidates per side code; \(\varepsilon_{\rm BR}\);
-\(\gamma_g\) & \(64\); \(0.05\); \(0.99\) \\
+rollout steps \(H_G\); \(\gamma_g\) &
+\(64\); \(0.05\); \(100\); \(0.9995\) \\
 Projection and FSM & guard separation \(\Delta_g\); \(N_{\rm post}\);
 stale-reference limit &
 \(0.5\) m; \(3\) updates; \(1\) cycle \\
 TQC & critics; \(N_q\); retained \(K\); \(\gamma\) &
-\(2\); \(25\); \(46\); \(0.99\) \\
+\(2\); \(25\); \(46\); \(0.9995\) \\
 TQC guidance & \(\lambda_p\); \(\lambda_g\); prior metric &
 \(1\); \(1\); identity after action normalization \\
 Training & learning rate; replay capacity; batch size; target-update coefficient &
