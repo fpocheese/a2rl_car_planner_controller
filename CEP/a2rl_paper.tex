@@ -969,13 +969,14 @@ full-scale race vehicle.}
 
 
 The perception, localization, tactical, planning, and control modules operate at 20, 100, 200, 40, and 100~Hz, respectively. The localization module fuses GNSS/IMU measurements to provide the ego vehicle's position, velocity, attitude, and acceleration, while the perception module processes measurements from three LiDAR sensors to estimate the opponent's position, velocity, and heading. Independent zero-mean Gaussian noise is added to the localization outputs with standard deviations of 0.05~m, $0.10~\mathrm{m/s}$, 0.002~rad, and $0.10~\mathrm{m/s^{2}}$, respectively, and to the perception outputs with standard deviations of 0.10~m, $0.22~\mathrm{m/s}$, and 0.003~rad, respectively. A 10\% independent packet-drop rate is also applied to both output streams before they are supplied to the downstream tactical and planning modules. The tactical module implements the framework presented in Section~\ref{sec:tactical}, while the planning and control modules generate the path--speed reference and closed-loop vehicle commands, respectively.
-During policy training and the Monte Carlo HIL evaluations, the opponent
-follows the minimum-curvature racing line; Section~\ref{subsec:blocking_response}
-additionally evaluates an opponent-initiated blocking maneuver.
+During policy training and the primary Monte Carlo HIL evaluations, the
+opponent follows the minimum-curvature racing line;
+Section~\ref{subsec:blocking_response} additionally evaluates two defensive
+opponent policies.
 
 Execution times were recorded throughout 1000 Monte Carlo closed-loop HIL laps of the proposed method. Table~\ref{tab:runtime} shows that the P99 latency of each online module remained within its scheduled period. No solver failure was recorded.
 
-\begin{table}[!t]
+\begin{table}[!htbp]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{2.0pt}
@@ -1153,32 +1154,83 @@ Across 1000 Monte Carlo laps with the minimum-curvature opponent, the full
 method achieved an OSR of 94.7\%,
 with contact and track-violation rates of 0.0\%.
 
-\subsection{Adaptive overtaking under opponent-initiated blocking}
+\subsection{Adaptive overtaking against defensive opponent policies}
 \label{subsec:blocking_response}
 
-Figure~\ref{fig:blocking_response} presents the closed-loop response to an
-opponent-initiated blocking maneuver at five representative instants. Across
-the full tactical interval, the opponent's Frenet lateral coordinate spanned
-$7.01$~m. Between instants~1 and 2, the opponent crossed the track centerline
-from $n_o=-2.29$ to $n_o=1.10$~m, a $3.38$-m net shift toward the ego's initial
-approach side. The tactical publisher then committed the newly open
-complementary passing side and published the corresponding feasible corridor.
-The ego followed the published feasible corridor from $n_e=2.83$~m at
-instant~2 to $n_e=-2.89$~m at instant~3, completing a $5.71$-m lateral
-transition. By instant~4, the relative longitudinal gap had decreased to
-$\Delta s_4=5.00$~m, while the lateral separation reached
-$|\Delta n_4|=5.34$~m. At instant~5, the ego reached the Lead event at
-$\Delta s_5=-2.65$~m with $|\Delta n_5|=4.50$~m. This sequence demonstrates
-adaptive passing-side commitment and continuous, track-conforming corridor
-realization during closed-loop overtaking under opponent-initiated blocking.
+Two state-dependent defensive opponent policies were evaluated. The
+\emph{near-best-response defender} evaluates the fixed admissible candidate
+bank at each response update and selects the retained near-best response least
+favorable to the ego, adapting its lateral position and speed as the duel
+evolves. The \emph{side-switching blocker} moves into the ego's committed
+passing channel and can execute one blocking-side switch, prompting the
+tactical publisher to exploit the complementary channel. Both policies satisfy
+the same track-boundary and tire-envelope constraints as the minimum-curvature
+opponent.
+
+Figure~\ref{fig:blocking_response} presents a representative closed-loop ego
+response to the side-switching blocker at five instants. Across these
+instants, the opponent's Frenet lateral coordinate spanned $5.15$~m. Between
+instants~1 and 2, it crossed the track centerline from $n_o=-2.29$ to
+$n_o=1.10$~m, a $3.39$-m shift into the ego's initial passing channel. The
+tactical publisher responded by committing the complementary side and
+publishing its feasible corridor. The ego followed this corridor from
+$n_e=2.83$~m at instant~2 to $n_e=-2.89$~m at instant~3, completing a
+$5.72$-m lateral transition. By instant~4, the relative longitudinal gap had
+decreased to $\Delta s_4=5.00$~m while the lateral separation reached
+$|\Delta n_4|=5.34$~m. By instant~5, the ego had acquired the lead at
+$\Delta s_5=-2.65$~m with $|\Delta n_5|=4.50$~m. The sequence shows that the
+learned publisher converts the open complementary channel into a continuous,
+track-conforming feasible corridor and acquires the A2RL-defined lead under
+active blocking.
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\linewidth]{case_blocking_sequence_half_body.png}
-\caption{Closed-loop response to an active blocking maneuver. Numbered markers
-correspond to the synchronized simulator frames.}
+\caption{Closed-loop response to the side-switching blocker. Numbered markers
+correspond to the five illustrated states.}
 \label{fig:blocking_response}
 \end{figure}
+
+Paired 1000-lap Monte Carlo HIL evaluations against both defensive policies
+are reported in Table~\ref{tab:reactive_opponents}, together with the
+minimum-curvature-opponent reference, using identical initial conditions and
+exogenous randomizations. The $\varepsilon_{\rm BR}=0$ policy
+retains $\lambda_p=\lambda_g=1$ but limits each teacher response set to the
+utility-maximizing response. With $\varepsilon_{\rm BR}=0.05$, the proposed
+policy achieved OSRs of 92.3\% and 91.0\% against the near-best-response
+defender and side-switching blocker, respectively, while maintaining zero
+contacts and PFRs of 0.9985 and 0.9972. Relative to zero tolerance, the nominal
+response set increased OSR by 3.2 percentage points against each defender,
+increased the mean per-lap minimum gap by 0.72 and 0.75~m, and eliminated the
+0.2\% and 0.3\% contact rates. PFR increased by 0.0045 and 0.0052, with TTO
+increases among successful laps of only 0.09 and 0.16~s. These results
+demonstrate effective lead acquisition, clearance preservation, and planning
+feasibility against state-dependent defensive responses.
+
+\begin{table}[!b]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{1.0pt}
+\renewcommand{\arraystretch}{1.05}
+\caption{Closed-loop performance against fixed and defensive opponents over
+1000 Monte Carlo HIL laps per setting.}
+\label{tab:reactive_opponents}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Metric & \multicolumn{2}{c}{\shortstack{Minimum-curvature\\opponent}} &
+\multicolumn{2}{c}{\shortstack{Near-best\\response defender}} &
+\multicolumn{2}{c}{\shortstack{Side-switching\\blocker}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(l){6-7}
+$\varepsilon_{\rm BR}$ & 0.05 & 0 & 0.05 & 0 & 0.05 & 0 \\
+\midrule
+OSR [\%] $\uparrow$ & 94.7 & 90.1 & 92.3 & 89.1 & 91.0 & 87.8 \\
+TTO [s] $\downarrow$ & 4.82 & 4.60 & 5.13 & 5.04 & 5.41 & 5.25 \\
+Min. gap [m] $\uparrow$ & 5.83 & 4.08 & 5.19 & 4.47 & 4.91 & 4.16 \\
+Contact rate [\%] $\downarrow$ & 0.0 & 0.9 & 0.0 & 0.2 & 0.0 & 0.3 \\
+PFR $\uparrow$ & 1.0000 & 0.9888 & 0.9985 & 0.9940 & 0.9972 & 0.9920 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 
@@ -1187,6 +1239,7 @@ correspond to the synchronized simulator frames.}
 % Matched comparison and ablation results
 % =====================================================================
 
+\FloatBarrier
 \subsection{Comparison with tactical baselines}
 \label{subsec:comparison}
 
@@ -1376,7 +1429,9 @@ The nominal setting provided the strongest overall balance, achieving the
 highest OSR, a zero contact rate, and full planning feasibility
 (Table~\ref{tab:sensitivity}). Reducing $\varepsilon_{\rm BR}$ from 0.05 to
 0.025 shortened TTO from 4.82 to 4.71~s, while OSR decreased to 92.4\% and
-the minimum gap decreased from 5.83 to 4.55~m. Increasing
+the minimum gap decreased from 5.83 to 4.55~m. At zero tolerance, TTO fell
+further to 4.60~s, while OSR, minimum gap, and PFR decreased to 90.1\%,
+4.08~m, and 0.9888, respectively, with a contact rate of 0.9\%. Increasing
 $\varepsilon_{\rm BR}$ to 0.10 enlarged the minimum gap to 6.22~m, while
 TTO increased to 5.70~s. These results show that $\varepsilon_{\rm BR}$
 regulates the balance between overtaking efficiency and spatial clearance.
@@ -1399,10 +1454,12 @@ Setting & \shortstack{OSR [\%]\\$\uparrow$} &
 \shortstack{Contact rate [\%]\\$\downarrow$} &
 \shortstack{PFR\\$\uparrow$} \\
 \midrule
-Nominal
+$\varepsilon_{\rm BR}=0.05$
 & \textbf{94.7} & 4.82 & 5.83 & \textbf{0.0} & \textbf{1.0000} \\
 $\varepsilon_{\rm BR}=0.025$
-& 92.4 & \textbf{4.71} & 4.55 & 0.6 & 0.9926 \\
+& 92.4 & 4.71 & 4.55 & 0.6 & 0.9926 \\
+$\varepsilon_{\rm BR}=0$
+& 90.1 & \textbf{4.60} & 4.08 & 0.9 & 0.9888 \\
 $\varepsilon_{\rm BR}=0.10$
 & 93.0 & 5.70 & \textbf{6.22} & 0.1 & 0.9980 \\
 $\lambda_p=2$
@@ -1819,7 +1876,7 @@ Frenet health & \(\varepsilon_s\); \(\xi_{\max}\) &
 Path health & sequential-convexification iterations &
 \(5\) \\
 Speed profile & tire-cap grid intervals \(H_s\); \(V_{\min},v_{x,\max}\) &
-\(150\); \(15,90\) m s\(^{-1}\) \\
+\(150\); \(10,90\) m s\(^{-1}\) \\
 RC-NMPC & steps \(N_c\); \(\delta_{\max}\); \(\dot\delta_{\max}\);
 \(\Delta V_{\max}\) &
 \(15\); \(0.35\) rad; \(1.0\) rad s\(^{-1}\);
