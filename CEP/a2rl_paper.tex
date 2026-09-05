@@ -72,9 +72,9 @@ Limited maneuvering space on narrow closed circuits makes high-speed overtaking 
 % To address this problem, we formulate interactive overtaking as robust tactical feasible-set selection and develop a game-guided decision framework that distills Stackelberg response-set reasoning into persistent tactical corridors for constrained motion planning and closed-loop execution.
 To address this problem, we formulate overtaking as robust tactical feasible-set selection and develop a Stackelberg-supervised policy that translates response-set reasoning into persistent tactical corridors for constrained planning and closed-loop control.
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
-Second, a hysteretic state machine preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
+Second, a hysteretic finite-state machine (FSM) preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
 Finally, a corridor-constrained sequential second-order cone programming (SOCP) planner and a speed profiler generate a continuous path--speed reference, which is tracked using reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) to produce closed-loop vehicle commands.
-Hardware-in-the-loop experiments were conducted using an EAV24 formula race-car simulator. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with three baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
+Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Vehicle (EAV24) formula race-car simulator. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with three baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
 
 \end{abstract}
 
@@ -109,7 +109,7 @@ systems, where opponent prediction and local planning operate under tight
 real-time constraints~\cite{jung2023iac,hoffmann2026a2rl}.
 Within such a hierarchy, Thakkar et al. formulated the high-level decision as
 a discrete racing game that generates target waypoints for either a multi-agent
-reinforcement-learning controller or a linear-quadratic Nash-game controller
+reinforcement learning (MARL) controller or a linear-quadratic Nash-game controller
 ~\cite{thakkar2024hierarchical}.
 These approaches provide interpretable tactical logic and a practical route to
 real-time implementation. Their tactical outputs, however, are commonly
@@ -207,7 +207,7 @@ We develop a robust Stackelberg response-set teacher that evaluates constraint-a
 
 \item \textbf{Persistent Tactical Feasible-Region Interface:}
 We introduce a persistent tactical feasible-region interface that converts TQC outputs into a side-locked, time-varying Frenet corridor with speed guidance. 
-A hysteretic state machine and deterministic opponent-footprint carving adapt the feasible region to evolving track and interaction geometry, enabling continuous support for path planning via sequential second-order cone programming (SOCP) and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) throughout overtaking.
+A hysteretic FSM and deterministic opponent-footprint carving adapt the feasible region to evolving track and interaction geometry, enabling continuous support for path planning via sequential second-order cone programming (SOCP) and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) throughout overtaking.
 
 
 \item \textbf{System Validation under High-Speed Conditions:}
@@ -321,10 +321,10 @@ Let $\bm r_c(s)$ denote the track centerline parameterized by arc length
 $s\in[0,L_{\rm trk})$, with tangent angle $\theta(s)$ and curvature
 $\kappa(s)=d\theta/ds$, and let $\bm t(s)$ and $\bm n_c(s)$ be its unit tangent
 and normal. With $\bm p_i=[X_i,Y_i]^\top$, the Frenet coordinates satisfy
-$\bm p_i=\bm r_c(s_i)+n_i\bm n_c(s_i)$ and
-$\xi_i=\psi_i-\theta(s_i)$. Defining the path-aligned velocity components as
+$\bm p_i=\bm r_c(s_i)+n_i\bm n_c(s_i)$. Define the vehicle-body heading
+error as $\xi_i=\psi_i-\theta(s_i)$. The path-aligned velocity components
 $v_{s,i}=V_i\cos(\xi_i+\beta_i)$ and
-$v_{n,i}=V_i\sin(\xi_i+\beta_i)$ gives
+$v_{n,i}=V_i\sin(\xi_i+\beta_i)$ give
 \begin{equation}
 \begin{bmatrix}\dot s_i\\\dot n_i\\\dot\xi_i\end{bmatrix}
 =
@@ -365,14 +365,18 @@ for $N_{\rm post}$ consecutive tactical updates; $P_t=1$ denotes this
 confirmation.
 
 
-For path generation, the same geometry is written in spatial form. Here $s$
-is the independent variable, $\bm z(s)=[n(s),\xi(s)]^\top$ is the geometric
-state, and $\omega(s)$ is the planned-path curvature:
+For geometric path generation, let $\psi_p(s)$ denote the planned-path tangent
+angle and define $\xi_p(s)=\psi_p(s)-\theta(s)$. At the initial station, the
+path tangent is aligned with the ego velocity direction, giving
+$\xi_p(s_e)=\xi_e+\beta_e$. With $s$ as the independent variable,
+$\bm z(s)=[n(s),\xi_p(s)]^\top$ is the geometric state and
+$\omega(s)=d\psi_p/d\ell$ is the planned-path curvature, where $\ell$ is path
+arc length:
 \begin{equation}
 \bm z'(s)=\bm f_s(\bm z,\omega;s)=
 \begin{bmatrix}
-(1-\kappa n)\tan\xi\\[2pt]
-(1-\kappa n)\omega/\cos\xi-\kappa
+(1-\kappa n)\tan\xi_p\\[2pt]
+(1-\kappa n)\omega/\cos\xi_p-\kappa
 \end{bmatrix}.
 \label{eq:spatial_model}
 \end{equation}
@@ -393,7 +397,7 @@ candidates against near-best follower responses and generates a
 response-set-optimal action prior together with action-conditioned
 robust-value labels. A projected-action TQC actor--critic distills this
 supervision into passing-side intention, corridor parameters, and speed
-demand. A hysteretic state machine preserves the selected passing side, while
+demand. A hysteretic FSM preserves the selected passing side, while
 a deterministic opponent-footprint carver converts the learned corridor
 parameters and evolving interaction geometry into time-varying Frenet
 corridors.
@@ -609,7 +613,8 @@ y_{t,k}&=r_t+\gamma(1-d_t)
 \end{equation}
 Thus target critics and replay share the same projected-action support, while
 entropy remains the density of the raw stochastic policy. Actor and prior
-updates pass gradients through the non-smooth tire search using
+updates pass gradients through the non-smooth tire search using a
+straight-through (ST) projected-action surrogate:
 \begin{equation}
 \bm a^{\rm F,ST}=\bm a^{\rm B}
 +\operatorname{sg}\!\left[\bm a^{\rm F}-\bm a^{\rm B}\right].
@@ -795,11 +800,11 @@ defines the spatial optimization domain, while the speed request sets the
 tactical pace throughout the maneuver.
 
 For the $N=N_{\rm sta}$ spatial stations, let
-$\bm z_k=[n_k,\xi_k]^\top$ and $\bm z_T=[n_T,0]^\top$, where $n_T$ is the
+$\bm z_k=[n_k,\xi_{p,k}]^\top$ and $\bm z_T=[n_T,0]^\top$, where $n_T$ is the
 clipped raceline in \textsc{Raceline} and the terminal corridor midpoint in
 the other modes. The set
-$\mathcal Z_k=\{[n,\xi]^\top:\underline n_k\le n\le\overline n_k,
-1-\kappa(s_k)n\ge\varepsilon_s,|\xi|\le\xi_{\max}\}$
+$\mathcal Z_k=\{[n,\xi_p]^\top:\underline n_k\le n\le\overline n_k,
+1-\kappa(s_k)n\ge\varepsilon_s,|\xi_p|\le\xi_{p,\max}\}$
 combines the footprint-eroded corridor and Frenet-domain bounds. Sequential
 iteration $j$ linearizes Eq.~\eqref{eq:spatial_model} as
 $\widehat{\bm f}_{s,k}^{j}=\bm A_k^j\bm z_k+\bm B_k^j\omega_k+\bm b_k^j$
@@ -809,7 +814,7 @@ and solves
 \bm y^{j+1}=\argmin_{\bm y}\;&
 \sum_{k=0}^{N-1}w_\omega\sigma_k^\omega
 +\bm w_T^\top\bm\epsilon_T\\
-\mathrm{s.t.}\;&\bm z_0=[n_e,\xi_e]^\top,\\
+\mathrm{s.t.}\;&\bm z_0=[n_e,\xi_e+\beta_e]^\top,\\
 &\bm z_{k+1}-\bm z_k=\frac{\Delta s_{\rm sta}}{2}
  (\widehat{\bm f}_{s,k}^{j}+\widehat{\bm f}_{s,k+1}^{j}),\\
 &\bm z_k\in\mathcal Z_k,\qquad |\omega_k|\le\omega_{\max},\\
@@ -820,9 +825,10 @@ and solves
 \end{aligned}
 \label{eq:execution_socp}
 \end{equation}
-Here $\bm y=\{\bm z_k,\omega_k,\sigma_k^\omega,\bm\epsilon_T\}$,
-$\bm\epsilon_T=[\epsilon_n,\epsilon_\xi]^\top$,
-$\bm w_T=[w_{n,T},w_{\xi,T}]^\top$, and
+Here $\bm y$ collects $\bm z_k$, $\omega_k$, $\sigma_k^\omega$, and
+$\bm\epsilon_T$. The terminal quantities are
+$\bm\epsilon_T=[\epsilon_n,\epsilon_{\xi_p}]^\top$ and
+$\bm w_T=[w_{n,T},w_{\xi_p,T}]^\top$, with
 $\omega_{\max}=\tan\delta_{\max}/(l_f+l_r)$. The dynamics apply for
 $k=0,\ldots,N-2$ and the node constraints for $k=0,\ldots,N-1$. The conic
 epigraph penalizes squared path curvature, while $\bm\epsilon_T$ softens the
@@ -861,8 +867,8 @@ used to resample the path--speed reference on the controller grid.
 The RC-NMPC tracks the resampled path--speed reference on a fixed prediction
 grid in an ego-centered local frame. Its state and input are
 $\bm\chi_k=[x_k,y_k,\theta_k]^\top$ and
-$\bm\nu_k=[V_k,\delta_k]^\top$, respectively. The discrete kinematic bicycle
-model is
+$\bm\nu_k=[V_k,\delta_k]^\top$, respectively, where $\theta_k$ is the vehicle
+heading in this frame. The discrete kinematic bicycle model is
 \begin{subequations}
 \label{eq:execution_mpcc}
 \begin{equation}
@@ -874,7 +880,8 @@ V_k\tan\delta_k/(l_f+l_r)
 \label{eq:execution_mpcc_model}
 \end{equation}
 Here $\bm\nu_k^r=[V_k^r,\delta_k^r]^\top$, with
-$\delta_k^r=\arctan((l_f+l_r)\kappa_{p,k}^r)$. The quantities
+$\delta_k^r=\arctan((l_f+l_r)\kappa_{p,k}^r)$. With $\theta_k^r$ denoting the
+planned-path tangent angle in the same frame, the quantities
 $e_{c,k}=(\bm n_k^r)^\top(\bm p_k-\bm p_k^r)$,
 $e_{\psi,k}=\operatorname{wrap}(\theta_k-\theta_k^r)$ define
 $\bm e_k=[e_{c,k},e_{\psi,k}]^\top$, and
@@ -953,7 +960,7 @@ steering angle
 \subsection{Experimental platform and configuration}
 \label{subsec:hil_env}\label{subsec:param_setup}
 
-The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale head-to-head racing environment for EAV24 vehicles on Yas Marina North, together with the high-fidelity AutoVerse simulation platform. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). Both policy training and the in-domain HIL evaluation use Yas Marina North. The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through CAN.
+A2RL provides a full-scale head-to-head racing environment for EAV24 vehicles on Yas Marina North, together with the high-fidelity AutoVerse simulation platform. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). Both policy training and the in-domain HIL evaluation use Yas Marina North. The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through a Controller Area Network (CAN).
 
 
 \begin{figure}[!t]
@@ -972,7 +979,7 @@ opponent follows the minimum-curvature racing line;
 Section~\ref{subsec:blocking_response} additionally evaluates two defensive
 opponent policies.
 
-Execution times were recorded throughout 1000 Monte Carlo closed-loop HIL laps of the proposed method. Table~\ref{tab:runtime} shows that the P99 latency of each online module remained within its scheduled period. No solver failure was recorded.
+Execution times were recorded throughout 1000 Monte Carlo closed-loop HIL laps of the proposed method. Table~\ref{tab:runtime} reports the mean, P95, and P99 latencies; each P99 latency remained within its scheduled period. No solver failure was recorded.
 
 \begin{table}[!htbp]
 \centering
@@ -995,13 +1002,14 @@ RC-NMPC & 10 & 5.221 & 7.087 & 8.736 \\
 Statistical results aggregate 1000 Monte Carlo closed-loop laps per setting.
 In each lap, the opponent initial condition is randomized relative to
 the ego vehicle in longitudinal position, lateral position, and heading. 
-OSR is the fraction of laps reaching the Lead event defined after
-Eq.~\eqref{eq:rel}, and TTO is the time to that event.
-All reported mean TTO
+The overtaking success rate (OSR) is the fraction of laps reaching the Lead
+event defined after Eq.~\eqref{eq:rel}, and time to overtake (TTO) is the time
+to that event. All reported mean TTO
 values are computed over successful laps only. Minimum
 gap is the smallest net clearance between the ego and opponent body envelopes
-over a lap. Mean TTC and contact/track-violation rates describe interaction
-safety, while PFR is the fraction of feasible planning updates.
+over a lap. Mean time to collision (TTC) and contact/track-violation rates
+describe interaction safety, while the path-feasibility ratio (PFR) is the
+fraction of feasible planning updates.
 
 
 
@@ -1241,21 +1249,22 @@ PFR $\uparrow$ & 1.0000 & 0.9888 & 0.9985 & 0.9940 & 0.9972 & 0.9920 \\
 
 All methods share the same vehicle plant, race-control interface, corridor
 projection, path and speed planners, and control module; only the tactical
-guidance generator differs. \emph{Non-Interactive MPC} predicts the opponent
+guidance generator differs. \emph{Non-interactive model predictive control
+(NI-MPC)} predicts the opponent
 independently of the ego plan and incorporates the predicted occupancy into its
 obstacle constraints~\cite{kabzan2020amzracing,betz2023autonomous}.
-\emph{Rule-based GT} selects its tactical mode using a fixed-threshold state
-machine parameterized by \(g_{\rm chase}=20~\mathrm{m}\),
+\emph{Rule-based game-theoretic guidance (RB-GT)} selects its tactical mode
+using a fixed-threshold state machine parameterized by
+\(g_{\rm chase}=20~\mathrm{m}\),
 \(g_{\rm ot}=8~\mathrm{m}\), and \(g_{\rm abort}=35~\mathrm{m}\).
-\emph{iLQGames} computes coupled local responses through iterative
-linear-quadratic game approximations~\cite{fridovich2020ilqgames}. The outputs
+\emph{Iterative linear-quadratic games (iLQGames)} computes coupled local
+responses~\cite{fridovich2020ilqgames}. The outputs
 of all baselines are mapped to a common tactical interface comprising a
 passing-side command, a speed cap, and corridor parameters before entering the
 shared planning and control stack. This setup isolates the effect of tactical
 guidance on closed-loop overtaking performance. The comparison results are
-summarized in Table~\ref{tab:comparison}, where Prop., NI-MPC, and RB-GT
-denote the proposed method, Non-Interactive MPC, and Rule-based GT,
-respectively. Minimum gap is the mean per-lap
+summarized in Table~\ref{tab:comparison}, where Prop. denotes the proposed
+method. Minimum gap is the mean per-lap
 minimum net clearance between the vehicle body envelopes, and PFR is the
 fraction of planning cycles with a feasible SOCP solution.
 
@@ -1576,15 +1585,15 @@ feasible-set representation.
 
 High-speed overtaking on narrow closed circuits is constrained by limited maneuvering space, increasing the risk of failed overtaking attempts and collisions. Repeated replanning further complicates the preservation of a consistent passing intention while retaining sufficient geometric freedom for downstream planning and control. To address these challenges, this paper developed a game-guided tactical-corridor decision framework that formulates interactive overtaking as robust tactical feasible-set selection. A robust Stackelberg response-set teacher provides a response-set-optimal action prior and action-conditioned robust-value labels for training a Truncated Quantile Critics (TQC) policy that predicts passing-side intention, corridor parameters, and speed demand. A hysteretic state machine preserves the selected passing side, while deterministic opponent-footprint carving adapts the feasible region to the evolving track and interaction geometry. The resulting side-locked, time-varying Frenet corridor and speed guidance are realized through sequential second-order cone programming (SOCP) planning and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC).
 
-Monte Carlo closed-loop experiments were conducted on the EAV24 hardware-in-the-loop platform. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a planning-feasibility rate of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
+Monte Carlo closed-loop experiments were conducted on the EAV24 HIL platform. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a PFR of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
 
-Future work will leverage participation in the Abu Dhabi Autonomous Racing League (A2RL) to deploy the proposed framework on a full-scale autonomous race car and conduct high-speed on-track validation. The framework will also be extended from the current two-vehicle setting to multi-vehicle racing scenarios to evaluate its performance under more complex competitive interactions.
+Future work will leverage participation in A2RL to deploy the proposed framework on a full-scale autonomous race car and conduct high-speed on-track validation. The framework will also be extended from the current two-vehicle setting to multi-vehicle racing scenarios to evaluate its performance under more complex competitive interactions.
 
 
 
 
 \section*{Acknowledgements}
-The authors acknowledge the Abu Dhabi Autonomous Racing League for providing
+The authors acknowledge A2RL for providing
 the EAV24 simulation and vehicle-interface environment.
 
 
@@ -1835,7 +1844,7 @@ Tire curves & \(F_{z,0}\); \(C_x,C_y\) &
 \(2079.72\) N; \(1.6144,1.5998\) \\
 Tire curves & \(\mu_x,\mu_y\); \(s_x,s_y\); \(q_{x,\rm pk},q_{y,\rm pk}\) &
 \(2.2345,1.9745\); \(-0.2555,-0.4787\); \(0.1296,0.140\) \\
-Time scales & tactical/RL decision step \(T_{\rm tac}\); \(T_c\);
+Time scales & tactical/policy decision step \(T_{\rm tac}\); \(T_c\);
 station spacing &
 \(0.005\) s; \(0.01\) s; \(2\) m \\
 Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \(d_{\rm safe}\);
@@ -1865,7 +1874,7 @@ Reward & \(\bm w\), ordered as in Eq.~\eqref{eq:reward_sum} &
 -5,3,-0.1,-0.5,\\[-1mm]0.5,0.25)\end{gathered}\) \\
 Corridor & minimum width \(L_{\min}^{\rm corr}\) &
 \(3\) m \\
-Frenet health & \(\varepsilon_s\); \(\xi_{\max}\) &
+Frenet health & \(\varepsilon_s\); \(\xi_{p,\max}\) &
 \(0.05\); \(1.30\) rad \\
 Path health & sequential-convexification iterations &
 \(5\) \\
