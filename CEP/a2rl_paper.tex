@@ -348,11 +348,21 @@ Centerline projection gives the relative ego--opponent state
 Here $\operatorname{wrap}_{L_{\rm trk}}(\cdot)$ returns the signed
 arc-length difference in $[-L_{\rm trk}/2,L_{\rm trk}/2)$;
 $\Delta s>0$ denotes an opponent ahead and $\Delta v>0$ denotes
-the ego closing. Under the adopted A2RL racing rule, the ego vehicle
-acquires the lead once its longitudinal reference point advances ahead of
-the opponent. Accordingly, the first sampled instant satisfying
-$\Delta s<0$ is defined as the lead-acquisition event, hereafter
-referred to as the Lead event.
+the ego closing. Under the adopted A2RL racing rule, the first sampled
+instant satisfying $\Delta s<0$ defines the Lead event. Side-lock release
+requires longitudinal separation of the two vehicle footprints:
+\begin{equation}
+\begin{aligned}
+h_{s,j,t}&=\frac12\left(L_j|\cos\xi_{j,t}|+W_j|\sin\xi_{j,t}|\right),
+\quad j\in\{e,o\},\\
+-\Delta s_t&\ge g_{\rm ot}\ge
+h_{s,e,t}+h_{s,o,t}+d_{\rm safe}.
+\end{aligned}
+\label{eq:lock_release_clearance}
+\end{equation}
+The side lock is released after Eq.~\eqref{eq:lock_release_clearance} holds
+for $N_{\rm post}$ consecutive tactical updates; $P_t=1$ denotes this
+confirmation.
 
 
 For path generation, the same geometry is written in spatial form. Here $s$
@@ -428,12 +438,10 @@ Let
 denote the full rollout state available to the offline teacher, where
 \(\bm\chi_t^G\) collects the internal publisher, executor, and one-step
 reward memory required to evaluate a coupled candidate preview. The deployed
-policy receives only the 51-dimensional observation
-\(\widetilde{\bm o}_t\); the additional rollout variables
-\(\bm\chi_t^G\) are therefore treated as latent variables when the
-full-state teacher labels are transferred to the observation-conditioned
-policy. Let \(\mathcal A_i^G(\bm s_t^G)\) denote the candidate bank for
-role \(i\).
+policy is conditioned on the 51-dimensional observation
+\(\widetilde{\bm o}_t\), with \(\bm\chi_t^G\) entering teacher-to-policy
+transfer as latent rollout context. Let \(\mathcal A_i^G(\bm s_t^G)\) denote
+the candidate bank for role \(i\).
 Each candidate pair induces the coupled executable preview
 \begin{equation}
 (\mathcal R_e,\mathcal R_o)=
@@ -628,13 +636,9 @@ $\bm h_{\zeta,g}=\mathcal E_\zeta^Q(
 \end{aligned}
 \label{eq:total_loss}
 \end{equation}
-The offline teacher uses $\bm\chi^G$ as privileged rollout information for
-coupled preview evaluation, whereas the deployed actor and critic are
-conditioned on $\widetilde{\bm o}$ and
-$(\widetilde{\bm o},\bm a^{\rm F})$, respectively. The matched samples in
-$\mathcal D_g$ therefore distill the teacher action and response-set value
-into observation-conditioned supervision over the rollout contexts represented
-in the dataset.
+The matched samples in $\mathcal D_g$ distill the teacher action and
+response-set value into observation-conditioned supervision over the sampled
+rollout contexts.
 
 Here $J_Q$ and $J_\pi$ are the standard TQC critic and entropy-regularized
 actor losses; $\mathsf N_a$ and $\mathsf N_V$ normalize actions and teacher
@@ -659,19 +663,14 @@ framework.}
 \label{subsec:corridor_synthesis}
 The state machine carries the selected passing opportunity across successive
 tactical updates. This temporal persistence complements the spatial corridor:
-the policy may refine its width and speed request as the encounter evolves,
-while the committed side remains consistent until the Lead event.
+the policy may refine its width and speed request as the encounter evolves.
 Let $\Delta s_t$ and $\Delta v_t$ be the sampled relative quantities defined in
 Eq.~\eqref{eq:rel}.
 A feasible side is committed as the ego closes on the opponent, retained
-through \textsc{Shadow} and \textsc{Overtake}, and released only after
-confirmation of the Lead event, an abort, or an execution-health failure.
-Health and abort take precedence over overtaking, Lead confirmation takes
-precedence over continued overtaking, and an unlocked ego enters
-\textsc{Defend} only when a rear opponent is closing.
-The lead-confirmation indicator $L_t$ debounces the condition for the Lead
-event defined after Eq.~\eqref{eq:rel} over $N_{\rm post}$ consecutive tactical
-updates before the state machine releases the side lock.
+through \textsc{Shadow} and \textsc{Overtake}, and released when $P_t=1$ or
+upon an abort or execution-health failure. Health and abort take precedence over overtaking,
+body-clearance confirmation takes precedence over continued overtaking, and an
+unlocked ego enters \textsc{Defend} only when a rear opponent is closing.
 
 The geometric operation that realizes the selected side is the corridor
 carver. For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
@@ -753,9 +752,8 @@ at constant Frenet velocity, and evaluate the available side widths
 \IF{$h_t$ is invalid, or a locked state satisfies $\Delta s_t\ge g_{\rm abort}$ or
 loses $L_{\min}^{\rm corr}$ width}
 \STATE set \textsc{Hold} and release the side lock
-\ELSIF{the locked ego satisfies the condition for the Lead event defined after
-Eq.~\eqref{eq:rel} for $N_{\rm post}$ consecutive updates}
-\STATE set $L_t=1$, return to \textsc{Raceline}, and release the lock
+\ELSIF{the locked ego satisfies the clearance-confirmation guard $P_t=1$}
+\STATE return to \textsc{Raceline} and release the side lock
 \ELSIF{a lock exists, or a non-neutral feasible side is requested with
 $0<\Delta s_t\le g_{\rm chase}$ and $\Delta v_t\ge0$}
 \STATE retain/commit that side; select \textsc{Shadow} for $\Delta s_t>g_{\rm ot}$
@@ -1180,8 +1178,7 @@ decreased to $\Delta s_4=5.00$~m while the lateral separation reached
 $|\Delta n_4|=5.34$~m. By instant~5, the ego had acquired the lead at
 $\Delta s_5=-2.65$~m with $|\Delta n_5|=4.50$~m. The sequence shows that the
 learned publisher converts the open complementary channel into a continuous,
-track-conforming feasible corridor and acquires the A2RL-defined lead under
-active blocking.
+track-conforming feasible corridor under active blocking.
 
 \begin{figure}[!t]
 \centering
@@ -1203,7 +1200,7 @@ contacts and PFRs of 0.9985 and 0.9972. Relative to zero tolerance, the nominal
 response set increased OSR by 3.2 percentage points against each defender,
 increased the mean per-lap minimum gap by 0.72 and 0.75~m, and eliminated the
 0.2\% and 0.3\% contact rates. PFR increased by 0.0045 and 0.0052, with TTO
-increases among successful laps of only 0.09 and 0.16~s. These results
+increases among successful laps of 0.09 and 0.16~s. These results
 demonstrate effective lead acquisition, clearance preservation, and planning
 feasibility against state-dependent defensive responses.
 
@@ -1303,10 +1300,8 @@ of expressing tactical reasoning as a persistent feasible region for
 closed-loop execution. Compared with iLQGames, the proposed method increased
 the mean minimum gap from 2.31 to 5.83~m and reduced the contact rate from
 1.4\% to zero. A PFR of 1.000 indicates that the common SOCP planner found a
-feasible solution at every planning cycle. All 53 unsuccessful laps of the
-proposed method reached the end of the evaluation lap without reaching the
-Lead event; none involved contact, a track-boundary violation, or an
-unrecovered execution-health fault.
+feasible solution at every planning cycle. The remaining 53 laps ended without
+reaching the Lead event.
 
 
 
@@ -1415,10 +1410,9 @@ architecture.
 \subsection{Hyperparameter sensitivity analysis}
 \label{subsec:sensitivity}
 
-The zero-weight cases are evaluated as targeted component ablations in
-Table~\ref{tab:ablation}. The sensitivity analysis therefore examines the
-response-set tolerance and increased supervision weights around the nominal
-setting, using $\varepsilon_{\rm BR}=0.05$ and
+The sensitivity analysis examines the response-set tolerance and increased
+supervision weights around the nominal setting, using
+$\varepsilon_{\rm BR}=0.05$ and
 $\lambda_p=\lambda_g=1$ as the reference configuration. Each setting was
 independently trained and evaluated over 1000 Monte Carlo closed-loop HIL laps
 under the same experimental conditions. For each value of
@@ -1531,8 +1525,8 @@ PFR                       & 0.9968 & 0.9934 \\
 
 Across the eight illustrated events, the paired simulator views show the
 tactical state progressing from \textsc{Shadow} to \textsc{Overtake} on both
-straight and curved sections. Without retraining or parameter retuning, the
-framework achieved OSRs of 91.8\% and 88.9\% on Imola and Suzuka,
+straight and curved sections. The framework achieved OSRs of 91.8\% and
+88.9\% on Imola and Suzuka,
 respectively, while maintaining a zero contact rate on both circuits. The mean
 minimum gap remained above 5.0~m, and PFR remained above 0.993. The
 track-violation rates were 0.0\% on Imola and 0.1\% on Suzuka. These results
@@ -1854,9 +1848,10 @@ Mode bounds & \(b_{\rm lat}\); \(q_{\rm side}\) &
 Response-set teacher & Sobol candidates per side code; \(\varepsilon_{\rm BR}\);
 rollout steps \(H_G\); \(\gamma_g\) &
 \(64\); \(0.05\); \(100\); \(0.9995\) \\
-Projection and FSM & guard separation \(\Delta_g\); \(N_{\rm post}\);
+Projection and FSM & guard separation \(\Delta_g\); clearance-confirmation
+count \(N_{\rm post}\);
 stale-reference limit &
-\(0.5\) m; \(3\) updates; \(1\) cycle \\
+\(0.5\) m; \(3\) tactical updates; \(1\) cycle \\
 TQC & critics; \(N_q\); retained \(K\); \(\gamma\) &
 \(2\); \(25\); \(46\); \(0.9995\) \\
 TQC guidance & \(\lambda_p\); \(\lambda_g\); prior metric &
@@ -1897,7 +1892,7 @@ Here \(n_{\rm rl}\) is the raceline offset at \(s_e\),
 \begin{equation}
 \begin{aligned}
 \phi_{\rm ot}&=\mathbb{1}[m_t=\textsc{Overtake},
-m_{t+1}=\textsc{Raceline},L_t],\\
+m_{t+1}=\textsc{Raceline},P_t],\\
 \phi_{\rm ovb}&=\phi_{\rm ot}\text{ with roles exchanged},\\
 \phi_{\rm col}&=\mathbb{1}[\mathrm{contact}\vee\mathrm{offtrack}],\\
 \phi_{\rm lat}&=\mathbb{1}[m_t=\textsc{Raceline}]
