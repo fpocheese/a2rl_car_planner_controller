@@ -109,7 +109,7 @@ systems, where opponent prediction and local planning operate under tight
 real-time constraints~\cite{jung2023iac,hoffmann2026a2rl}.
 Within such a hierarchy, Thakkar et al. formulated the high-level decision as
 a discrete racing game that generates target waypoints for either a multi-agent
-reinforcement learning (MARL) controller or a linear-quadratic Nash-game controller
+reinforcement learning controller or a linear-quadratic Nash-game controller
 ~\cite{thakkar2024hierarchical}.
 These approaches provide interpretable tactical logic and a practical route to
 real-time implementation. Their tactical outputs, however, are commonly
@@ -479,7 +479,7 @@ U_i(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
 \label{eq:game_utility}
 \end{equation}
 where $\bm\phi_i\in[0,1]^{10}$ contains the role-relative reward features in
-\ref{app:parameters}. Hence $U_i\in[0,1]$, and
+Appendix~\ref{app:parameters}. Hence $U_i\in[0,1]$, and
 $\varepsilon_{\rm BR}$ directly specifies the admissible follower-utility gap.
 For a fixed ego candidate, let $U_o^{\max}(\bm s_t^G,\bm a_e^{\rm F})$
 denote the largest follower utility over $\mathcal A_o^G(\bm s_t^G)$. The
@@ -561,9 +561,7 @@ V_{\rm cap}^{\rm F}(\bm a)
 \end{subequations}
 Here $V_e$ is the current ego speed, $\mathcal V_s$ is the uniformly sampled
 finite grid from $V_{\min}$ to $V_{\rm cap}^{\rm req}$, and $\bm a[v]$ changes
-only the cap component. If the grid contains no admissible value,
-$\Pi_{\rm tire}$ returns the current-state \textsc{Hold}/braking action
-specified in Algorithm~\ref{alg:tactical_corridor}.
+only the cap component.
 
 \subsection{Game-Supervised Projected-Action TQC}
 \label{subsec:theory_guided_rl}
@@ -586,7 +584,7 @@ r_t&=\bm w^\top\bm\phi_t,\\
 \end{aligned}
 \label{eq:reward_sum}
 \end{equation}
-\ref{app:parameters} gives the normalized definitions and weights.
+Appendix~\ref{app:parameters} gives the normalized definitions and weights.
 The same role-swapped features define Eq.~\eqref{eq:game_utility}, aligning the
 teacher and online reward at the level of overtaking progress, clearance,
 smoothness, and usable corridor width.
@@ -729,6 +727,10 @@ contraction and smoothed relaxation allow the feasible region to respond
 quickly to reduced space while expanding progressively as the passing channel
 opens. The preceding corridor is revalidated for one update when a new
 interval loses the required width.
+Let $h_t$ denote the latest execution-health status available at tactical
+update $t$. The tactical publisher supplies
+$\mathcal G_t=(m_t,\sigma_t^{\rm lock},V_{{\rm cap},t}^{\rm F},\mathcal C_t)$
+to the executor.
 
 \begin{algorithm}[!tbp]
 \caption{Game-supervised tactical-corridor policy}
@@ -736,7 +738,7 @@ interval loses the required width.
 \footnotesize
 \begin{algorithmic}[1]
 \REQUIRE teacher states and replay $\mathcal D$; online states, track preview,
-previous $(m,\sigma^{\rm lock},\mathcal C)$, and execution health
+previous $(m_{t-1},\sigma_{t-1}^{\rm lock},\mathcal C_{t-1})$, and $h_t$
 \STATE \textbf{Offline teacher and training:}
 \FOR{each teacher state}
 \STATE combine Sobol samples with left/neutral/right codes; apply
@@ -776,8 +778,7 @@ $\eta=1$ in \textsc{Overtake} and the gap-based ramp in \textsc{Shadow}
 invoke current-state \textsc{Hold} and braking fallback
 \STATE apply immediate contraction and smoothed relaxation; on width failure,
 revalidate the preceding corridor for at most one update
-\RETURN $(m,\sigma^{\rm lock},V_{\rm cap}^{\rm F},\mathcal C)$ if valid;
-otherwise return braking-fallback status
+\RETURN $\mathcal G_t$ or a braking-fallback request
 \end{algorithmic}
 \end{algorithm}
 
@@ -918,7 +919,10 @@ preceding control cycle.
 \label{alg:executor}
 \footnotesize
 \begin{algorithmic}[1]
-\REQUIRE guidance \(\mathcal G_t\), current state, previous valid reference
+\REQUIRE tactical guidance \(\mathcal G_t\) or a braking-fallback request,
+current state, previous valid reference
+\STATE set valid if $\mathcal G_t$ is available
+\IF{valid}
 \STATE erode the track by the ego footprint, intersect it with $\mathcal C_t$,
 and choose the mode-dependent terminal target
 \STATE initialize the spatial path from the previous valid solution or the
@@ -927,6 +931,7 @@ corridor midpoint
 \STATE solve SOCP~\eqref{eq:execution_socp} and update the linearization
 \ENDFOR
 \STATE set valid if the path passes the solver and domain checks
+\ENDIF
 \IF{valid}
 \STATE query $\mathcal A_{\rm tire}(V)$ and construct
 $V_{{\rm cap},k}^{\rm P}$ from $V_{\rm cap}^{\rm F}$, measured speed, and
@@ -947,7 +952,7 @@ steering, and gear
 current-state \textsc{Hold} and issue rate-limited braking with the preceding
 steering angle
 \ENDIF
-\RETURN four-channel command and health status
+\RETURN four-channel command and updated execution-health status
 \end{algorithmic}
 \end{algorithm}
 % \FloatBarrier
@@ -960,7 +965,7 @@ steering angle
 \subsection{Experimental platform and configuration}
 \label{subsec:hil_env}\label{subsec:param_setup}
 
-A2RL provides a full-scale head-to-head racing environment for EAV24 vehicles on Yas Marina North, together with the high-fidelity AutoVerse simulation platform. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). Both policy training and the in-domain HIL evaluation use Yas Marina North. The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through a Controller Area Network (CAN).
+The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale head-to-head racing environment for EAV24 vehicles on Yas Marina North, together with the high-fidelity AutoVerse simulation platform. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). Both policy training and the in-domain HIL evaluation use Yas Marina North. The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through a Controller Area Network (CAN).
 
 
 \begin{figure}[!t]
