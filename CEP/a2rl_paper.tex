@@ -1024,7 +1024,12 @@ over a lap. Mean time to collision (TTC) and contact/track-violation rates
 describe interaction safety, while the path-feasibility ratio (PFR) is the
 fraction of feasible planning updates.
 
-
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{track_overview_case0205_v020.png}
+\caption{Representative overtaking situations on Yas Marina North.}
+\label{fig:four_case_track_overview}
+\end{figure*}
 
 \subsection{Overtaking performance under representative track conditions}
 \label{subsec:representative_cases}
@@ -1036,12 +1041,7 @@ encounters at distinct locations on Yas Marina North. The matching labels
 (b)--(i) link each spatial view of the published corridor and planned path to
 its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. 
 
-\begin{figure*}[!t]
-\centering
-\includegraphics[width=\textwidth]{track_overview_case0205_v020.png}
-\caption{Representative overtaking situations on Yas Marina North.}
-\label{fig:four_case_track_overview}
-\end{figure*}
+
 
 Across the four encounters, the feasible region evolves from approach guidance into a
 committed passing channel. In Case~1, the \textsc{Shadow} corridor at
@@ -1074,6 +1074,7 @@ the selected passing side. When the relative longitudinal gap decreases to
 $-0.5$~m, the \textsc{Overtake} carver excludes the opponent-occupied region
 and retains a connected corridor as the ego reaches the Lead event.
 
+
 Figure~\ref{fig:case02_tactical_new} summarizes the corresponding FSM sequence,
 Frenet trajectories, and speed response. In panel~(b), $s-s_0$ denotes
 trackwise progress relative to the initial ego position, and $n$ denotes the
@@ -1089,7 +1090,7 @@ footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver} remains
 satisfied. The actual speed closely follows the desired profile
 and exceeds 70~m~s$^{-1}$ during lead acquisition.
 
-\begin{figure}[!t]
+\begin{figure}[H]
 \centering
 \subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_02_path_corridor.png}}\\[-0.5mm]
@@ -1099,6 +1100,7 @@ response in Case~1.}
 \label{fig:case02_tactical_new}
 \end{figure}
 
+
 Figure~\ref{fig:case02_tracking_new} presents the closed-loop realization of
 this passing channel. The peak absolute lateral contouring, speed-tracking,
 and heading errors are approximately 0.08~m, 0.35~m~s$^{-1}$, and 0.025~rad,
@@ -1106,6 +1108,7 @@ respectively. All recorded tangential--normal acceleration samples remain
 inside the speed-dependent tire envelope. The committed-side corridor is
 therefore realized as a trackable path--speed reference throughout the
 high-speed overtake.
+
 
 \begin{figure}[!t]
 \centering
@@ -1225,7 +1228,7 @@ increases among successful laps of 0.09 and 0.16~s. These results
 demonstrate effective lead acquisition, clearance preservation, and planning
 feasibility against state-dependent defensive responses.
 
-\begin{table}[!b]
+\begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.0pt}
@@ -1281,7 +1284,7 @@ method. Minimum gap is the mean per-lap
 minimum net clearance between the vehicle body envelopes, and PFR is the
 fraction of planning cycles with a feasible SOCP solution.
 
-\begin{table}[!t]
+\begin{table}[H]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
@@ -1310,47 +1313,6 @@ PFR $\uparrow$
 \bottomrule
 \end{tabular}
 \end{table}
-
-Across 1000 Monte Carlo closed-loop HIL laps per method, the proposed method
-achieved an overtaking success rate of 94.7\% and a mean overtaking time of
-4.82~s. Compared with the three baselines, the success rate increased by
-31.2--66.2 percentage points and the mean overtaking time decreased by
-3.01--6.41~s. Among the baselines, iLQGames achieved the highest success rate
-of 63.5\%, demonstrating the benefit of coupled interaction reasoning. The
-further improvement obtained by the proposed method demonstrates the advantage
-of expressing tactical reasoning as a persistent feasible region for
-closed-loop execution. Compared with iLQGames, the proposed method increased
-the mean minimum gap from 2.31 to 5.83~m and reduced the contact rate from
-1.4\% to zero. A PFR of 1.000 indicates that the common SOCP planner found a
-feasible solution at every planning cycle. The remaining 53 laps ended without
-reaching the Lead event.
-
-
-
-\subsection{Ablation study}
-\label{subsec:ablation}
-
-Eight ablation variants evaluate the contributions of response-set
-supervision, stateful side commitment, adaptive corridor--speed guidance, and
-distributional value learning while retaining the same downstream planning
-and control stack. All variants were independently trained and evaluated under
-matched conditions. \emph{Without action prior (No-AP)} sets
-$\lambda_p=0$ while retaining action-conditioned robust-value supervision,
-whereas \emph{without robust-value supervision (No-RV)} sets
-$\lambda_g=0$ while retaining the response-set-optimal action prior.
-\emph{Without game guidance (No-GG)} removes both supervision signals.
-\emph{Without FSM (No-FSM)} jointly removes the hysteretic mode transitions
-and side lock, allowing the passing-side command to follow the current policy
-output at each tactical update. \emph{Fixed corridor geometry (Fixed-C)}
-replaces the learned lateral-cap, clearance, lateral-bias, and width outputs
-with the same nominal values used in Fixed-C/S, while retaining the learned
-speed request. \emph{Fixed speed guidance (Fixed-S)} fixes only
-$V_{\rm cap}^{\rm req}$ while retaining the learned corridor geometry.
-\emph{Fixed corridor and speed guidance (Fixed-C/S)} combines both
-interventions. The passing-side and transition outputs remain learned in all
-three fixed-guidance variants. The final variant replaces TQC with Soft
-Actor-Critic (SAC) under the same observation and action spaces, actor
-architecture, reward function, replay protocol, and training budget.
 
 \begin{table*}[!t]
 \centering
@@ -1396,6 +1358,48 @@ PFR $\uparrow$
 \bottomrule
 \end{tabular}
 \end{table*}
+
+Across 1000 Monte Carlo closed-loop HIL laps per method, the proposed method
+achieved an overtaking success rate of 94.7\% and a mean overtaking time of
+4.82~s. Compared with the three baselines, the success rate increased by
+31.2--66.2 percentage points and the mean overtaking time decreased by
+3.01--6.41~s. Among the baselines, iLQGames achieved the highest success rate
+of 63.5\%, demonstrating the benefit of coupled interaction reasoning. The
+further improvement obtained by the proposed method demonstrates the advantage
+of expressing tactical reasoning as a persistent feasible region for
+closed-loop execution. Compared with iLQGames, the proposed method increased
+the mean minimum gap from 2.31 to 5.83~m and reduced the contact rate from
+1.4\% to zero. A PFR of 1.000 indicates that the common SOCP planner found a
+feasible solution at every planning cycle. The remaining 53 laps ended without
+reaching the Lead event.
+
+
+\subsection{Ablation study}
+\label{subsec:ablation}
+
+Eight ablation variants evaluate the contributions of response-set
+supervision, stateful side commitment, adaptive corridor--speed guidance, and
+distributional value learning while retaining the same downstream planning
+and control stack. All variants were independently trained and evaluated under
+matched conditions. \emph{Without action prior (No-AP)} sets
+$\lambda_p=0$ while retaining action-conditioned robust-value supervision,
+whereas \emph{without robust-value supervision (No-RV)} sets
+$\lambda_g=0$ while retaining the response-set-optimal action prior.
+\emph{Without game guidance (No-GG)} removes both supervision signals.
+\emph{Without FSM (No-FSM)} jointly removes the hysteretic mode transitions
+and side lock, allowing the passing-side command to follow the current policy
+output at each tactical update. \emph{Fixed corridor geometry (Fixed-C)}
+replaces the learned lateral-cap, clearance, lateral-bias, and width outputs
+with the same nominal values used in Fixed-C/S, while retaining the learned
+speed request. \emph{Fixed speed guidance (Fixed-S)} fixes only
+$V_{\rm cap}^{\rm req}$ while retaining the learned corridor geometry.
+\emph{Fixed corridor and speed guidance (Fixed-C/S)} combines both
+interventions. The passing-side and transition outputs remain learned in all
+three fixed-guidance variants. The final variant replaces TQC with Soft
+Actor-Critic (SAC) under the same observation and action spaces, actor
+architecture, reward function, replay protocol, and training budget.
+
+
 
 The full method achieved the best performance across all reported metrics,
 including an OSR of 94.7\%, a mean TTO of 4.82~s, a zero contact rate, and a
@@ -1453,7 +1457,7 @@ regulates the balance between overtaking efficiency and spatial clearance.
 Doubling either loss weight maintained OSR above 93\% and PFR at or above
 0.9968, demonstrating stable performance under increased supervision weights.
 
-\begin{table}[!htbp]
+\begin{table}[H]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{1.2pt}
@@ -1501,7 +1505,7 @@ Together, these cases evaluate whether the learned tactical feasible-set
 representation sustains consistent overtaking decisions across new circuit
 geometries.
 
-\begin{figure}[!t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\columnwidth]{track_overview_imola_v007.png}
 \caption{Representative overtaking events on the unseen Imola circuit. The
@@ -1511,7 +1515,7 @@ and red boxes indicate the ego and opponent vehicles.}
 \label{fig:imola_overview}
 \end{figure}
 
-\begin{figure}[!t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\columnwidth]
 {track_overview_suzuka_selected_four_v005.png}
