@@ -1846,62 +1846,86 @@ features used in the study.
 \FloatBarrier
 \begingroup
 \centering
-\scriptsize
-\setlength{\tabcolsep}{1.8pt}
-\renewcommand{\arraystretch}{0.92}
+\fontsize{8}{9.4}\selectfont
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.00}
+\setlength{\defaultaddspace}{2pt}
+\setlength{\jot}{0pt}
 \captionof{table}{Principal model, tactical-policy, training, and closed-loop settings.
 Symbols follow Eqs.~\eqref{eq:action_vec} and~\eqref{eq:reward_sum}.}
 \label{tab:setup_params}
-\begin{tabular}{@{}p{0.20\linewidth}p{0.44\linewidth}p{0.30\linewidth}@{}}
+\begin{tabular}{@{}
+>{\raggedright\arraybackslash}p{0.22\linewidth}
+>{\raggedright\arraybackslash}p{\dimexpr0.43\linewidth-2\tabcolsep\relax}
+>{\raggedright\arraybackslash}p{\dimexpr0.35\linewidth-2\tabcolsep\relax}@{}}
 \toprule
-Component & Parameter & Value \\
+\textbf{Component} & \textbf{Parameter} & \textbf{Value} \\
 \midrule
-Vehicle geometry & \(m\); \(I_z\); \(l_f,l_r\) &
-\(742\) kg; \(1500\) kg m\(^{2}\); \(1.75,1.35\) m \\
-Tire curves & \(F_{z,0}\); \(C_x,C_y\) &
-\(2079.72\) N; \(1.6144,1.5998\) \\
-Tire curves & \(\mu_x,\mu_y\); \(s_x,s_y\); \(q_{x,\rm pk},q_{y,\rm pk}\) &
-\(2.2345,1.9745\); \(-0.2555,-0.4787\); \(0.1296,0.140\) \\
-Time scales & tactical/policy decision step \(T_{\rm tac}\); \(T_c\);
+Vehicle geometry & \(m\); \newline \(I_z\); \newline \(l_f,l_r\) &
+\(742\) kg; \newline \(1500\) kg m\(^{2}\); \newline \(1.75,1.35\) m \\
+\addlinespace
+Tire curves & \(F_{z,0}\); \newline \(C_x,C_y\) &
+\(2079.72\) N; \newline \(1.6144,1.5998\) \\
+\addlinespace
+Tire curves & \(\mu_x,\mu_y\); \newline \(s_x,s_y\); \newline \(q_{x,\rm pk},q_{y,\rm pk}\) &
+\(2.2345,1.9745\); \newline \(-0.2555,-0.4787\); \newline \(0.1296,0.140\) \\
+\addlinespace
+Time scales & tactical decision step \(T_{\rm tac}\); \newline \(T_c\); \newline
 station spacing &
-\(0.005\) s; \(0.01\) s; \(2\) m \\
-Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \(d_{\rm safe}\);
+\(0.005\) s; \newline \(0.01\) s; \newline \(2\) m \\
+\addlinespace
+Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \newline \(d_{\rm safe}\); \newline
 \(V_{\rm cap}^{\rm req}\) &
-\([1.5,6.0]\) m; \([0.2,0.8]\) m; \([15,90]\) m s\(^{-1}\) \\
-Gap bounds & \(g_{\rm chase}\); \(g_{\rm ot}\); \(g_{\rm abort}\) &
-\([18,24]\) m; \([8,14]\) m; \([28,45]\) m \\
-Mode bounds & \(b_{\rm lat}\); \(q_{\rm side}\) &
-\([-1.5,1.5]\) m; \([-1,1]\) \\
+\([1.5,6.0]\) m; \newline \([0.2,0.8]\) m; \newline \([15,90]\) m s\(^{-1}\) \\
+\addlinespace
+Gap bounds & \(g_{\rm chase}\); \newline \(g_{\rm ot}\); \newline \(g_{\rm abort}\) &
+\([18,24]\) m; \newline \([8,14]\) m; \newline \([28,45]\) m \\
+\addlinespace
+Mode bounds & \(b_{\rm lat}\); \newline \(q_{\rm side}\) &
+\([-1.5,1.5]\) m; \newline \([-1,1]\) \\
+\addlinespace
 Response-set teacher & Sobol candidates per side code; \(\varepsilon_{\rm BR}\);
 rollout steps \(H_G\); \(\gamma_g\) &
 \(64\); \(0.05\); \(100\); \(0.9995\) \\
+\addlinespace
 Projection and FSM & guard separation \(\Delta_g\); clearance-confirmation
 count \(N_{\rm post}\);
 stale-reference limit &
 \(0.5\) m; \(3\) tactical updates; \(1\) cycle \\
+\addlinespace
 TQC & critics; \(N_q\); retained \(K\); \(\gamma\) &
 \(2\); \(25\); \(46\); \(0.9995\) \\
+\addlinespace
 TQC guidance & \(\lambda_p\); \(\lambda_g\); prior metric &
 \(1\); \(1\); identity after action normalization \\
+\addlinespace
 Training & learning rate; replay capacity; batch size; target-update coefficient &
 \(3\times10^{-4}\); \(10^5\); \(256\); \(5\times10^{-3}\) \\
+\addlinespace
 Policy networks & actor encoder; critic outputs; auxiliary head &
 \(51\!\to\!256\!\to\!256\); two quantile heads; training only \\
+\addlinespace
 Reward & \(\bm w\), ordered as in Eq.~\eqref{eq:reward_sum} &
-\(\begin{gathered}(30,-20,-100,-2,\\[-1mm]
--5,3,-0.1,-0.5,\\[-1mm]0.5,0.25)\end{gathered}\) \\
+\(\begin{aligned}[t]&(30,-20,-100,-2,\\
+&-5,3,-0.1,-0.5,\\&0.5,0.25)\end{aligned}\) \\
+\addlinespace
 Corridor & minimum width \(L_{\min}^{\rm corr}\) &
 \(3\) m \\
+\addlinespace
 Frenet health & \(\varepsilon_s\); \(\xi_{p,\max}\) &
 \(0.05\); \(1.30\) rad \\
+\addlinespace
 Path health & sequential-convexification iterations &
 \(5\) \\
+\addlinespace
 Speed profile & tire-cap grid intervals \(H_s\); \(V_{\min},v_{x,\max}\) &
 \(150\); \(10,90\) m s\(^{-1}\) \\
+\addlinespace
 RC-NMPC & steps \(N_c\); \(\delta_{\max}\); \(\dot\delta_{\max}\);
 \(\Delta V_{\max}\) &
 \(15\); \(0.35\) rad; \(1.0\) rad s\(^{-1}\);
 \(0.5\) m s\(^{-1}\) \\
+\addlinespace
 RC-NMPC weights & \(q_{\Delta\delta},q_c,q_\psi\); \(\bm R_\nu\) &
 \(2,20,10\); \(\operatorname{diag}(1,0.5)\) \\
 \bottomrule
@@ -1909,10 +1933,13 @@ RC-NMPC weights & \(q_{\Delta\delta},q_c,q_\psi\); \(\bm R_\nu\) &
 \par\endgroup
 \FloatBarrier
 
+\begin{samepage}
 Here \(n_{\rm rl}\) is the raceline offset at \(s_e\),
 \(W_{{\rm trk},k}=n_{{\rm trk},k}^{+}-n_{{\rm trk},k}^{-}\),
 \(W_{\rm trk}=W_{{\rm trk},0}\), and
 \(\rho_{\rm exc}=\rho_{{\rm exc},0}\). The normalized reward features are
+\par
+\end{samepage}
 \begingroup
 \scriptsize
 \setlength{\jot}{0.5pt}
