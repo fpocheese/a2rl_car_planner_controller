@@ -15,6 +15,7 @@
 \usepackage{float}
 \usepackage{placeins}
 \usepackage{multirow}
+\providecommand{\href}[2]{#2}
 % Elsevier Editorial Manager does not preserve source subdirectories, so the
 % submission artwork is kept beside this file in CEP/.
 \graphicspath{{./}{cja-template/}}
@@ -56,14 +57,22 @@
 
 \title{Robust Stackelberg-Supervised Overtaking Policy with Persistent Tactical Corridors for Autonomous Racing}
 
-% \author[1]{Shuyi Gao}
-% \author[1]{Ren Jin}
-% \author[1]{Defu Lin}
-% % AUTHOR_INPUT_NEEDED: designate the corresponding author and add \ead{...}.
+\author[1]{Shuyi Gao}
+\author[1]{Ren Jin\corref{cor}}
+\ead{renjin@bit.edu.cn}
+\author[1]{Defu Lin}
+\author[1]{Weiqiang Xiao}
+\author[1]{Jinmeng Chen}
+\author[2]{Weiting He}
 
-% \affiliation[1]{organization={School of Aerospace Engineering, Beijing Institute of Technology},
-%                   city={Beijing},
-%                   country={China}}
+\cortext[cor]{Corresponding author}
+
+\affiliation[1]{organization={School of Aerospace Engineering, Beijing Institute of Technology},
+                  city={Beijing},
+                  country={China}}
+\affiliation[2]{organization={The High School Affiliated to Renmin University of China},
+                  city={Beijing},
+                  country={China}}
 
 \begin{abstract}
 Overtaking planning and decision-making are central to performance in autonomous racing. 
@@ -1820,6 +1829,7 @@ pp. 783--809, 2023.
 
 \end{thebibliography}
 
+\clearpage
 \appendix
 \section{Algorithm and Evaluation Parameters}
 \label{app:parameters}
