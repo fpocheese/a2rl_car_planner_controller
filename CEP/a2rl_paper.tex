@@ -412,7 +412,7 @@ $\widetilde{\bm o}_t$. The actor produces
 \bm a^{\rm raw}=\bigl[&L^{\rm cap},R^{\rm cap},d_{\rm safe},
 V_{\rm cap}^{\rm req},g_{\rm chase},\\[-1mm]
 &g_{\rm ot},g_{\rm abort},b_{\rm lat},w_{\rm safe},
-q_{\rm side}\bigr]^\top .
+q_{\rm side}\bigr]^\top 
 \end{aligned}
 \label{eq:action_vec}
 \end{equation}
@@ -478,7 +478,7 @@ U_i(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
 \label{eq:game_utility}
 \end{equation}
 where $\bm\phi_i\in[0,1]^{10}$ contains the role-relative reward features in
-Appendix~\ref{app:parameters}. Hence $U_i\in[0,1]$, and
+\ref{app:parameters}. Hence $U_i\in[0,1]$, and
 $\varepsilon_{\rm BR}$ directly specifies the admissible follower-utility gap.
 For a fixed ego candidate, let $U_o^{\max}(\bm s_t^G,\bm a_e^{\rm F})$
 denote the largest follower utility over $\mathcal A_o^G(\bm s_t^G)$. The
@@ -583,7 +583,7 @@ r_t&=\bm w^\top\bm\phi_t,\\
 \end{aligned}
 \label{eq:reward_sum}
 \end{equation}
-Appendix~\ref{app:parameters} gives the normalized definitions and weights.
+\ref{app:parameters} gives the normalized definitions and weights.
 The same role-swapped features define Eq.~\eqref{eq:game_utility}, aligning the
 teacher and online reward at the level of overtaking progress, clearance,
 smoothness, and usable corridor width.
@@ -1025,7 +1025,7 @@ the evolution of the learned feasible region throughout each maneuver,
 Fig.~\ref{fig:four_case_track_overview} presents four representative
 encounters at distinct locations on Yas Marina North. The matching labels
 (b)--(i) link each spatial view of the published corridor and planned path to
-its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. Across
+its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. 
 
 \begin{figure*}[!t]
 \centering
@@ -1034,7 +1034,7 @@ its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. Across
 \label{fig:four_case_track_overview}
 \end{figure*}
 
-the four encounters, the feasible region evolves from approach guidance into a
+Across the four encounters, the feasible region evolves from approach guidance into a
 committed passing channel. In Case~1, the \textsc{Shadow} corridor at
 $\Delta s=18.6$~m places the planned path on the selected side behind the
 opponent; at $\Delta s=-0.5$~m, the \textsc{Overtake} corridor excludes the
