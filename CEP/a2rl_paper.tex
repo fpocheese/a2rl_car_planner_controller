@@ -1,44 +1,67 @@
-%% Control Engineering Practice submission manuscript typeset with the
-%% supplied CJA two-column class.
-\documentclass{cja}
+%% IEEE Sensors Journal manuscript using the supplied May 2024 template.
+\documentclass[journal,twoside,web]{ieeecolor}
 \pdfminorversion=7
-\usepackage{amsfonts,bm}
+\usepackage{jsen}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts,bm}
+\usepackage{mathrsfs}
 \usepackage{mathtools}
 \usepackage{algorithmic}
 \usepackage{algorithm}
 \usepackage{array}
 \allowdisplaybreaks
-\usepackage{subfig}
+\makeatletter
+\def\endfigure{\end@float}
+\def\endtable{\end@float}
+\makeatother
+\usepackage[caption=false,font=footnotesize]{subfig}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{wrapfig}
+\usepackage{capt-of}
+\usepackage{url}
 \usepackage{textcomp}
 \usepackage{verbatim}
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{placeins}
 \usepackage{multirow}
-\providecommand{\href}[2]{#2}
-% Elsevier Editorial Manager does not preserve source subdirectories, so the
-% submission artwork is kept beside this file in CEP/.
-\graphicspath{{./}{cja-template/}}
+\graphicspath{{./}}
 \hyphenation{au-ton-o-mous over-taking race-car}
 \emergencystretch=2em
 \hfuzz=1pt
+% Accommodate the supplied journal header without changing the text block.
+\addtolength{\headheight}{18pt}
+\addtolength{\headsep}{-18pt}
 
-% The supplied CJA class balances the bibliography columns and forces
-% appendices onto a new page.  Keep the final references column ragged and
-% start the appendix at the top of the opposite column on the same page.
+\markboth{IEEE Sensors Journal}
+{Gao \MakeLowercase{\textit{et al.}}: Robust Stackelberg-Supervised Overtaking Policy}
+\definecolor{abstractbg}{rgb}{0.89804,0.94510,0.83137}
+\setlength{\fboxrule}{0pt}
+\setlength{\fboxsep}{0pt}
+
+% Compatibility fixes for the supplied class on current pdfLaTeX.
 \makeatletter
-\renewcommand\appendix{\par
-  \raggedend
-  \setcounter{section}{0}%
-  \setcounter{subsection}{0}%
-  \setcounter{equation}{0}%
-  \gdef\thefigure{\@Alph\c@section.\arabic{figure}}%
-  \gdef\thetable{\@Alph\c@section.\arabic{table}}%
-  \gdef\thesection{\appendixname~\@Alph\c@section}%
-  \@addtoreset{equation}{section}%
-  \gdef\theequation{\@Alph\c@section\arabic{equation}}%
-  \addtocontents{toc}{\string\let\string\numberline\string\tmptocnumberline}{}{}%
-}
+\long\def\@makecaption#1#2{%
+  \begingroup
+  \normalcolor\footnotesize\sffamily
+  \ifx\@captype\@IEEEtablestring
+    \vskip4pt
+    {\centering {#1}\par\normalcolor\scshape #2\par}
+    \vskip1.5pt
+  \else
+    \vskip\abovecaptionskip
+    \noindent {#1}.\enspace #2\par
+  \fi
+  \endgroup}
+\def\ps@titlepagestyle{%
+  \def\@oddhead{\hbox to\textwidth{%
+    \includegraphics[width=\logowidth]{LOGO-jsen-web-eps-converted-to.pdf}%
+    \hfill\parbox[b]{\dimexpr\textwidth-\logowidth-8pt\relax}{%
+      \scriptsize\sffamily\leftmark\hfill\thepage\par\vskip3pt
+      {\color{subsectioncolor}\hrule height1pt}}}}%
+  \let\@evenhead\@oddhead
+  \let\@oddfoot\@empty\let\@evenfoot\@empty}
 \makeatother
 
 % --- Math shortcuts ---
@@ -48,32 +71,22 @@
 \newcommand{\diag}{\operatorname{diag}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
-\newcommand{\IEEEPARstart}[2]{#1#2}
-\newcommand{\IEEEmembership}[1]{#1}
 
 \begin{document}
 
-% Running heads are intentionally omitted for the CEP submission layout.
-
 \title{Robust Stackelberg-Supervised Overtaking Policy with Persistent Tactical Corridors for Autonomous Racing}
 
-\author[1]{Shuyi Gao}
-\author[1]{Ren Jin\corref{cor}}
-\ead{renjin@bit.edu.cn}
-\author[1]{Defu Lin}
-\author[1]{Weiqiang Xiao}
-\author[1]{Jinmeng Chen}
-\author[2]{Weiting He}
+\author{Shuyi Gao, Ren Jin, Defu Lin, Weiqiang Xiao, Jinmeng Chen, and Weiting He\endgraf%
+\thanks{Corresponding author: Ren Jin (e-mail: renjin@bit.edu.cn).}%
+\thanks{Shuyi Gao, Ren Jin, Defu Lin, Weiqiang Xiao, and Jinmeng Chen are with the School of Aerospace Engineering, Beijing Institute of Technology, Beijing, China.}%
+\thanks{Weiting He is with The High School Affiliated to Renmin University of China, Beijing, China.}}
 
-\cortext[cor]{Corresponding author}
-
-\affiliation[1]{organization={School of Aerospace Engineering, Beijing Institute of Technology},
-                  city={Beijing},
-                  country={China}}
-\affiliation[2]{organization={The High School Affiliated to Renmin University of China},
-                  city={Beijing},
-                  country={China}}
-
+\IEEEtitleabstractindextext{%
+\fcolorbox{abstractbg}{abstractbg}{%
+\begin{minipage}{\textwidth}%
+\begin{wrapfigure}[12]{r}{3.5in}%
+\includegraphics[width=3.5in]{zhaiyao.pdf}%
+\end{wrapfigure}%
 \begin{abstract}
 Overtaking planning and decision-making are central to performance in autonomous racing. 
 Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed overtaking attempts and collisions.
@@ -85,10 +98,11 @@ Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Veh
 
 \end{abstract}
 
-\begin{keyword}
-Autonomous racing \sep game-guided reinforcement learning \sep tactical corridor
-\sep overtaking policy
-\end{keyword}
+\begin{IEEEkeywords}
+Autonomous racing, game-guided reinforcement learning, tactical corridor,
+overtaking policy
+\end{IEEEkeywords}
+\end{minipage}}}
 
 \maketitle
 
@@ -98,7 +112,7 @@ Autonomous racing \sep game-guided reinforcement learning \sep tactical corridor
 Autonomous racing provides a demanding testbed for integrated perception, decision-making, planning, and control under extreme operating conditions. Competitions such as the Indy Autonomous Challenge and the Abu Dhabi Autonomous Racing League (A2RL) have extended this testbed to full-scale head-to-head racing near the limits of vehicle handling~\cite{betz2022survey,hoffmann2026a2rl}. In these races, the ability to complete overtaking maneuvers safely and efficiently directly affects competitive performance. Overtaking is especially difficult on narrow closed circuits, where high speed and limited lateral space shorten the passing window and increase collision risk. Onboard localization and opponent perception provide the evolving vehicle-state estimates on which these overtaking decisions are based. A viable overtaking decision must retain its passing-side intent across repeated replanning and leave sufficient maneuvering freedom for downstream path generation and vehicle control. The central challenge is therefore to translate interactive tactical reasoning into a geometrically explicit and temporally persistent feasible region throughout the overtaking maneuver.
 
 
-\subsection{Related work}
+% \subsection{Related work}
 
 Research on overtaking in autonomous racing has developed along four main
 directions: hierarchical maneuver planning, explicit game-theoretic planning,
@@ -198,7 +212,7 @@ This motivates a decision framework that represents this intent as a persistent
 tactical feasible region and communicates game-supervised tactical decisions
 to the planner through side-locked Frenet bounds and speed guidance.
 
-\subsection{Contributions and paper organization}
+% \subsection{Contributions and paper organization}
 
 To address this challenge, this study formulates interactive overtaking as
 robust tactical feasible-set selection and develops a game-guided
@@ -1614,8 +1628,6 @@ This work was supported by the National Natural Science Foundation of China unde
 The authors acknowledge A2RL for providing the EAV24 simulation and vehicle-interface environment.
 
 
-\renewcommand{\bibfont}{\fontsize{7}{7.8}\selectfont}
-\setlength{\bibsep}{-0.1pt}
 \begin{thebibliography}{34}
 
 \bibitem{betz2022survey}
@@ -1834,11 +1846,15 @@ pp. 783--809, 2023.
 \end{thebibliography}
 
 \clearpage
-\appendix
+\raggedbottom
+\useRomanappendicesfalse
+\appendices
 \section{Algorithm and Evaluation Parameters}
 \label{app:parameters}
 \setcounter{table}{0}
 \setcounter{equation}{0}
+\renewcommand{\thetable}{A.\arabic{table}}
+\renewcommand{\theequation}{A\arabic{equation}}
 
 This appendix reports the principal numerical settings and normalized reward
 features used in the study.
