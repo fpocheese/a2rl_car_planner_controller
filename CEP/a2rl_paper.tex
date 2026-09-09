@@ -77,7 +77,6 @@
 \begin{abstract}
 Overtaking planning and decision-making are central to performance in autonomous racing. 
 Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed overtaking attempts and collisions.
-% To address this problem, we formulate interactive overtaking as robust tactical feasible-set selection and develop a game-guided decision framework that distills Stackelberg response-set reasoning into persistent tactical corridors for constrained motion planning and closed-loop execution.
 To address this problem, we formulate overtaking as robust tactical feasible-set selection and develop a Stackelberg-supervised policy that translates response-set reasoning into persistent tactical corridors for constrained planning and closed-loop control.
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
 Second, a hysteretic finite-state machine (FSM) preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
