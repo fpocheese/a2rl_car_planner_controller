@@ -73,6 +73,9 @@
 \DeclareMathOperator*{\argmax}{arg\,max}
 
 \begin{document}
+\raggedbottom
+\setlength{\textfloatsep}{10pt plus 1pt minus 2pt}
+\setlength{\dbltextfloatsep}{12pt plus 1pt minus 2pt}
 
 \title{Robust Stackelberg-Supervised Overtaking Policy with Persistent Tactical Corridors for Autonomous Racing}
 
@@ -677,7 +680,7 @@ Figure~\ref{fig:framework_overview} summarizes the overall information flow.
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=\textwidth]{figure_sources/framework_overview_lead.pdf}
+\includegraphics[width=0.85\textwidth]{figure_sources/framework_overview_lead.pdf}
 \caption{Overview of the proposed game-supervised tactical feasible-region
 framework.}
 \label{fig:framework_overview}
@@ -1614,12 +1617,16 @@ feasible-set representation.
 \section{Conclusion}\label{sec:conclusion}
 % =====================================================================
 
-High-speed overtaking on narrow closed circuits is constrained by limited maneuvering space, increasing the risk of failed overtaking attempts and collisions. Repeated replanning further complicates the preservation of a consistent passing intention while retaining sufficient geometric freedom for downstream planning and control. To address these challenges, this paper developed a game-guided tactical-corridor decision framework that formulates interactive overtaking as robust tactical feasible-set selection. A robust Stackelberg response-set teacher provides a response-set-optimal action prior and action-conditioned robust-value labels for training a Truncated Quantile Critics (TQC) policy that predicts passing-side intention, corridor parameters, and speed demand. A hysteretic state machine preserves the selected passing side, while deterministic opponent-footprint carving adapts the feasible region to the evolving track and interaction geometry. The resulting side-locked, time-varying Frenet corridor and speed guidance are realized through sequential second-order cone programming (SOCP) planning and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC).
+% High-speed overtaking on narrow closed circuits is constrained by limited maneuvering space, increasing the risk of failed overtaking attempts and collisions. Repeated replanning further complicates the preservation of a consistent passing intention while retaining sufficient geometric freedom for downstream planning and control. To address these challenges, this paper developed a game-guided tactical-corridor decision framework that formulates interactive overtaking as robust tactical feasible-set selection. A robust Stackelberg response-set teacher provides a response-set-optimal action prior and action-conditioned robust-value labels for training a Truncated Quantile Critics (TQC) policy that predicts passing-side intention, corridor parameters, and speed demand. A hysteretic state machine preserves the selected passing side, while deterministic opponent-footprint carving adapts the feasible region to the evolving track and interaction geometry. The resulting side-locked, time-varying Frenet corridor and speed guidance are realized through sequential second-order cone programming (SOCP) planning and reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC).
 
-Monte Carlo closed-loop experiments were conducted on the EAV24 HIL platform. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a PFR of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
+% Monte Carlo closed-loop experiments were conducted on the EAV24 HIL platform. The proposed framework achieved a 94.7\% overtaking success rate, a mean overtaking time of 4.82~s, and a PFR of 1.000, with no collisions or track-boundary violations. Compared with three matched baselines using the same execution stack, the overtaking success rate was 31.2--66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter. Ablation studies further confirmed the roles of adaptive corridor shaping and persistent side commitment. Using the same policy and execution parameters, the framework maintained overtaking success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively. These results demonstrate that persistent tactical feasible regions provide an effective interface between game-guided overtaking decisions and constrained closed-loop execution, highlighting the framework's practical potential for high-speed autonomous racing.
 
-Future work will leverage participation in A2RL to deploy the proposed framework on a full-scale autonomous race car and conduct high-speed on-track validation. The framework will also be extended from the current two-vehicle setting to multi-vehicle racing scenarios to evaluate its performance under more complex competitive interactions.
+% Future work will leverage participation in A2RL to deploy the proposed framework on a full-scale autonomous race car and conduct high-speed on-track validation. The framework will also be extended from the current two-vehicle setting to multi-vehicle racing scenarios to evaluate its performance under more complex competitive interactions.
 
+
+This paper developed a game-guided tactical-corridor framework for overtaking in autonomous racing. A TQC policy trained with robust Stackelberg response-set supervision takes sensor-derived opponent-state estimates as input and outputs passing-side intention, corridor parameters, and speed demand. Hysteretic side commitment and opponent-footprint carving convert these outputs into persistent Frenet corridors for constrained planning and closed-loop control.
+Monte Carlo closed-loop experiments on the EAV24 HIL platform demonstrated a 94.7\% overtaking success rate and a mean overtaking time of 4.82~s, with no collisions or track-boundary violations observed. The framework outperformed three matched baselines in success rate and overtaking time, and maintained success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively.
+Future work will focus on high-speed on-track validation using a full-scale autonomous race car and extension to multi-vehicle racing.
 
 
 
