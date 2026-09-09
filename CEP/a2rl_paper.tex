@@ -78,10 +78,10 @@
 Overtaking planning and decision-making are central to performance in autonomous racing. 
 Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed overtaking attempts and collisions.
 To address this problem, we formulate overtaking as robust tactical feasible-set selection and develop a Stackelberg-supervised policy that translates response-set reasoning into persistent tactical corridors for constrained planning and closed-loop control.
-First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that learns passing-side intention, corridor parameters, and speed demand.
+First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that takes sensor-derived opponent-state estimates as input and learns passing-side intention, corridor parameters, and speed demand.
 Second, a hysteretic finite-state machine (FSM) preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
 Finally, a corridor-constrained sequential second-order cone programming (SOCP) planner and a speed profiler generate a continuous path--speed reference, which is tracked using reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) to produce closed-loop vehicle commands.
-Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Vehicle (EAV24) formula race-car simulator. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with three baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
+Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Vehicle (EAV24) formula race-car simulator with Gaussian noise and packet drops applied to localization and perception outputs. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with three baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
 
 \end{abstract}
 
@@ -95,7 +95,7 @@ Autonomous racing \sep game-guided reinforcement learning \sep tactical corridor
 % =====================================================================
 \section{Introduction}
 % =====================================================================
-Autonomous racing provides a demanding testbed for integrated perception, decision-making, planning, and control under extreme operating conditions. Competitions such as the Indy Autonomous Challenge and the Abu Dhabi Autonomous Racing League (A2RL) have extended this testbed to full-scale head-to-head racing near the limits of vehicle handling~\cite{betz2022survey,hoffmann2026a2rl}. In these races, the ability to complete overtaking maneuvers safely and efficiently directly affects competitive performance. Overtaking is especially difficult on narrow closed circuits, where high speed and limited lateral space shorten the passing window and increase collision risk. A viable overtaking decision must retain its passing-side intent across repeated replanning and leave sufficient maneuvering freedom for downstream path generation and vehicle control. The central challenge is therefore to translate interactive tactical reasoning into a geometrically explicit and temporally persistent feasible region throughout the overtaking maneuver.
+Autonomous racing provides a demanding testbed for integrated perception, decision-making, planning, and control under extreme operating conditions. Competitions such as the Indy Autonomous Challenge and the Abu Dhabi Autonomous Racing League (A2RL) have extended this testbed to full-scale head-to-head racing near the limits of vehicle handling~\cite{betz2022survey,hoffmann2026a2rl}. In these races, the ability to complete overtaking maneuvers safely and efficiently directly affects competitive performance. Overtaking is especially difficult on narrow closed circuits, where high speed and limited lateral space shorten the passing window and increase collision risk. Onboard localization and opponent perception provide the evolving vehicle-state estimates on which these overtaking decisions are based. A viable overtaking decision must retain its passing-side intent across repeated replanning and leave sufficient maneuvering freedom for downstream path generation and vehicle control. The central challenge is therefore to translate interactive tactical reasoning into a geometrically explicit and temporally persistent feasible region throughout the overtaking maneuver.
 
 
 \subsection{Related work}
@@ -579,6 +579,7 @@ features contain normalized Frenet states and accelerations, relative progress,
 lateral gap and closing rate, time to contact, closing-speed code, side lock, and a
 nine-state race-mode code. Each track summary reports mean curvature, peak
 absolute curvature, and minimum width over four consecutive bins.
+The vehicle-state and relative-motion features are constructed from GNSS/IMU-based ego-state estimates and LiDAR-based opponent-state estimates. The sensing pipeline and output perturbations are specified in Section~\ref{subsec:hil_env}.
 
 The environment reward is
 \begin{equation}
@@ -683,7 +684,7 @@ body-clearance confirmation takes precedence over continued overtaking, and an
 unlocked ego enters \textsc{Defend} only when a rear opponent is closing.
 
 The geometric operation that realizes the selected side is the corridor
-carver. For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
+carver. The opponent prediction used by the carver assumes constant Frenet velocity and is initialized from LiDAR-based opponent-state estimates. For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
 one-sided exclusion are
 \begingroup
 \setlength{\arraycolsep}{2pt}
