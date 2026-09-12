@@ -97,7 +97,7 @@ To address this problem, we formulate overtaking as robust tactical feasible-set
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that takes sensor-derived opponent-state estimates as input and learns passing-side intention, corridor parameters, and speed demand.
 Second, a hysteretic finite-state machine (FSM) preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
 Finally, a corridor-constrained sequential second-order cone programming (SOCP) planner and a speed profiler generate a continuous path--speed reference, which is tracked using reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) to produce closed-loop vehicle commands.
-Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Vehicle (EAV24) formula race-car simulator with Gaussian noise and packet drops applied to localization and perception outputs. Across 1000 laps, the method achieved an overtaking success rate of 94.7\% and a mean overtaking time of 4.82 s. Compared with three baselines using the same execution stack, the success rate was 31.2–66.2 percentage points higher and the mean overtaking time was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
+Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Vehicle (EAV24) formula race-car simulator with Gaussian noise and packet drops applied to localization and perception outputs. Across 1000 laps, the method achieved a lead-acquisition rate of 94.7\% and a mean time to lead acquisition of 4.82 s. Compared with three baselines using the same execution stack, the lead-acquisition rate was 31.2–66.2 percentage points higher and the mean time to lead acquisition was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
 
 \end{abstract}
 
@@ -235,7 +235,7 @@ A hysteretic FSM and deterministic opponent-footprint carving adapt the feasible
 
 
 \item \textbf{System Validation under High-Speed Conditions:}
-We deploy the complete decision--planning--control stack on the target onboard computer and evaluate it using an EAV24 hardware-in-the-loop platform under high-speed head-to-head racing conditions. Matched baseline comparisons and ablation studies are also conducted. The results demonstrate a high overtaking success rate and collision-free closed-loop operation, highlighting the framework's potential for practical deployment in autonomous racing.
+We deploy the complete decision--planning--control stack on the target onboard computer and evaluate it using an EAV24 hardware-in-the-loop platform under high-speed head-to-head racing conditions. Matched baseline comparisons and ablation studies are also conducted. The results demonstrate a high lead-acquisition rate and collision-free closed-loop operation, highlighting the framework's potential for practical deployment in autonomous racing.
 
 \end{enumerate}
 
@@ -1032,10 +1032,10 @@ RC-NMPC & 10 & 5.221 & 7.087 & 8.736 \\
 Statistical results aggregate 1000 Monte Carlo closed-loop laps per setting.
 In each lap, the opponent initial condition is randomized relative to
 the ego vehicle in longitudinal position, lateral position, and heading. 
-The overtaking success rate (OSR) is the fraction of laps reaching the Lead
-event defined after Eq.~\eqref{eq:rel}, and time to overtake (TTO) is the time
-to that event. All reported mean TTO
-values are computed over successful laps only. Minimum
+Lead-acquisition rate (LAR) is the percentage of evaluation laps reaching the
+Lead event defined after Eq.~\eqref{eq:rel}, with each lap counted once.
+Time to lead acquisition (TTLA) is the elapsed time from evaluation start to
+the first Lead event, averaged over laps acquiring the lead. Minimum
 gap is the smallest net clearance between the ego and opponent body envelopes
 over a lap. Mean time to collision (TTC) and contact/track-violation rates
 describe interaction safety, while the path-feasibility ratio (PFR) is the
@@ -1190,7 +1190,7 @@ Case~2.}
 \end{figure}
 
 Across 1000 Monte Carlo laps with the minimum-curvature opponent, the full
-method achieved an OSR of 94.7\%,
+method achieved an LAR of 94.7\%,
 with contact and track-violation rates of 0.0\%.
 
 \subsection{Adaptive overtaking against defensive opponent policies}
@@ -1235,13 +1235,13 @@ minimum-curvature-opponent reference, using identical initial conditions and
 exogenous randomizations. The $\varepsilon_{\rm BR}=0$ policy
 retains $\lambda_p=\lambda_g=1$ but limits each teacher response set to the
 utility-maximizing response. With $\varepsilon_{\rm BR}=0.05$, the proposed
-policy achieved OSRs of 92.3\% and 91.0\% against the near-best-response
+policy achieved LARs of 92.3\% and 91.0\% against the near-best-response
 defender and side-switching blocker, respectively, while maintaining zero
 contacts and PFRs of 0.9985 and 0.9972. Relative to zero tolerance, the nominal
-response set increased OSR by 3.2 percentage points against each defender,
+response set increased LAR by 3.2 percentage points against each defender,
 increased the mean per-lap minimum gap by 0.72 and 0.75~m, and eliminated the
-0.2\% and 0.3\% contact rates. PFR increased by 0.0045 and 0.0052, with TTO
-increases among successful laps of 0.09 and 0.16~s. These results
+0.2\% and 0.3\% contact rates. PFR increased by 0.0045 and 0.0052, with TTLA
+increases among laps acquiring the lead of 0.09 and 0.16~s. These results
 demonstrate effective lead acquisition, clearance preservation, and planning
 feasibility against state-dependent defensive responses.
 
@@ -1261,8 +1261,8 @@ Metric & \multicolumn{2}{c}{\shortstack{Minimum-curvature\\opponent}} &
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(l){6-7}
 $\varepsilon_{\rm BR}$ & 0.05 & 0 & 0.05 & 0 & 0.05 & 0 \\
 \midrule
-OSR [\%] $\uparrow$ & 94.7 & 90.1 & 92.3 & 89.1 & 91.0 & 87.8 \\
-TTO [s] $\downarrow$ & 4.82 & 4.60 & 5.13 & 5.04 & 5.41 & 5.25 \\
+LAR [\%] $\uparrow$ & 94.7 & 90.1 & 92.3 & 89.1 & 91.0 & 87.8 \\
+TTLA [s] $\downarrow$ & 4.82 & 4.60 & 5.13 & 5.04 & 5.41 & 5.25 \\
 Min. gap [m] $\uparrow$ & 5.83 & 4.08 & 5.19 & 4.47 & 4.91 & 4.16 \\
 Contact rate [\%] $\downarrow$ & 0.0 & 0.9 & 0.0 & 0.2 & 0.0 & 0.3 \\
 PFR $\uparrow$ & 1.0000 & 0.9888 & 0.9985 & 0.9940 & 0.9972 & 0.9920 \\
@@ -1313,9 +1313,9 @@ Arrows indicate the preferred direction.}
 \toprule
 Metric & Prop. & NI-MPC & RB-GT & iLQGames \\
 \midrule
-OSR [\%] $\uparrow$
+LAR [\%] $\uparrow$
 & \textbf{94.7} & 28.5 & 51.6 & 63.5 \\
-TTO [s] $\downarrow$
+TTLA [s] $\downarrow$
 & \textbf{4.82} & 11.23 & 9.37 & 7.83 \\
 Min. gap [m] $\uparrow$
 & \textbf{5.83} & 3.85 & 2.14 & 2.31 \\
@@ -1360,9 +1360,9 @@ Metric
 & Fixed-C/S
 & SAC \\
 \midrule
-OSR [\%] $\uparrow$
+LAR [\%] $\uparrow$
 & \textbf{94.7} & 90.8 & 92.3 & 85.4 & 82.3 & 81.4 & 89.6 & 76.1 & 88.5 \\
-TTO [s] $\downarrow$
+TTLA [s] $\downarrow$
 & \textbf{4.82} & 5.70 & 5.31 & 6.38 & 6.71 & 7.86 & 6.12 & 8.94 & 5.53 \\
 Contact rate [\%] $\downarrow$
 & \textbf{0.0} & 0.7 & 0.5 & 0.9 & 1.2 & 2.4 & 0.6 & 3.1 & 0.5 \\
@@ -1377,10 +1377,10 @@ PFR $\uparrow$
 \end{table*}
 
 Across 1000 Monte Carlo closed-loop HIL laps per method, the proposed method
-achieved an overtaking success rate of 94.7\% and a mean overtaking time of
-4.82~s. Compared with the three baselines, the success rate increased by
-31.2--66.2 percentage points and the mean overtaking time decreased by
-3.01--6.41~s. Among the baselines, iLQGames achieved the highest success rate
+achieved a lead-acquisition rate of 94.7\% and a mean time to lead acquisition of
+4.82~s. Compared with the three baselines, the lead-acquisition rate increased by
+31.2--66.2 percentage points and the mean time to lead acquisition decreased by
+3.01--6.41~s. Among the baselines, iLQGames achieved the highest lead-acquisition rate
 of 63.5\%, demonstrating the benefit of coupled interaction reasoning. The
 further improvement obtained by the proposed method demonstrates the advantage
 of expressing tactical reasoning as a persistent feasible region for
@@ -1419,31 +1419,31 @@ architecture, reward function, replay protocol, and training budget.
 
 
 The full method achieved the best performance across all reported metrics,
-including an OSR of 94.7\%, a mean TTO of 4.82~s, a zero contact rate, and a
+including an LAR of 94.7\%, a mean TTLA of 4.82~s, a zero contact rate, and a
 PFR of 1.000 (Table~\ref{tab:ablation}). The targeted supervision ablations
 separate the contributions of the two teacher signals. Removing the action
-prior reduced OSR by 3.9 percentage points and increased TTO by 0.88~s,
-whereas removing robust-value supervision reduced OSR by 2.4 percentage
-points and increased TTO by 0.49~s. Their joint removal in No-GG produced a
-larger 9.3-point OSR reduction, together with a decrease in minimum gap from
+prior reduced LAR by 3.9 percentage points and increased TTLA by 0.88~s,
+whereas removing robust-value supervision reduced LAR by 2.4 percentage
+points and increased TTLA by 0.49~s. Their joint removal in No-GG produced a
+larger 9.3-point LAR reduction, together with a decrease in minimum gap from
 5.83 to 2.86~m, supporting the complementary roles of action and value
 supervision.
 
 The guidance ablations further distinguish spatial adaptation from speed
-adaptation. Fixing the corridor geometry reduced OSR by 13.3 percentage points,
-increased TTO to 7.86~s, and decreased PFR to 0.970. Fixing only the speed
-request produced a smaller 5.1-point OSR reduction and increased TTO to
+adaptation. Fixing the corridor geometry reduced LAR by 13.3 percentage points,
+increased TTLA to 7.86~s, and decreased PFR to 0.970. Fixing only the speed
+request produced a smaller 5.1-point LAR reduction and increased TTLA to
 6.12~s, while retaining a PFR of 0.994. Their joint removal in Fixed-C/S
-caused the largest degradation, reducing OSR to 76.1\%, increasing TTO to
+caused the largest degradation, reducing LAR to 76.1\%, increasing TTLA to
 8.94~s, and decreasing PFR to 0.961. These results show that adaptive corridor
 geometry provides the primary spatial support for feasible overtaking, while
 adaptive speed guidance contributes complementary pacing and efficiency.
 
-Compared with No-FSM, the complete stateful mechanism increased OSR by
+Compared with No-FSM, the complete stateful mechanism increased LAR by
 12.4 percentage points and reduced the contact rate from 1.2\% to zero,
 demonstrating the combined contribution of hysteretic mode transitions and
-persistent side locking. Replacing TQC with SAC reduced OSR by 6.2 percentage
-points and increased TTO by 0.71~s, supporting the contribution of
+persistent side locking. Replacing TQC with SAC reduced LAR by 6.2 percentage
+points and increased TTLA by 0.71~s, supporting the contribution of
 distributional value learning under the same tactical and execution
 architecture.
 
@@ -1462,16 +1462,16 @@ under the same experimental conditions. For each value of
 $\varepsilon_{\rm BR}$, the corresponding teacher labels were regenerated
 before training.
 The nominal setting provided the strongest overall balance, achieving the
-highest OSR, a zero contact rate, and full planning feasibility
+highest LAR, a zero contact rate, and full planning feasibility
 (Table~\ref{tab:sensitivity}). Reducing $\varepsilon_{\rm BR}$ from 0.05 to
-0.025 shortened TTO from 4.82 to 4.71~s, while OSR decreased to 92.4\% and
-the minimum gap decreased from 5.83 to 4.55~m. At zero tolerance, TTO fell
-further to 4.60~s, while OSR, minimum gap, and PFR decreased to 90.1\%,
+0.025 shortened TTLA from 4.82 to 4.71~s, while LAR decreased to 92.4\% and
+the minimum gap decreased from 5.83 to 4.55~m. At zero tolerance, TTLA fell
+further to 4.60~s, while LAR, minimum gap, and PFR decreased to 90.1\%,
 4.08~m, and 0.9888, respectively, with a contact rate of 0.9\%. Increasing
 $\varepsilon_{\rm BR}$ to 0.10 enlarged the minimum gap to 6.22~m, while
-TTO increased to 5.70~s. These results show that $\varepsilon_{\rm BR}$
+TTLA increased to 5.70~s. These results show that $\varepsilon_{\rm BR}$
 regulates the balance between overtaking efficiency and spatial clearance.
-Doubling either loss weight maintained OSR above 93\% and PFR at or above
+Doubling either loss weight maintained LAR above 93\% and PFR at or above
 0.9968, demonstrating stable performance under increased supervision weights.
 
 \begin{table}[H]
@@ -1484,8 +1484,8 @@ laps per setting. Arrows indicate the preferred direction.}
 \label{tab:sensitivity}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-Setting & \shortstack{OSR [\%]\\$\uparrow$} &
-\shortstack{TTO [s]\\$\downarrow$} &
+Setting & \shortstack{LAR [\%]\\$\uparrow$} &
+\shortstack{TTLA [s]\\$\downarrow$} &
 \shortstack{Min. gap [m]\\$\uparrow$} &
 \shortstack{Contact rate [\%]\\$\downarrow$} &
 \shortstack{PFR\\$\uparrow$} \\
@@ -1555,8 +1555,8 @@ unseen circuit.}
 \toprule
 Metric & Imola & Suzuka \\
 \midrule
-OSR [\%]                  & 91.8   & 88.9   \\
-TTO [s]                   & 5.19   & 4.08   \\
+LAR [\%]                  & 91.8   & 88.9   \\
+TTLA [s]                   & 5.19   & 4.08   \\
 Min. gap [m]              & 5.46   & 5.05   \\
 Mean TTC [s]              & 8.07   & 7.45   \\
 Contact rate [\%]         & 0.0    & 0.0    \\
@@ -1568,7 +1568,7 @@ PFR                       & 0.9968 & 0.9934 \\
 
 Across the eight illustrated events, the paired simulator views show the
 tactical state progressing from \textsc{Shadow} to \textsc{Overtake} on both
-straight and curved sections. The framework achieved OSRs of 91.8\% and
+straight and curved sections. The framework achieved LARs of 91.8\% and
 88.9\% on Imola and Suzuka,
 respectively, while maintaining a zero contact rate on both circuits. The mean
 minimum gap remained above 5.0~m, and PFR remained above 0.993. The
@@ -1625,7 +1625,7 @@ feasible-set representation.
 
 
 This paper developed a game-guided tactical-corridor framework for overtaking in autonomous racing. A TQC policy trained with robust Stackelberg response-set supervision takes sensor-derived opponent-state estimates as input and outputs passing-side intention, corridor parameters, and speed demand. Hysteretic side commitment and opponent-footprint carving convert these outputs into persistent Frenet corridors for constrained planning and closed-loop control.
-Monte Carlo closed-loop experiments on the EAV24 HIL platform demonstrated a 94.7\% overtaking success rate and a mean overtaking time of 4.82~s, with no collisions or track-boundary violations observed. The framework outperformed three matched baselines in success rate and overtaking time, and maintained success rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively.
+Monte Carlo closed-loop experiments on the EAV24 HIL platform demonstrated a 94.7\% lead-acquisition rate and a mean time to lead acquisition of 4.82~s, with no collisions or track-boundary violations observed. The framework outperformed three matched baselines in lead-acquisition rate and time to lead acquisition, and maintained lead-acquisition rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively.
 Future work will focus on high-speed on-track validation using a full-scale autonomous race car and extension to multi-vehicle racing.
 
 
