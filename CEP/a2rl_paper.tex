@@ -700,8 +700,11 @@ upon an abort or execution-health failure. Health and abort take precedence over
 body-clearance confirmation takes precedence over continued overtaking, and an
 unlocked ego enters \textsc{Defend} only when a rear opponent is closing.
 
-The geometric operation that realizes the selected side is the corridor
-carver. The opponent prediction used by the carver assumes constant Frenet velocity and is initialized from LiDAR-based opponent-state estimates. For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
+The corridor carver uses a constant-Frenet-velocity opponent prediction
+initialized from LiDAR-based state estimates. At station $s_k$, the opponent
+position and footprint are evaluated at $t+\widehat\tau_k$, where
+$\widehat\tau_k=(s_k-s_e)/\dot s_e$ uses the current ego progress rate.
+For $\mathcal B_{{\rm cap},k}=[\ell_k,u_k]$, the vehicle footprint and
 one-sided exclusion are
 \begingroup
 \setlength{\arraycolsep}{2pt}
@@ -889,6 +892,9 @@ Evaluated for $k=0,\ldots,N-2$ and $k=N-2,\ldots,0$, the forward and backward
 recursions impose acceleration and downstream braking reachability,
 respectively. Trapezoidal integration of $1/V_k^r$ provides the time stamps
 used to resample the path--speed reference on the controller grid.
+Reference acceptance requires $|V_0^r-V_e|\le\varepsilon_V$
+(numerical speed tolerance) and simultaneous footprint clearance using
+opponent predictions updated at these arrival times.
 
 The RC-NMPC tracks the resampled path--speed reference on a fixed prediction
 grid in an ego-centered local frame. Its state and input are
@@ -962,7 +968,9 @@ corridor midpoint
 $V_{{\rm cap},k}^{\rm P}$ from $V_{\rm cap}^{\rm F}$, measured speed, and
 available braking
 \STATE intersect $V_{{\rm cap},k}^{\rm P}$ with the curvature-speed envelope,
-run~\eqref{eq:execution_speed_sweep}, and update valid from the tire check
+run~\eqref{eq:execution_speed_sweep}, and compute the reference arrival times
+\STATE update the opponent prediction at these times; set valid only if
+initial-speed consistency, tire, and simultaneous footprint-clearance checks pass
 \ENDIF
 \IF{valid}
 \STATE time-resample the path--speed reference and rate-limit
@@ -973,7 +981,7 @@ $V_{{\rm cap},t}^{\rm F}$ to obtain $V_{{\rm cap},t,k}^{\rm C}$
 \STATE map $(V_{0|t}^{c\star},\delta_{0|t}^{c\star})$ to throttle, brake,
 steering, and gear
 \ELSE
-\STATE revalidate the previous reference for one cycle; otherwise request
+\STATE revalidate the previous reference for one cycle under the same checks; otherwise request
 current-state \textsc{Hold} and issue rate-limited braking with the preceding
 steering angle
 \ENDIF
