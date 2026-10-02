@@ -1,70 +1,54 @@
-%% IEEE Sensors Journal manuscript using the supplied May 2024 template.
-\documentclass[journal,twoside,web]{ieeecolor}
+%% Machines manuscript using the supplied MDPI template.
+\documentclass[machines,article,submit,moreauthors]{Definitions/mdpi}
 \pdfminorversion=7
-\usepackage{jsen}
-\usepackage{cite}
-\usepackage{amsmath,amssymb,amsfonts,bm}
+
+% MDPI publication metadata; dates remain blank for editorial use.
+\firstpage{1}
+\makeatletter
+\setcounter{page}{\@firstpage}
+\makeatother
+\pubvolume{1}
+\issuenum{1}
+\articlenumber{0}
+\pubyear{2026}
+\copyrightyear{2026}
+\datereceived{ }
+\daterevised{ }
+\dateaccepted{ }
+\datepublished{ }
+
+% The MDPI class supplies graphics, mathematics, subfigures, captions,
+% numeric citations, hyperlinks, and the standard table packages.
 \usepackage{mathrsfs}
 \usepackage{mathtools}
 \usepackage{algorithmic}
 \usepackage{algorithm}
-\usepackage{array}
-\allowdisplaybreaks
-\makeatletter
-\def\endfigure{\end@float}
-\def\endtable{\end@float}
-\makeatother
-\usepackage[caption=false,font=footnotesize]{subfig}
-\usepackage{graphicx}
-\usepackage{epstopdf}
-\usepackage{wrapfig}
-\usepackage{capt-of}
-\usepackage{url}
 \usepackage{textcomp}
 \usepackage{verbatim}
-\usepackage{booktabs}
-\usepackage{float}
 \usepackage{placeins}
-\usepackage{multirow}
+\usepackage{longtable}
+\allowdisplaybreaks
 \graphicspath{{./}}
 \hyphenation{au-ton-o-mous over-taking race-car}
 \emergencystretch=2em
-\hfuzz=1pt
-% Accommodate the supplied journal header without changing the text block.
-\addtolength{\headheight}{18pt}
-\addtolength{\headsep}{-18pt}
 
-\markboth{IEEE Sensors Journal}
-{Gao \MakeLowercase{\textit{et al.}}: Robust Stackelberg-Supervised Overtaking Policy}
-\definecolor{abstractbg}{rgb}{0.89804,0.94510,0.83137}
-\setlength{\fboxrule}{0pt}
-\setlength{\fboxsep}{0pt}
+% Accommodate the supplied MDPI header on this TeX Live installation.
+% The offsetting changes preserve the template's body position and height.
+\addtolength{\headheight}{12pt}
+\addtolength{\headsep}{-12pt}
 
-% Compatibility fixes for the supplied class on current pdfLaTeX.
+% Keep large single-column figures flexible and top-align float-only pages.
 \makeatletter
-\long\def\@makecaption#1#2{%
-  \begingroup
-  \normalcolor\footnotesize\sffamily
-  \ifx\@captype\@IEEEtablestring
-    \vskip4pt
-    {\centering {#1}\par\normalcolor\scshape #2\par}
-    \vskip1.5pt
-  \else
-    \vskip\abovecaptionskip
-    \noindent {#1}.\enspace #2\par
-  \fi
-  \endgroup}
-\def\ps@titlepagestyle{%
-  \def\@oddhead{\hbox to\textwidth{%
-    \includegraphics[width=\logowidth]{LOGO-jsen-web-eps-converted-to.pdf}%
-    \hfill\parbox[b]{\dimexpr\textwidth-\logowidth-8pt\relax}{%
-      \scriptsize\sffamily\leftmark\hfill\thepage\par\vskip3pt
-      {\color{subsectioncolor}\hrule height1pt}}}}%
-  \let\@evenhead\@oddhead
-  \let\@oddfoot\@empty\let\@evenfoot\@empty}
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{14pt}
+\setlength{\@fpbot}{0pt plus 1fil}
 \makeatother
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.80}
 
-% --- Math shortcuts ---
+% Math shortcuts retained from the original manuscript.
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
@@ -72,44 +56,29 @@
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
-\begin{document}
-\raggedbottom
-\setlength{\textfloatsep}{10pt plus 1pt minus 2pt}
-\setlength{\dbltextfloatsep}{12pt plus 1pt minus 2pt}
+\Title{Robust Stackelberg-Supervised Overtaking Policy with Persistent Tactical Corridors for Autonomous Racing}
 
-\title{Robust Stackelberg-Supervised Overtaking Policy with Persistent Tactical Corridors for Autonomous Racing}
+\Author{Shuyi Gao $^{1}$, Ren Jin $^{1,}$*, Defu Lin $^{1}$, Weiqiang Xiao $^{1}$, Jinmeng Chen $^{1}$ and Weiting He $^{2}$}
+\AuthorNames{Shuyi Gao, Ren Jin, Defu Lin, Weiqiang Xiao, Jinmeng Chen and Weiting He}
+\address{%
+$^{1}$ \quad School of Aerospace Engineering, Beijing Institute of Technology, Beijing, China\\
+$^{2}$ \quad The High School Affiliated to Renmin University of China, Beijing, China}
+\corres{Correspondence: renjin@bit.edu.cn (Ren Jin)}
 
-\author{Shuyi Gao, Ren Jin, Defu Lin, Weiqiang Xiao, Jinmeng Chen, and Weiting He\endgraf%
-\thanks{Corresponding author: Ren Jin (e-mail: renjin@bit.edu.cn).}%
-\thanks{Shuyi Gao, Ren Jin, Defu Lin, Weiqiang Xiao, and Jinmeng Chen are with the School of Aerospace Engineering, Beijing Institute of Technology, Beijing, China.}%
-\thanks{Weiting He is with The High School Affiliated to Renmin University of China, Beijing, China.}}
-
-\IEEEtitleabstractindextext{%
-\fcolorbox{abstractbg}{abstractbg}{%
-\begin{minipage}{\textwidth}%
-\begin{wrapfigure}[12]{r}{3.5in}%
-\includegraphics[width=3.5in]{zhaiyao.pdf}%
-\end{wrapfigure}%
-\begin{abstract}
-Overtaking planning and decision-making are central to performance in autonomous racing. 
+% The abstract text is unchanged; its IEEE graphical inset is omitted.
+\abstract{Overtaking planning and decision-making are central to performance in autonomous racing. 
 Limited maneuvering space on narrow closed circuits makes high-speed overtaking difficult and increases the risk of failed overtaking attempts and collisions.
 To address this problem, we formulate overtaking as robust tactical feasible-set selection and develop a Stackelberg-supervised policy that translates response-set reasoning into persistent tactical corridors for constrained planning and closed-loop control.
 First, a robust Stackelberg response-set teacher provides action-prior and action-conditioned robust-value supervision to a Truncated Quantile Critics (TQC) policy that takes sensor-derived opponent-state estimates as input and learns passing-side intention, corridor parameters, and speed demand.
 Second, a hysteretic finite-state machine (FSM) preserves the selected passing side, while a deterministic corridor carver combines the learned corridor parameters with the evolving track and interaction geometry to construct a time-varying Frenet corridor.
 Finally, a corridor-constrained sequential second-order cone programming (SOCP) planner and a speed profiler generate a continuous path--speed reference, which is tracked using reference-conditioned contouring-error nonlinear model predictive control (RC-NMPC) to produce closed-loop vehicle commands.
-Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Vehicle (EAV24) formula race-car simulator with Gaussian noise and packet drops applied to localization and perception outputs. Across 1000 laps, the method achieved a lead-acquisition rate of 94.7\% and a mean time to lead acquisition of 4.82 s. Compared with three baselines using the same execution stack, the lead-acquisition rate was 31.2–66.2 percentage points higher and the mean time to lead acquisition was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.
+Hardware-in-the-loop experiments were conducted using an Emirates Autonomous Vehicle (EAV24) formula race-car simulator with Gaussian noise and packet drops applied to localization and perception outputs. Across 1000 laps, the method achieved a lead-acquisition rate of 94.7\% and a mean time to lead acquisition of 4.82 s. Compared with three baselines using the same execution stack, the lead-acquisition rate was 31.2–66.2 percentage points higher and the mean time to lead acquisition was 3.01--6.41~s shorter; no collisions or track-boundary violations were observed.}
 
-\end{abstract}
+\keyword{Autonomous racing; game-guided reinforcement learning; tactical corridor; overtaking policy}
 
-\begin{IEEEkeywords}
-Autonomous racing, game-guided reinforcement learning, tactical corridor,
-overtaking policy
-\end{IEEEkeywords}
-\end{minipage}}}
+\begin{document}
+\raggedbottom
 
-\maketitle
-
-% =====================================================================
 \section{Introduction}
 % =====================================================================
 Autonomous racing provides a demanding testbed for integrated perception, decision-making, planning, and control under extreme operating conditions. Competitions such as the Indy Autonomous Challenge and the Abu Dhabi Autonomous Racing League (A2RL) have extended this testbed to full-scale head-to-head racing near the limits of vehicle handling~\cite{betz2022survey,hoffmann2026a2rl}. In these races, the ability to complete overtaking maneuvers safely and efficiently directly affects competitive performance. Overtaking is especially difficult on narrow closed circuits, where high speed and limited lateral space shorten the passing window and increase collision risk. Onboard localization and opponent perception provide the evolving vehicle-state estimates on which these overtaking decisions are based. A viable overtaking decision must retain its passing-side intent across repeated replanning and leave sufficient maneuvering freedom for downstream path generation and vehicle control. The central challenge is therefore to translate interactive tactical reasoning into a geometrically explicit and temporally persistent feasible region throughout the overtaking maneuver.
@@ -310,7 +279,7 @@ Here $m$ and $I_z$ are the vehicle mass and yaw inertia, and
 $F_{\rm drag}$ is the aerodynamic drag force. The identified pure-slip tire
 forces are represented by
 
-\begin{figure}[!t]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\linewidth]{model_shuoming_corrected.pdf}
 \caption{Vehicle motion and relative geometry in the Frenet frame.}
@@ -678,13 +647,15 @@ guides corridor placement, while the auxiliary value labels encourage the
 shared critic representation to retain response-set robustness information.
 Figure~\ref{fig:framework_overview} summarizes the overall information flow.
 
-\begin{figure*}[!t]
+\begin{figure}[!htbp]
+\begin{adjustwidth}{-\extralength}{0cm}
 \centering
-\includegraphics[width=0.85\textwidth]{figure_sources/framework_overview_lead.pdf}
+\includegraphics[width=0.85\linewidth]{figure_sources/framework_overview_lead.pdf}
 \caption{Overview of the proposed game-supervised tactical feasible-region
 framework.}
 \label{fig:framework_overview}
-\end{figure*}
+\end{adjustwidth}
+\end{figure}
 
 
 \subsection{Persistent Tactical Feasible-Region Interface}
@@ -734,7 +705,7 @@ interval centered at the clipped offset $n_{o,k}+b_{\rm lat}$; and
 \textsc{Hold} retains only the connected component containing the ego vehicle.
 Figure~\ref{fig:tactical_mode_semantics} illustrates these geometric semantics.
 
-\begin{figure}[!tbp]
+\begin{figure}[!htbp]
 \centering
 \subfloat[\textrm{\textsc{Raceline}/\textsc{Hold}}.]{\includegraphics[width=0.48\linewidth]{race.png}}
 \hfill
@@ -1001,7 +972,7 @@ steering angle
 The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale head-to-head racing environment for EAV24 vehicles on Yas Marina North, together with the high-fidelity AutoVerse simulation platform. Using this platform, we established a hardware-in-the-loop (HIL) system that coupled the simulator with the Neousys RGS-8805GC onboard computer used on the EAV24 race car in the full-scale competition (Fig.~\ref{fig:a2rl_sim}). Both policy training and the in-domain HIL evaluation use Yas Marina North. The AutoVerse simulator ran on a separate simulation server and generated LiDAR and GNSS/IMU data, which were transmitted to the onboard computer over a dedicated Ethernet link using DDSI--RTPS over UDP/IP. All five software modules executed on the RGS-8805GC, which returned throttle, brake, steering, and gear commands to the simulated vehicle through a Controller Area Network (CAN).
 
 
-\begin{figure}[!t]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\linewidth]{sim_shuoming.pdf}
 \caption{Hardware-in-the-loop architecture coupling the A2RL high-fidelity
@@ -1049,12 +1020,14 @@ over a lap. Mean time to collision (TTC) and contact/track-violation rates
 describe interaction safety, while the path-feasibility ratio (PFR) is the
 fraction of feasible planning updates.
 
-\begin{figure*}[!t]
+\begin{figure}[!htbp]
+\begin{adjustwidth}{-\extralength}{0cm}
 \centering
-\includegraphics[width=\textwidth]{track_overview_case0205_v020.png}
+\includegraphics[width=\linewidth]{track_overview_case0205_v020.png}
 \caption{Representative overtaking situations on Yas Marina North.}
 \label{fig:four_case_track_overview}
-\end{figure*}
+\end{adjustwidth}
+\end{figure}
 
 \subsection{Overtaking performance under representative track conditions}
 \label{subsec:representative_cases}
@@ -1115,7 +1088,7 @@ footprint-exclusion condition in Eq.~\eqref{eq:core_overtake_carver} remains
 satisfied. The actual speed closely follows the desired profile
 and exceeds 70~m~s$^{-1}$ during lead acquisition.
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
 \centering
 \subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_02_path_corridor.png}}\\[-0.5mm]
@@ -1135,12 +1108,12 @@ therefore realized as a trackable path--speed reference throughout the
 high-speed overtake.
 
 
-\begin{figure}[!t]
+\begin{figure}[!htbp]
 \centering
 \subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_lateral.png}}\\[-0.5mm]
 \subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
 \subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_heading.png}}\\[-0.5mm]
-\subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
+\subfloat[Realized acceleration demand.]{\includegraphics[width=0.65\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
 \caption{Closed-loop tracking errors and realized acceleration demand in
 Case~1.}
 \label{fig:case02_tracking_new}
@@ -1167,7 +1140,7 @@ preserving lateral clearance throughout the overtaking maneuver. From an entry s
 60~m~s$^{-1}$, the actual speed closely follows the desired braking and
 re-acceleration profile throughout lead acquisition.
 
-\begin{figure}[!tbp]
+\begin{figure}[!htbp]
 \centering
 \subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
 \subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_05_path_corridor.png}}\\[-0.5mm]
@@ -1186,12 +1159,12 @@ samples remain inside the speed-dependent tire envelope. These results
 confirm accurate closed-loop realization of the side-locked corridor through
 consecutive corners with changing track width.
 
-\begin{figure}[!tbp]
+\begin{figure}[!htbp]
 \centering
 \subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_lateral.png}}\\[-0.5mm]
 \subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_speed.png}}\\[-0.5mm]
 \subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_heading.png}}\\[-0.5mm]
-\subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
+\subfloat[Realized acceleration demand.]{\includegraphics[width=0.65\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
 \caption{Closed-loop tracking errors and realized acceleration demand in
 Case~2.}
 \label{fig:case05_tracking_new}
@@ -1229,7 +1202,7 @@ $\Delta s_5=-2.65$~m with $|\Delta n_5|=4.50$~m. The sequence shows that the
 learned publisher converts the open complementary channel into a continuous,
 track-conforming feasible corridor under active blocking.
 
-\begin{figure}[!t]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=\linewidth]{case_blocking_sequence_half_body.png}
 \caption{Closed-loop response to the side-switching blocker. Numbered markers
@@ -1253,7 +1226,7 @@ increases among laps acquiring the lead of 0.09 and 0.16~s. These results
 demonstrate effective lead acquisition, clearance preservation, and planning
 feasibility against state-dependent defensive responses.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.0pt}
@@ -1309,7 +1282,7 @@ method. Minimum gap is the mean per-lap
 minimum net clearance between the vehicle body envelopes, and PFR is the
 fraction of planning cycles with a feasible SOCP solution.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{2.3pt}
@@ -1339,7 +1312,7 @@ PFR $\uparrow$
 \end{tabular}
 \end{table}
 
-\begin{table*}[!t]
+\begin{table}[!htbp]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{2.4pt}
@@ -1382,7 +1355,7 @@ PFR $\uparrow$
 & \textbf{1.000} & 0.992 & 0.994 & 0.983 & 0.974 & 0.970 & 0.994 & 0.961 & 0.992 \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 Across 1000 Monte Carlo closed-loop HIL laps per method, the proposed method
 achieved a lead-acquisition rate of 94.7\% and a mean time to lead acquisition of
@@ -1482,7 +1455,7 @@ regulates the balance between overtaking efficiency and spatial clearance.
 Doubling either loss weight maintained LAR above 93\% and PFR at or above
 0.9968, demonstrating stable performance under increased supervision weights.
 
-\begin{table}[H]
+\begin{table}[!htbp]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{1.2pt}
@@ -1530,9 +1503,9 @@ Together, these cases evaluate whether the learned tactical feasible-set
 representation sustains consistent overtaking decisions across new circuit
 geometries.
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=\columnwidth]{track_overview_imola_v007.png}
+\includegraphics[width=0.83\linewidth]{track_overview_imola_v007.png}
 \caption{Representative overtaking events on the unseen Imola circuit. The
 central map localizes the \textsc{Shadow} and \textsc{Overtake} phases of four
 events, with the corresponding simulator views arranged around the map. Blue
@@ -1540,9 +1513,9 @@ and red boxes indicate the ego and opponent vehicles.}
 \label{fig:imola_overview}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=\columnwidth]
+\includegraphics[width=0.83\linewidth]
 {track_overview_suzuka_selected_four_v005.png}
 \caption{Representative overtaking events on the unseen Suzuka circuit. The
 central map localizes the \textsc{Shadow} and \textsc{Overtake} phases of four
@@ -1551,7 +1524,7 @@ and opponent vehicles.}
 \label{fig:suzuka_overview}
 \end{figure}
 
-\begin{table}[!tbp]
+\begin{table}[!htbp]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{3.0pt}
@@ -1636,13 +1609,164 @@ This paper developed a game-guided tactical-corridor framework for overtaking in
 Monte Carlo closed-loop experiments on the EAV24 HIL platform demonstrated a 94.7\% lead-acquisition rate and a mean time to lead acquisition of 4.82~s, with no collisions or track-boundary violations observed. The framework outperformed three matched baselines in lead-acquisition rate and time to lead acquisition, and maintained lead-acquisition rates of 91.8\% and 88.9\% on the unseen Imola and Suzuka circuits, respectively.
 Future work will focus on high-speed on-track validation using a full-scale autonomous race car and extension to multi-vehicle racing.
 
+% Existing support and acknowledgement text, in MDPI back-matter commands.
+\funding{This work was supported by the National Natural Science Foundation of China under Grant No. 52672527.}
+\acknowledgments{The authors acknowledge A2RL for providing the EAV24 simulation and vehicle-interface environment.}
 
+\FloatBarrier
+\appendixtitles{yes}
+\appendixstart
+\appendix
+\section{Algorithm and Evaluation Parameters}
+\label{app:parameters}
+\setcounter{table}{0}
+\setcounter{equation}{0}
+\renewcommand{\thetable}{A\arabic{table}}
+\renewcommand{\theequation}{A\arabic{equation}}
 
-\section*{Acknowledgements}
-This work was supported by the National Natural Science Foundation of China under Grant No. 52672527.
-The authors acknowledge A2RL for providing the EAV24 simulation and vehicle-interface environment.
+This appendix reports the principal numerical settings and normalized reward
+features used in the study.
 
+\FloatBarrier
+\begingroup
+\centering
+\fontsize{8}{9.4}\selectfont
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.00}
+\setlength{\defaultaddspace}{2pt}
+\setlength{\jot}{0pt}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt plus 1fill}
+\setlength{\LTcapwidth}{\linewidth}
+\begin{longtable}{@{}
+>{\raggedright\arraybackslash}p{0.22\linewidth}
+>{\raggedright\arraybackslash}p{\dimexpr0.43\linewidth-2\tabcolsep\relax}
+>{\raggedright\arraybackslash}p{\dimexpr0.35\linewidth-2\tabcolsep\relax}@{}}
+\caption{Principal model, tactical-policy, training, and closed-loop settings.
+Symbols follow Eqs.~\eqref{eq:action_vec} and~\eqref{eq:reward_sum}.}\label{tab:setup_params}\\
+\toprule
+\textbf{Component} & \textbf{Parameter} & \textbf{Value} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Component} & \textbf{Parameter} & \textbf{Value} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+Vehicle geometry & \(m\); \newline \(I_z\); \newline \(l_f,l_r\) &
+\(742\) kg; \newline \(1500\) kg m\(^{2}\); \newline \(1.75,1.35\) m \\
+\addlinespace
+Tire curves & \(F_{z,0}\); \newline \(C_x,C_y\) &
+\(2079.72\) N; \newline \(1.6144,1.5998\) \\
+\addlinespace
+Tire curves & \(\mu_x,\mu_y\); \newline \(s_x,s_y\); \newline \(q_{x,\rm pk},q_{y,\rm pk}\) &
+\(2.2345,1.9745\); \newline \(-0.2555,-0.4787\); \newline \(0.1296,0.140\) \\
+\addlinespace
+Time scales & tactical decision step \(T_{\rm tac}\); \newline \(T_c\); \newline
+station spacing &
+\(0.005\) s; \newline \(0.01\) s; \newline \(2\) m \\
+\addlinespace
+Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \newline \(d_{\rm safe}\); \newline
+\(V_{\rm cap}^{\rm req}\) &
+\([1.5,8.0]\) m; \newline \([0.2,0.8]\) m; \newline \([15,90]\) m s\(^{-1}\) \\
+\addlinespace
+Gap bounds & \(g_{\rm chase}\); \newline \(g_{\rm ot}\); \newline \(g_{\rm abort}\) &
+\([18,24]\) m; \newline \([8,14]\) m; \newline \([28,45]\) m \\
+\addlinespace
+Mode bounds & \(b_{\rm lat}\); \newline \(q_{\rm side}\) &
+\([-1.5,1.5]\) m; \newline \([-1,1]\) \\
+\addlinespace
+Response-set teacher & Sobol candidates per side code; \(\varepsilon_{\rm BR}\);
+rollout steps \(H_G\); \(\gamma_g\) &
+\(64\); \(0.05\); \(100\); \(0.9995\) \\
+\addlinespace
+Projection and FSM & guard separation \(\Delta_g\); clearance-confirmation
+count \(N_{\rm post}\);
+stale-reference limit &
+\(0.5\) m; \(3\) tactical updates; \(1\) cycle \\
+\addlinespace
+TQC & critics; \(N_q\); retained \(K\); \(\gamma\) &
+\(2\); \(25\); \(46\); \(0.9995\) \\
+\addlinespace
+TQC guidance & \(\lambda_p\); \(\lambda_g\); prior metric &
+\(1\); \(1\); identity after action normalization \\
+\addlinespace
+Training & learning rate; replay capacity; batch size; target-update coefficient &
+\(3\times10^{-4}\); \(10^5\); \(256\); \(5\times10^{-3}\) \\
+\addlinespace
+Policy networks & actor encoder; critic outputs; auxiliary head &
+\(51\!\to\!256\!\to\!256\); two quantile heads; training only \\
+\addlinespace
+Reward & \(\bm w\), ordered as in Eq.~\eqref{eq:reward_sum} &
+\(\begin{aligned}[t]&(30,-20,-100,-2,\\
+&-5,3,-0.1,-0.5,\\&0.5,0.25)\end{aligned}\) \\
+\addlinespace
+Corridor & minimum width \(L_{\min}^{\rm corr}\) &
+\(3\) m \\
+\addlinespace
+Frenet health & \(\varepsilon_s\); \(\xi_{p,\max}\) &
+\(0.05\); \(1.30\) rad \\
+\addlinespace
+Path health & sequential-convexification iterations &
+\(5\) \\
+\addlinespace
+Speed profile & tire-cap grid intervals \(H_s\); \(V_{\min},v_{x,\max}\) &
+\(150\); \(10,90\) m s\(^{-1}\) \\
+\addlinespace
+RC-NMPC & steps \(N_c\); \(\delta_{\max}\); \(\dot\delta_{\max}\);
+\(\Delta V_{\max}\) &
+\(15\); \(0.35\) rad; \(1.0\) rad s\(^{-1}\);
+\(0.5\) m s\(^{-1}\) \\
+\addlinespace
+RC-NMPC weights & \(q_{\Delta\delta},q_c,q_\psi\); \(\bm R_\nu\) &
+\(2,20,10\); \(\operatorname{diag}(1,0.5)\) \\
+\end{longtable}
+\par\endgroup
+\FloatBarrier
 
+\begin{samepage}
+Here \(n_{\rm rl}\) is the raceline offset at \(s_e\),
+\(W_{{\rm trk},k}=n_{{\rm trk},k}^{+}-n_{{\rm trk},k}^{-}\),
+\(W_{\rm trk}=W_{{\rm trk},0}\), and
+\(\rho_{\rm exc}=\rho_{{\rm exc},0}\). The normalized reward features are
+\par
+\end{samepage}
+\begingroup
+\scriptsize
+\setlength{\jot}{0.5pt}
+\begin{equation}
+\begin{aligned}
+\phi_{\rm ot}&=\mathbb{1}[m_t=\textsc{Overtake},
+m_{t+1}=\textsc{Raceline},P_t],\\
+\phi_{\rm ovb}&=\phi_{\rm ot}\text{ with roles exchanged},\\
+\phi_{\rm col}&=\mathbb{1}[\mathrm{contact}\vee\mathrm{offtrack}],\\
+\phi_{\rm lat}&=\mathbb{1}[m_t=\textsc{Raceline}]
+\operatorname{clip}\!\left(\frac{n_e-n_{\rm rl}}{W_{\rm trk}/2},-1,1\right)^2,\\
+\phi_{\rm crush}&=\mathbb{1}[|\Delta s_t|<g_{\rm ot}]
+\left(\frac{[\rho_{\rm exc}-|\Delta n|]_+}{\rho_{\rm exc}}\right)^2,\\
+\phi_{\rm app}&=\mathbb{1}[0<\Delta s_t<g_{\rm chase}]
+\operatorname{clip}\!\left(\frac{\Delta s_{t-1}-\Delta s_t}{g_{\rm chase}},0,1\right),\\
+\phi_{\rm sm}&=\min\!\left\{1,
+\frac{\|\mathsf N_a(\bm a_t^{\rm F})-
+\mathsf N_a(\bm a_{t-1}^{\rm F})\|_2^2}{10}\right\},\\
+\phi_{\rm gs}&=\min\!\left\{1,\frac{1}{2N_{\rm sta}}
+\sum_k\sum_{\pm}\left(\frac{n_{k,t}^{\pm}-n_{k,t-1}^{\pm}}
+{W_{{\rm trk},k}}\right)^2\right\},\\
+\phi_{\rm sbs}&=\mathbb{1}[|\Delta s_t|<g_{\rm ot},
+|\Delta n|\ge\rho_{\rm exc}],\\
+\phi_{\rm wide}&=\frac{1}{N_{\rm sta}}\sum_k
+\operatorname{clip}\!\left(\frac{n_{k,t}^+-n_{k,t}^--L_{\min}^{\rm corr}}
+{W_{{\rm trk},k}-L_{\min}^{\rm corr}},0,1\right).
+\end{aligned}
+\label{eq:reward_features}
+\end{equation}
+\endgroup
+
+\begin{adjustwidth}{-\extralength}{0cm}
+\reftitle{References}
 \begin{thebibliography}{34}
 
 \bibitem{betz2022survey}
@@ -1859,149 +1983,6 @@ Autonomous Challenge,'' \emph{Journal of Field Robotics}, vol. 40, no. 4,
 pp. 783--809, 2023.
 
 \end{thebibliography}
-
-\clearpage
-\raggedbottom
-\useRomanappendicesfalse
-\appendices
-\section{Algorithm and Evaluation Parameters}
-\label{app:parameters}
-\setcounter{table}{0}
-\setcounter{equation}{0}
-\renewcommand{\thetable}{A.\arabic{table}}
-\renewcommand{\theequation}{A\arabic{equation}}
-
-This appendix reports the principal numerical settings and normalized reward
-features used in the study.
-
-\FloatBarrier
-\begingroup
-\centering
-\fontsize{8}{9.4}\selectfont
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.00}
-\setlength{\defaultaddspace}{2pt}
-\setlength{\jot}{0pt}
-\captionof{table}{Principal model, tactical-policy, training, and closed-loop settings.
-Symbols follow Eqs.~\eqref{eq:action_vec} and~\eqref{eq:reward_sum}.}
-\label{tab:setup_params}
-\begin{tabular}{@{}
->{\raggedright\arraybackslash}p{0.22\linewidth}
->{\raggedright\arraybackslash}p{\dimexpr0.43\linewidth-2\tabcolsep\relax}
->{\raggedright\arraybackslash}p{\dimexpr0.35\linewidth-2\tabcolsep\relax}@{}}
-\toprule
-\textbf{Component} & \textbf{Parameter} & \textbf{Value} \\
-\midrule
-Vehicle geometry & \(m\); \newline \(I_z\); \newline \(l_f,l_r\) &
-\(742\) kg; \newline \(1500\) kg m\(^{2}\); \newline \(1.75,1.35\) m \\
-\addlinespace
-Tire curves & \(F_{z,0}\); \newline \(C_x,C_y\) &
-\(2079.72\) N; \newline \(1.6144,1.5998\) \\
-\addlinespace
-Tire curves & \(\mu_x,\mu_y\); \newline \(s_x,s_y\); \newline \(q_{x,\rm pk},q_{y,\rm pk}\) &
-\(2.2345,1.9745\); \newline \(-0.2555,-0.4787\); \newline \(0.1296,0.140\) \\
-\addlinespace
-Time scales & tactical decision step \(T_{\rm tac}\); \newline \(T_c\); \newline
-station spacing &
-\(0.005\) s; \newline \(0.01\) s; \newline \(2\) m \\
-\addlinespace
-Tactical bounds & \(L^{\rm cap},R^{\rm cap}\); \newline \(d_{\rm safe}\); \newline
-\(V_{\rm cap}^{\rm req}\) &
-\([1.5,8.0]\) m; \newline \([0.2,0.8]\) m; \newline \([15,90]\) m s\(^{-1}\) \\
-\addlinespace
-Gap bounds & \(g_{\rm chase}\); \newline \(g_{\rm ot}\); \newline \(g_{\rm abort}\) &
-\([18,24]\) m; \newline \([8,14]\) m; \newline \([28,45]\) m \\
-\addlinespace
-Mode bounds & \(b_{\rm lat}\); \newline \(q_{\rm side}\) &
-\([-1.5,1.5]\) m; \newline \([-1,1]\) \\
-\addlinespace
-Response-set teacher & Sobol candidates per side code; \(\varepsilon_{\rm BR}\);
-rollout steps \(H_G\); \(\gamma_g\) &
-\(64\); \(0.05\); \(100\); \(0.9995\) \\
-\addlinespace
-Projection and FSM & guard separation \(\Delta_g\); clearance-confirmation
-count \(N_{\rm post}\);
-stale-reference limit &
-\(0.5\) m; \(3\) tactical updates; \(1\) cycle \\
-\addlinespace
-TQC & critics; \(N_q\); retained \(K\); \(\gamma\) &
-\(2\); \(25\); \(46\); \(0.9995\) \\
-\addlinespace
-TQC guidance & \(\lambda_p\); \(\lambda_g\); prior metric &
-\(1\); \(1\); identity after action normalization \\
-\addlinespace
-Training & learning rate; replay capacity; batch size; target-update coefficient &
-\(3\times10^{-4}\); \(10^5\); \(256\); \(5\times10^{-3}\) \\
-\addlinespace
-Policy networks & actor encoder; critic outputs; auxiliary head &
-\(51\!\to\!256\!\to\!256\); two quantile heads; training only \\
-\addlinespace
-Reward & \(\bm w\), ordered as in Eq.~\eqref{eq:reward_sum} &
-\(\begin{aligned}[t]&(30,-20,-100,-2,\\
-&-5,3,-0.1,-0.5,\\&0.5,0.25)\end{aligned}\) \\
-\addlinespace
-Corridor & minimum width \(L_{\min}^{\rm corr}\) &
-\(3\) m \\
-\addlinespace
-Frenet health & \(\varepsilon_s\); \(\xi_{p,\max}\) &
-\(0.05\); \(1.30\) rad \\
-\addlinespace
-Path health & sequential-convexification iterations &
-\(5\) \\
-\addlinespace
-Speed profile & tire-cap grid intervals \(H_s\); \(V_{\min},v_{x,\max}\) &
-\(150\); \(10,90\) m s\(^{-1}\) \\
-\addlinespace
-RC-NMPC & steps \(N_c\); \(\delta_{\max}\); \(\dot\delta_{\max}\);
-\(\Delta V_{\max}\) &
-\(15\); \(0.35\) rad; \(1.0\) rad s\(^{-1}\);
-\(0.5\) m s\(^{-1}\) \\
-\addlinespace
-RC-NMPC weights & \(q_{\Delta\delta},q_c,q_\psi\); \(\bm R_\nu\) &
-\(2,20,10\); \(\operatorname{diag}(1,0.5)\) \\
-\bottomrule
-\end{tabular}
-\par\endgroup
-\FloatBarrier
-
-\begin{samepage}
-Here \(n_{\rm rl}\) is the raceline offset at \(s_e\),
-\(W_{{\rm trk},k}=n_{{\rm trk},k}^{+}-n_{{\rm trk},k}^{-}\),
-\(W_{\rm trk}=W_{{\rm trk},0}\), and
-\(\rho_{\rm exc}=\rho_{{\rm exc},0}\). The normalized reward features are
-\par
-\end{samepage}
-\begingroup
-\scriptsize
-\setlength{\jot}{0.5pt}
-\begin{equation}
-\begin{aligned}
-\phi_{\rm ot}&=\mathbb{1}[m_t=\textsc{Overtake},
-m_{t+1}=\textsc{Raceline},P_t],\\
-\phi_{\rm ovb}&=\phi_{\rm ot}\text{ with roles exchanged},\\
-\phi_{\rm col}&=\mathbb{1}[\mathrm{contact}\vee\mathrm{offtrack}],\\
-\phi_{\rm lat}&=\mathbb{1}[m_t=\textsc{Raceline}]
-\operatorname{clip}\!\left(\frac{n_e-n_{\rm rl}}{W_{\rm trk}/2},-1,1\right)^2,\\
-\phi_{\rm crush}&=\mathbb{1}[|\Delta s_t|<g_{\rm ot}]
-\left(\frac{[\rho_{\rm exc}-|\Delta n|]_+}{\rho_{\rm exc}}\right)^2,\\
-\phi_{\rm app}&=\mathbb{1}[0<\Delta s_t<g_{\rm chase}]
-\operatorname{clip}\!\left(\frac{\Delta s_{t-1}-\Delta s_t}{g_{\rm chase}},0,1\right),\\
-\phi_{\rm sm}&=\min\!\left\{1,
-\frac{\|\mathsf N_a(\bm a_t^{\rm F})-
-\mathsf N_a(\bm a_{t-1}^{\rm F})\|_2^2}{10}\right\},\\
-\phi_{\rm gs}&=\min\!\left\{1,\frac{1}{2N_{\rm sta}}
-\sum_k\sum_{\pm}\left(\frac{n_{k,t}^{\pm}-n_{k,t-1}^{\pm}}
-{W_{{\rm trk},k}}\right)^2\right\},\\
-\phi_{\rm sbs}&=\mathbb{1}[|\Delta s_t|<g_{\rm ot},
-|\Delta n|\ge\rho_{\rm exc}],\\
-\phi_{\rm wide}&=\frac{1}{N_{\rm sta}}\sum_k
-\operatorname{clip}\!\left(\frac{n_{k,t}^+-n_{k,t}^--L_{\min}^{\rm corr}}
-{W_{{\rm trk},k}-L_{\min}^{\rm corr}},0,1\right).
-\end{aligned}
-\label{eq:reward_features}
-\end{equation}
-\endgroup
-
-
+\end{adjustwidth}
 
 \end{document}
