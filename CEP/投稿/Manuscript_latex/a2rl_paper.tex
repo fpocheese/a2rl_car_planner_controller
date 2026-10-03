@@ -1020,14 +1020,7 @@ over a lap. Mean time to collision (TTC) and contact/track-violation rates
 describe interaction safety, while the path-feasibility ratio (PFR) is the
 fraction of feasible planning updates.
 
-\begin{figure}[!htbp]
-\begin{adjustwidth}{-\extralength}{0cm}
-\centering
-\includegraphics[width=\linewidth]{track_overview_case0205_v020.png}
-\caption{Representative overtaking situations on Yas Marina North.}
-\label{fig:four_case_track_overview}
-\end{adjustwidth}
-\end{figure}
+
 
 \subsection{Overtaking performance under representative track conditions}
 \label{subsec:representative_cases}
@@ -1039,6 +1032,15 @@ encounters at distinct locations on Yas Marina North. The matching labels
 (b)--(i) link each spatial view of the published corridor and planned path to
 its synchronized \textsc{Shadow} or \textsc{Overtake} simulator frame. 
 
+
+\begin{figure}[!htbp]
+\begin{adjustwidth}{-\extralength}{0cm}
+\centering
+\includegraphics[width=\linewidth]{track_overview_case0205_v020.png}
+\caption{Representative overtaking situations on Yas Marina North.}
+\label{fig:four_case_track_overview}
+\end{adjustwidth}
+\end{figure}
 
 
 Across the four encounters, the feasible region evolves from approach guidance into a
@@ -1073,6 +1075,17 @@ $-0.5$~m, the \textsc{Overtake} carver excludes the opponent-occupied region
 and retains a connected corridor as the ego reaches the Lead event.
 
 
+\begin{figure}[!htbp]
+\centering
+\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
+\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_02_path_corridor.png}}\\[-0.5mm]
+\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
+\caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
+response in Case~1.}
+\label{fig:case02_tactical_new}
+\end{figure}
+
+
 Figure~\ref{fig:case02_tactical_new} summarizes the corresponding FSM sequence,
 Frenet trajectories, and speed response. In panel~(b), $s-s_0$ denotes
 trackwise progress relative to the initial ego position, and $n$ denotes the
@@ -1090,12 +1103,13 @@ and exceeds 70~m~s$^{-1}$ during lead acquisition.
 
 \begin{figure}[!htbp]
 \centering
-\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
-\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_02_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
-\caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
-response in Case~1.}
-\label{fig:case02_tactical_new}
+\subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_lateral.png}}\\[-0.5mm]
+\subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
+\subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_heading.png}}\\[-0.5mm]
+\subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
+\caption{Closed-loop tracking errors and realized acceleration demand in
+Case~1.}
+\label{fig:case02_tracking_new}
 \end{figure}
 
 
@@ -1108,17 +1122,6 @@ therefore realized as a trackable path--speed reference throughout the
 high-speed overtake.
 
 
-\begin{figure}[!htbp]
-\centering
-\subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_lateral.png}}\\[-0.5mm]
-\subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
-\subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_heading.png}}\\[-0.5mm]
-\subfloat[Realized acceleration demand.]{\includegraphics[width=0.65\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
-\caption{Closed-loop tracking errors and realized acceleration demand in
-Case~1.}
-\label{fig:case02_tracking_new}
-\end{figure}
-
 \subsubsection*{Case 2: high-speed overtake through consecutive corners}
 
 Case~2 represents a high-speed overtake through successive curvature changes.
@@ -1128,6 +1131,16 @@ guiding the planned path toward the selected lateral position. At
 $\Delta s=-0.4$~m, full \textsc{Overtake} exclusion preserves the same-side
 channel as the corridor guides the ego through the Lead event within the track
 boundaries.
+
+\begin{figure}[!htbp]
+\centering
+\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
+\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_05_path_corridor.png}}\\[-0.5mm]
+\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
+\caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
+response in Case~2.}
+\label{fig:case05_tactical_new}
+\end{figure}
 
 Figure~\ref{fig:case05_tactical_new} summarizes the corresponding FSM sequence,
 Frenet trajectories, and speed response. The published feasible corridor
@@ -1140,15 +1153,6 @@ preserving lateral clearance throughout the overtaking maneuver. From an entry s
 60~m~s$^{-1}$, the actual speed closely follows the desired braking and
 re-acceleration profile throughout lead acquisition.
 
-\begin{figure}[!htbp]
-\centering
-\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
-\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_05_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
-\caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
-response in Case~2.}
-\label{fig:case05_tactical_new}
-\end{figure}
 
 Figure~\ref{fig:case05_tracking_new} presents the closed-loop realization of
 this curved passing channel. The peak absolute lateral contouring,
@@ -1164,7 +1168,7 @@ consecutive corners with changing track width.
 \subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_lateral.png}}\\[-0.5mm]
 \subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_speed.png}}\\[-0.5mm]
 \subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_heading.png}}\\[-0.5mm]
-\subfloat[Realized acceleration demand.]{\includegraphics[width=0.65\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
+\subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
 \caption{Closed-loop tracking errors and realized acceleration demand in
 Case~2.}
 \label{fig:case05_tracking_new}
