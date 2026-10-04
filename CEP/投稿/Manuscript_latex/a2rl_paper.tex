@@ -281,7 +281,7 @@ forces are represented by
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\linewidth]{model_shuoming_corrected.pdf}
+\includegraphics[width=0.8\linewidth]{model_shuoming_corrected.pdf}
 \caption{Vehicle motion and relative geometry in the Frenet frame.}
 \label{fig:vehicle_track_model}
 \end{figure}
@@ -332,10 +332,8 @@ The lateral coordinate is positive to the left, with
 $n_{\rm trk}^{-}(s)\le n\le n_{\rm trk}^{+}(s)$.
 Centerline projection gives the relative ego--opponent state
 \begin{equation}
-\begin{aligned}
-\Delta s&=\operatorname{wrap}_{L_{\rm trk}}(s_o-s_e),\\
-\Delta n&=n_o-n_e,\qquad \Delta v=v_{s,e}-v_{s,o}.
-\end{aligned}
+\Delta s=\operatorname{wrap}_{L_{\rm trk}}(s_o-s_e),
+\qquad \Delta n=n_o-n_e,\qquad \Delta v=v_{s,e}-v_{s,o}.
 \label{eq:rel}
 \end{equation}
 Here $\operatorname{wrap}_{L_{\rm trk}}(\cdot)$ returns the signed
@@ -345,12 +343,10 @@ the ego closing. Under the adopted A2RL racing rule, the first sampled
 instant satisfying $\Delta s<0$ defines the Lead event. Side-lock release
 requires longitudinal separation of the two vehicle footprints:
 \begin{equation}
-\begin{aligned}
-h_{s,j,t}&=\frac12\left(L_j|\cos\xi_{j,t}|+W_j|\sin\xi_{j,t}|\right),
-\quad j\in\{e,o\},\\
--\Delta s_t&\ge g_{\rm ot}\ge
+h_{s,j,t}=\frac12\left(L_j|\cos\xi_{j,t}|+W_j|\sin\xi_{j,t}|\right),
+\;j\in\{e,o\},\quad
+-\Delta s_t\ge g_{\rm ot}\ge
 h_{s,e,t}+h_{s,o,t}+d_{\rm safe}.
-\end{aligned}
 \label{eq:lock_release_clearance}
 \end{equation}
 The side lock is released after Eq.~\eqref{eq:lock_release_clearance} holds
@@ -402,12 +398,10 @@ At each tactical update, the encoder combines the two vehicle states, local
 track preview, current mode, side lock, and execution health into
 $\widetilde{\bm o}_t$. The actor produces
 \begin{equation}
-\begin{aligned}
-\bm a^{\rm raw}=\bigl[&L^{\rm cap},R^{\rm cap},d_{\rm safe},
-V_{\rm cap}^{\rm req},g_{\rm chase},\\[-1mm]
-&g_{\rm ot},g_{\rm abort},b_{\rm lat},w_{\rm safe},
+\bm a^{\rm raw}=\bigl[L^{\rm cap},R^{\rm cap},d_{\rm safe},
+V_{\rm cap}^{\rm req},g_{\rm chase},
+g_{\rm ot},g_{\rm abort},b_{\rm lat},w_{\rm safe},
 q_{\rm side}\bigr]^\top 
-\end{aligned}
 \label{eq:action_vec}
 \end{equation}
 where the components specify the left and right lateral caps, footprint
@@ -463,12 +457,10 @@ c_w=\sum_{j=1}^{10}[-w_j]_+
 \).
 The normalized role-relative utility is
 \begin{equation}
-\begin{aligned}
 U_i(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
-&=\frac{1}{Z_g\|\bm w\|_1}
-\sum_{k=0}^{H_G-1}\gamma_g^k\\[-1mm]
-&\quad{}\left[\bm w^\top\bm\phi_{i,k}(\mathcal R_e,\mathcal R_o)+c_w\right],
-\end{aligned}
+=\frac{1}{Z_g\|\bm w\|_1}
+\sum_{k=0}^{H_G-1}\gamma_g^k
+\left[\bm w^\top\bm\phi_{i,k}(\mathcal R_e,\mathcal R_o)+c_w\right],
 \label{eq:game_utility}
 \end{equation}
 where $\bm\phi_i\in[0,1]^{10}$ contains the role-relative reward features in Appendix
@@ -480,13 +472,11 @@ near-best response set is
 \begin{subequations}
 \label{eq:response_set_teacher}
 \begin{equation}
-\begin{aligned}
 \mathfrak R_o^\varepsilon(\bm s_t^G,\bm a_e^{\rm F})
-=\bigl\{\bm a_o^{\rm F}\in\mathcal A_o^G(\bm s_t^G):\;&
-U_o(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})\\[-1mm]
-&\ge U_o^{\max}(\bm s_t^G,\bm a_e^{\rm F})
+=\bigl\{\bm a_o^{\rm F}\in\mathcal A_o^G(\bm s_t^G):\;
+U_o(\bm s_t^G,\bm a_e^{\rm F},\bm a_o^{\rm F})
+\ge U_o^{\max}(\bm s_t^G,\bm a_e^{\rm F})
 -\varepsilon_{\rm BR}\bigr\}.
-\end{aligned}
 \label{eq:near_best_response_set}
 \end{equation}
 The teacher evaluates each candidate against its least favorable retained
@@ -572,8 +562,8 @@ The environment reward is
 \begin{aligned}
 r_t&=\bm w^\top\bm\phi_t,\\
 \bm\phi_t&=[\phi_{\rm ot},\phi_{\rm ovb},\phi_{\rm col},\phi_{\rm lat},
-\phi_{\rm crush},\phi_{\rm app},\\[-1mm]
-&\hspace{9mm}\phi_{\rm sm},\phi_{\rm gs},\phi_{\rm sbs},
+\phi_{\rm crush},\phi_{\rm app},
+\phi_{\rm sm},\phi_{\rm gs},\phi_{\rm sbs},
 \phi_{\rm wide}]^\top .
 \end{aligned}
 \label{eq:reward_sum}
@@ -650,7 +640,7 @@ Figure~\ref{fig:framework_overview} summarizes the overall information flow.
 \begin{figure}[!htbp]
 \begin{adjustwidth}{-\extralength}{0cm}
 \centering
-\includegraphics[width=0.85\linewidth]{figure_sources/framework_overview_lead.pdf}
+\includegraphics[width=0.9\linewidth]{figure_sources/framework_overview_lead.pdf}
 \caption{Overview of the proposed game-supervised tactical feasible-region
 framework.}
 \label{fig:framework_overview}
@@ -974,7 +964,7 @@ The Abu Dhabi Autonomous Racing League (A2RL) provides a full-scale head-to-head
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\linewidth]{sim_shuoming.pdf}
+\includegraphics[width=0.7\linewidth]{sim_shuoming.pdf}
 \caption{Hardware-in-the-loop architecture coupling the A2RL high-fidelity
 AutoVerse simulator with the RGS-8805GC onboard computer used in the
 full-scale race vehicle.}
@@ -1077,9 +1067,9 @@ and retains a connected corridor as the ego reaches the Lead event.
 
 \begin{figure}[!htbp]
 \centering
-\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
-\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_02_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
+\subfloat[FSM mode.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_02_fsm_mode.png}}\\[-0.5mm]
+\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=0.85\linewidth]{figure_sources/lead_corridor_panels/case_02_path_corridor.png}}\\[-0.5mm]
+\subfloat[Vehicle speed.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_02_dynamics_speed.png}}
 \caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
 response in Case~1.}
 \label{fig:case02_tactical_new}
@@ -1103,10 +1093,10 @@ and exceeds 70~m~s$^{-1}$ during lead acquisition.
 
 \begin{figure}[!htbp]
 \centering
-\subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_lateral.png}}\\[-0.5mm]
-\subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
-\subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_tracking_heading.png}}\\[-0.5mm]
-\subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
+\subfloat[Lateral contouring error.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_02_tracking_lateral.png}}\\[-0.5mm]
+\subfloat[Speed-tracking error.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_02_tracking_speed.png}}\\[-0.5mm]
+\subfloat[Heading-tracking error.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_02_tracking_heading.png}}\\[-0.5mm]
+\subfloat[Realized acceleration demand.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_02_gg_diagram.png}}
 \caption{Closed-loop tracking errors and realized acceleration demand in
 Case~1.}
 \label{fig:case02_tracking_new}
@@ -1134,9 +1124,9 @@ boundaries.
 
 \begin{figure}[!htbp]
 \centering
-\subfloat[FSM mode.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
-\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=\linewidth]{figure_sources/lead_corridor_panels/case_05_path_corridor.png}}\\[-0.5mm]
-\subfloat[Vehicle speed.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
+\subfloat[FSM mode.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_05_fsm_mode.png}}\\[-0.5mm]
+\subfloat[Frenet trajectories, published corridor, and track bounds.]{\includegraphics[width=0.85\linewidth]{figure_sources/lead_corridor_panels/case_05_path_corridor.png}}\\[-0.5mm]
+\subfloat[Vehicle speed.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_05_dynamics_speed.png}}
 \caption{Tactical-mode sequence, Frenet trajectories and corridor, and speed
 response in Case~2.}
 \label{fig:case05_tactical_new}
@@ -1165,10 +1155,10 @@ consecutive corners with changing track width.
 
 \begin{figure}[!htbp]
 \centering
-\subfloat[Lateral contouring error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_lateral.png}}\\[-0.5mm]
-\subfloat[Speed-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_speed.png}}\\[-0.5mm]
-\subfloat[Heading-tracking error.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_tracking_heading.png}}\\[-0.5mm]
-\subfloat[Realized acceleration demand.]{\includegraphics[width=\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
+\subfloat[Lateral contouring error.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_05_tracking_lateral.png}}\\[-0.5mm]
+\subfloat[Speed-tracking error.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_05_tracking_speed.png}}\\[-0.5mm]
+\subfloat[Heading-tracking error.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_05_tracking_heading.png}}\\[-0.5mm]
+\subfloat[Realized acceleration demand.]{\includegraphics[width=0.85\linewidth]{other_pic_V18/single_panels/case_05_gg_diagram.png}}
 \caption{Closed-loop tracking errors and realized acceleration demand in
 Case~2.}
 \label{fig:case05_tracking_new}
@@ -1316,6 +1306,49 @@ PFR $\uparrow$
 \end{tabular}
 \end{table}
 
+
+
+Across 1000 Monte Carlo closed-loop HIL laps per method, the proposed method
+achieved a lead-acquisition rate of 94.7\% and a mean time to lead acquisition of
+4.82~s. Compared with the three baselines, the lead-acquisition rate increased by
+31.2--66.2 percentage points and the mean time to lead acquisition decreased by
+3.01--6.41~s. Among the baselines, iLQGames achieved the highest lead-acquisition rate
+of 63.5\%, demonstrating the benefit of coupled interaction reasoning. The
+further improvement obtained by the proposed method demonstrates the advantage
+of expressing tactical reasoning as a persistent feasible region for
+closed-loop execution. Compared with iLQGames, the proposed method increased
+the mean minimum gap from 2.31 to 5.83~m and reduced the contact rate from
+1.4\% to zero. A PFR of 1.000 indicates that the common SOCP planner found a
+feasible solution at every planning cycle. The remaining 53 laps ended without
+reaching the Lead event.
+
+
+\subsection{Ablation study}
+\label{subsec:ablation}
+
+Eight ablation variants evaluate the contributions of response-set
+supervision, stateful side commitment, adaptive corridor--speed guidance, and
+distributional value learning while retaining the same downstream planning
+and control stack. All variants were independently trained and evaluated under
+matched conditions. \emph{Without action prior (No-AP)} sets
+$\lambda_p=0$ while retaining action-conditioned robust-value supervision,
+whereas \emph{without robust-value supervision (No-RV)} sets
+$\lambda_g=0$ while retaining the response-set-optimal action prior.
+\emph{Without game guidance (No-GG)} removes both supervision signals.
+\emph{Without FSM (No-FSM)} jointly removes the hysteretic mode transitions
+and side lock, allowing the passing-side command to follow the current policy
+output at each tactical update. \emph{Fixed corridor geometry (Fixed-C)}
+replaces the learned lateral-cap, clearance, lateral-bias, and width outputs
+with the same nominal values used in Fixed-C/S, while retaining the learned
+speed request. \emph{Fixed speed guidance (Fixed-S)} fixes only
+$V_{\rm cap}^{\rm req}$ while retaining the learned corridor geometry.
+\emph{Fixed corridor and speed guidance (Fixed-C/S)} combines both
+interventions. The passing-side and transition outputs remain learned in all
+three fixed-guidance variants. The final variant replaces TQC with Soft
+Actor-Critic (SAC) under the same observation and action spaces, actor
+architecture, reward function, replay protocol, and training budget.
+
+
 \begin{table}[!htbp]
 \centering
 \scriptsize
@@ -1360,46 +1393,6 @@ PFR $\uparrow$
 \bottomrule
 \end{tabular}
 \end{table}
-
-Across 1000 Monte Carlo closed-loop HIL laps per method, the proposed method
-achieved a lead-acquisition rate of 94.7\% and a mean time to lead acquisition of
-4.82~s. Compared with the three baselines, the lead-acquisition rate increased by
-31.2--66.2 percentage points and the mean time to lead acquisition decreased by
-3.01--6.41~s. Among the baselines, iLQGames achieved the highest lead-acquisition rate
-of 63.5\%, demonstrating the benefit of coupled interaction reasoning. The
-further improvement obtained by the proposed method demonstrates the advantage
-of expressing tactical reasoning as a persistent feasible region for
-closed-loop execution. Compared with iLQGames, the proposed method increased
-the mean minimum gap from 2.31 to 5.83~m and reduced the contact rate from
-1.4\% to zero. A PFR of 1.000 indicates that the common SOCP planner found a
-feasible solution at every planning cycle. The remaining 53 laps ended without
-reaching the Lead event.
-
-
-\subsection{Ablation study}
-\label{subsec:ablation}
-
-Eight ablation variants evaluate the contributions of response-set
-supervision, stateful side commitment, adaptive corridor--speed guidance, and
-distributional value learning while retaining the same downstream planning
-and control stack. All variants were independently trained and evaluated under
-matched conditions. \emph{Without action prior (No-AP)} sets
-$\lambda_p=0$ while retaining action-conditioned robust-value supervision,
-whereas \emph{without robust-value supervision (No-RV)} sets
-$\lambda_g=0$ while retaining the response-set-optimal action prior.
-\emph{Without game guidance (No-GG)} removes both supervision signals.
-\emph{Without FSM (No-FSM)} jointly removes the hysteretic mode transitions
-and side lock, allowing the passing-side command to follow the current policy
-output at each tactical update. \emph{Fixed corridor geometry (Fixed-C)}
-replaces the learned lateral-cap, clearance, lateral-bias, and width outputs
-with the same nominal values used in Fixed-C/S, while retaining the learned
-speed request. \emph{Fixed speed guidance (Fixed-S)} fixes only
-$V_{\rm cap}^{\rm req}$ while retaining the learned corridor geometry.
-\emph{Fixed corridor and speed guidance (Fixed-C/S)} combines both
-interventions. The passing-side and transition outputs remain learned in all
-three fixed-guidance variants. The final variant replaces TQC with Soft
-Actor-Critic (SAC) under the same observation and action spaces, actor
-architecture, reward function, replay protocol, and training budget.
 
 
 
@@ -1642,6 +1635,7 @@ features used in the study.
 \setlength{\LTleft}{0pt}
 \setlength{\LTright}{0pt plus 1fill}
 \setlength{\LTcapwidth}{\linewidth}
+\setlength{\LTpost}{4pt}
 \begin{longtable}{@{}
 >{\raggedright\arraybackslash}p{0.22\linewidth}
 >{\raggedright\arraybackslash}p{\dimexpr0.43\linewidth-2\tabcolsep\relax}
@@ -1731,16 +1725,19 @@ RC-NMPC weights & \(q_{\Delta\delta},q_c,q_\psi\); \(\bm R_\nu\) &
 \par\endgroup
 \FloatBarrier
 
-\begin{samepage}
+\noindent\begin{minipage}{\linewidth}
 Here \(n_{\rm rl}\) is the raceline offset at \(s_e\),
 \(W_{{\rm trk},k}=n_{{\rm trk},k}^{+}-n_{{\rm trk},k}^{-}\),
 \(W_{\rm trk}=W_{{\rm trk},0}\), and
 \(\rho_{\rm exc}=\rho_{{\rm exc},0}\). The normalized reward features are
 \par
-\end{samepage}
 \begingroup
-\scriptsize
-\setlength{\jot}{0.5pt}
+\normalsize
+\setlength{\jot}{3pt}
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\abovedisplayshortskip}{4pt}
+\setlength{\belowdisplayshortskip}{4pt}
 \begin{equation}
 \begin{aligned}
 \phi_{\rm ot}&=\mathbb{1}[m_t=\textsc{Overtake},
@@ -1768,6 +1765,7 @@ m_{t+1}=\textsc{Raceline},P_t],\\
 \label{eq:reward_features}
 \end{equation}
 \endgroup
+\end{minipage}\par
 
 \begin{adjustwidth}{-\extralength}{0cm}
 \reftitle{References}
