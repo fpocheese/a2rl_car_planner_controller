@@ -1,10 +1,13 @@
-# Machines LaTeX 稿件
+# Sensors LaTeX 稿件
 
 主文件：`a2rl_paper.tex`；编译结果：`a2rl_paper.pdf`。
 
 采用用户提供的 MDPI 模板，文档选项为
-`[machines,article,submit,moreauthors]`，保留投稿模式的行号。
+`[sensors,article,submit,moreauthors]`，保留投稿模式的行号。
 `Definitions/` 从 `tougao_mdpi/Definitions/` 原样复制；本目录可独立编译。
+
+主文件通过重定义 `\leftcolumnCright` 隐藏首页版权及投稿许可声明。
+作者列表和 PDF 作者元数据已移除 Weiting He，其数据收集与分析贡献在致谢中说明。
 
 在本目录运行：
 

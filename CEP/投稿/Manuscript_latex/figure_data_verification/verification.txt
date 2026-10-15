@@ -1,0 +1,34 @@
+Figure-data verification
+
+Result: all 18 manuscript PNG assets for Figures 5-12 were reproduced with
+zero differing pixels using the final seven-column CSV data and the original
+figure styling and simulator screenshots.
+
+CSV schema (English only):
+figure: manuscript figure number.
+panel: manuscript panel letter.
+series: plotted curve, point set, boundary, or filled-surface component.
+point: point order within that series, starting at 1.
+x, y: final horizontal and vertical plotting coordinates.
+z: third coordinate for 3D data; blank for 2D data.
+Units follow the axes of the corresponding manuscript panel.
+
+For example, Fig6 / c / ego_speed contains time in x and ego speed in y.
+Select a figure, panel, and series and plot its coordinates in point order.
+Do not smooth, scale, interpolate, filter, extend, or transform these values.
+Filled regions and 3D mesh faces are already represented by their final
+ordered vertices. Identical track geometry used by several cases is included
+in each corresponding case file.
+
+Only geometry actually drawn in the paper is included. Unplotted telemetry,
+unused local plans, and intermediate tables have been removed. Imola and
+Suzuka overview figures use track geometry and event locations; their
+simulator views remain image assets rather than numerical CSV series.
+
+Files: 4 Yas Marina cases, 4 Imola cases, 4 Suzuka cases, and Fig10.csv.
+The data directory contains only these 13 CSV files, with no plotting code.
+
+Pixel identity additionally requires the original fonts, colors, layout,
+annotation formatting, simulator screenshots, and 600 dpi PNG export settings.
+CSV alone cannot reconstruct simulator screenshot pixels or prescribe styling.
+See verification.json for per-image pixel counts and final CSV checksums.

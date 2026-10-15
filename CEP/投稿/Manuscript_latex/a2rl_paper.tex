@@ -1,5 +1,5 @@
-%% Machines manuscript using the supplied MDPI template.
-\documentclass[machines,article,submit,moreauthors]{Definitions/mdpi}
+%% Sensors manuscript using the supplied MDPI template.
+\documentclass[sensors,article,submit,moreauthors]{Definitions/mdpi}
 \pdfminorversion=7
 
 % MDPI publication metadata; dates remain blank for editorial use.
@@ -16,6 +16,9 @@
 \daterevised{ }
 \dateaccepted{ }
 \datepublished{ }
+
+% Omit the first-page copyright and submission-license statement.
+\renewcommand{\leftcolumnCright}{}
 
 % The MDPI class supplies graphics, mathematics, subfigures, captions,
 % numeric citations, hyperlinks, and the standard table packages.
@@ -36,6 +39,15 @@
 % The offsetting changes preserve the template's body position and height.
 \addtolength{\headheight}{12pt}
 \addtolength{\headsep}{-12pt}
+
+% Remove submission-version text and the placeholder DOI from every page.
+\fancyhead[L]{}
+\fancyfoot[R]{}
+\fancypagestyle{plain}{%
+  \fancyhead{\null\vspace{8pt}}
+  \fancyfoot[L,R]{}
+  \renewcommand{\footrulewidth}{0.4pt}
+}
 
 % Keep large single-column figures flexible and top-align float-only pages.
 \makeatletter
@@ -58,11 +70,10 @@
 
 \Title{Robust Stackelberg-Supervised Overtaking Policy with Persistent Tactical Corridors for Autonomous Racing}
 
-\Author{Shuyi Gao $^{1}$, Ren Jin $^{1,}$*, Defu Lin $^{1}$, Weiqiang Xiao $^{1}$, Jinmeng Chen $^{1}$ and Weiting He $^{2}$}
-\AuthorNames{Shuyi Gao, Ren Jin, Defu Lin, Weiqiang Xiao, Jinmeng Chen and Weiting He}
+\Author{Shuyi Gao $^{1}$, Ren Jin $^{1,}$*, Defu Lin $^{1}$, Weiqiang Xiao $^{1}$ and Jinmeng Chen $^{1}$}
+\AuthorNames{Shuyi Gao, Ren Jin, Defu Lin, Weiqiang Xiao and Jinmeng Chen}
 \address{%
-$^{1}$ \quad School of Aerospace Engineering, Beijing Institute of Technology, Beijing, China\\
-$^{2}$ \quad The High School Affiliated to Renmin University of China, Beijing, China}
+$^{1}$ \quad School of Aerospace Engineering, Beijing Institute of Technology, Beijing, China}
 \corres{Correspondence: renjin@bit.edu.cn (Ren Jin)}
 
 % The abstract text is unchanged; its IEEE graphical inset is omitted.
@@ -1608,7 +1619,7 @@ Future work will focus on high-speed on-track validation using a full-scale auto
 
 % Existing support and acknowledgement text, in MDPI back-matter commands.
 \funding{This work was supported by the National Natural Science Foundation of China under Grant No. 52672527.}
-\acknowledgments{The authors acknowledge A2RL for providing the EAV24 simulation and vehicle-interface environment.}
+\acknowledgments{The authors acknowledge A2RL for providing the EAV24 simulation and vehicle-interface environment. The authors also thank Weiting He for contributions to data collection and analysis.}
 
 \FloatBarrier
 \appendixtitles{yes}

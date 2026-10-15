@@ -1,0 +1,474 @@
+{
+  "scope": "Figures 5-12, 18 manuscript PNG assets",
+  "csv_files": [
+    {
+      "file": "04_YasMarina_Case4.csv",
+      "rows": 8733,
+      "series": 30,
+      "columns": 7,
+      "old_sha256": "10c9aca26ef42dbc5beaaf4c93050b1b48d9e8b01838e820fa6d93bdf5130b36",
+      "new_sha256": "5405512fc25ee988cc0f69e477c3105eb8a40cf9e146ea648b0f43653519dc5c"
+    },
+    {
+      "file": "09_Suzuka_Case1.csv",
+      "rows": 2132,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "e9c2d6ba2c83d964c98813ef6036b5fa24bfc4f3ce9bce72fa768c2e3072fe44",
+      "new_sha256": "4346370ca3d334e2592ab9a432353429d5fdcf179690aeaae02d7d2ab347ff2d"
+    },
+    {
+      "file": "12_Suzuka_Case4.csv",
+      "rows": 2132,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "2344d194df9fd916a734b74ea572deb5ea99a5b297177d477c803a10c3abbcbc",
+      "new_sha256": "e5e36430523ceaf757077cc63ad6a11a1112ac0d015ea540bbbb029e989b95a2"
+    },
+    {
+      "file": "06_Imola_Case2.csv",
+      "rows": 1830,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "2d1eca43c888aa476142a22dc18715cec21c6a1c4cc69eb3a03478b402c2af2e",
+      "new_sha256": "7d931cdd2e8dd3fb87fd12423a944ddbebc35b24a246566754d26bd070806f08"
+    },
+    {
+      "file": "05_Imola_Case1.csv",
+      "rows": 1830,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "e719cf54e07075981e2b1885c6d55e9e82a4143528dfdffb7e57ccae8657e60e",
+      "new_sha256": "db97ee8d505a003691f2a00b0b9a2a2fa3d40231f5f5715d0bbf0060a4bc5eb0"
+    },
+    {
+      "file": "10_Suzuka_Case2.csv",
+      "rows": 2132,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "80b2c45f7b897559e677d921be5aca60228f7ff96beba4ed0f4699b952ee06ba",
+      "new_sha256": "044a579bca64ac85134589c8e2ca7ea93ce2bc42aa249a9c4f7598c76f982382"
+    },
+    {
+      "file": "03_YasMarina_Case3.csv",
+      "rows": 8733,
+      "series": 30,
+      "columns": 7,
+      "old_sha256": "0dc45bca681da9e51e412d3a1487fcb0160b07a1d8b1cbee20c72ff8421def50",
+      "new_sha256": "dc1233f399b1e026114a0d6e4641fe0b10681f249a1451faf4025f1c13706ea4"
+    },
+    {
+      "file": "01_YasMarina_Case1.csv",
+      "rows": 14302,
+      "series": 242,
+      "columns": 7,
+      "old_sha256": "e3c434ad9f39c5d24ee638e177a3a79a4c7e24ea0b029b81303b9546133879f0",
+      "new_sha256": "e624ea8cf886d340479240513e896e5b4768f6e21067fb54fa713c9faeefae57"
+    },
+    {
+      "file": "02_YasMarina_Case2.csv",
+      "rows": 18259,
+      "series": 242,
+      "columns": 7,
+      "old_sha256": "06b0b55c30726d14e9d8938f4c0427b4b61c126146a0dfad7068d1b350df7aa7",
+      "new_sha256": "a25528f36ae531d845cd693fc80c769db10cabbb99abf8065585aa46dbc1bdef"
+    },
+    {
+      "file": "07_Imola_Case3.csv",
+      "rows": 1830,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "5b44fba93d3409e02dfa120b9c12ba28a78d71f1502f4f7b3274cb9c30b34d5b",
+      "new_sha256": "c3a3a640590a45ee1ebb047c188f9a20f1b782e8b3f3446d65565ad0cf898084"
+    },
+    {
+      "file": "Fig10.csv",
+      "rows": 1511,
+      "series": 22,
+      "columns": 7,
+      "old_sha256": "d910fc037c49cc331cc09b722d12bce0a8411db12faaa0f469625d3c57c5b8cd",
+      "new_sha256": "2f1059805c771069782b74cff43957f431e6182eb0e4ef0c5e4ae983ad1e5359"
+    },
+    {
+      "file": "11_Suzuka_Case3.csv",
+      "rows": 2132,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "e12796a478def0850dca5fb86d5138dcfc46f1e0fb693b00c79bf3ca67f893e3",
+      "new_sha256": "2ccab4ed23b50f1f26e14f7453f2651f2e910d1aebb734912d933ed2463f0788"
+    },
+    {
+      "file": "08_Imola_Case4.csv",
+      "rows": 1830,
+      "series": 6,
+      "columns": 7,
+      "old_sha256": "be7e39a93ae2a6cad3afb778e22274a97e62ca66dc218ff688e39ceb5053e872",
+      "new_sha256": "45ac9a2002a8a2f4028b0e5d2587a7565e0dd85663c673b154e40fa3e044430b"
+    }
+  ],
+  "image_comparison": [
+    {
+      "image": "case_02_blocking_sequence_half_body.png",
+      "figure": "Fig10",
+      "coordinate_sets": 32,
+      "uses_original_screenshots": true,
+      "shape_equal": true,
+      "reference_shape": [
+        2125,
+        4204,
+        4
+      ],
+      "replay_shape": [
+        2125,
+        4204,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_02_dynamics_speed.png",
+      "figure": "Fig6",
+      "coordinate_sets": 3,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        521,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        521,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_02_fsm_mode.png",
+      "figure": "Fig6",
+      "coordinate_sets": 8,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        521,
+        2016,
+        4
+      ],
+      "replay_shape": [
+        521,
+        2016,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_02_gg_diagram.png",
+      "figure": "Fig7",
+      "coordinate_sets": 2,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        1174,
+        1801,
+        4
+      ],
+      "replay_shape": [
+        1174,
+        1801,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_02_path_corridor.png",
+      "figure": "Fig6",
+      "coordinate_sets": 17,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        1198,
+        1948,
+        4
+      ],
+      "replay_shape": [
+        1198,
+        1948,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_02_tracking_heading.png",
+      "figure": "Fig7",
+      "coordinate_sets": 1,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        512,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        512,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_02_tracking_lateral.png",
+      "figure": "Fig7",
+      "coordinate_sets": 1,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        512,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        512,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_02_tracking_speed.png",
+      "figure": "Fig7",
+      "coordinate_sets": 1,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        512,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        512,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_05_dynamics_speed.png",
+      "figure": "Fig8",
+      "coordinate_sets": 3,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        521,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        521,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_05_fsm_mode.png",
+      "figure": "Fig8",
+      "coordinate_sets": 8,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        521,
+        2016,
+        4
+      ],
+      "replay_shape": [
+        521,
+        2016,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_05_gg_diagram.png",
+      "figure": "Fig9",
+      "coordinate_sets": 2,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        1174,
+        1801,
+        4
+      ],
+      "replay_shape": [
+        1174,
+        1801,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_05_path_corridor.png",
+      "figure": "Fig8",
+      "coordinate_sets": 17,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        1198,
+        1948,
+        4
+      ],
+      "replay_shape": [
+        1198,
+        1948,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_05_tracking_heading.png",
+      "figure": "Fig9",
+      "coordinate_sets": 1,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        512,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        512,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_05_tracking_lateral.png",
+      "figure": "Fig9",
+      "coordinate_sets": 1,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        512,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        512,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "case_05_tracking_speed.png",
+      "figure": "Fig9",
+      "coordinate_sets": 1,
+      "uses_original_screenshots": false,
+      "shape_equal": true,
+      "reference_shape": [
+        512,
+        2027,
+        4
+      ],
+      "replay_shape": [
+        512,
+        2027,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "track_overview_case0205_v020.png",
+      "figure": "Fig5",
+      "coordinate_sets": 116,
+      "uses_original_screenshots": true,
+      "shape_equal": true,
+      "reference_shape": [
+        2598,
+        7294,
+        4
+      ],
+      "replay_shape": [
+        2598,
+        7294,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "track_overview_imola_v007.png",
+      "figure": "Fig11",
+      "coordinate_sets": 20,
+      "uses_original_screenshots": true,
+      "shape_equal": true,
+      "reference_shape": [
+        1908,
+        2362,
+        4
+      ],
+      "replay_shape": [
+        1908,
+        2362,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "image": "track_overview_suzuka_selected_four_v005.png",
+      "figure": "Fig12",
+      "coordinate_sets": 20,
+      "uses_original_screenshots": true,
+      "shape_equal": true,
+      "reference_shape": [
+        1954,
+        2362,
+        4
+      ],
+      "replay_shape": [
+        1954,
+        2362,
+        4
+      ],
+      "pixel_identical": true,
+      "different_pixels": 0,
+      "max_channel_difference": 0
+    }
+  ],
+  "replay_method": "Final coordinates are read directly from the seven-column CSV files. No smoothing, scaling, interpolation, filtering, extrapolation, or coordinate transformation is performed during replay. Original figure styles, annotation formatting, 600 dpi export settings, and simulator screenshots are retained.",
+  "limits": "CSV contains numerical plot coordinates, not simulator screenshot pixels. Pixel identity requires the original layout, fonts, colors, annotation formatting, screenshot assets, and PNG export settings. The seven columns are figure, panel, series, point, x, y, z. Units follow the corresponding published axes; z is blank for 2D data.",
+  "static_preflight": "Syntax and transformation checks passed. The general figure checker flags missing PDF/SVG submission exports and generic font preferences; these are not applied because this task exactly reproduces the published NewTX PNG assets without redesign."
+}
